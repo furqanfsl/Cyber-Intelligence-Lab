@@ -278,3 +278,16 @@ test('health records must identify canonical sources in the feed association ord
   assert.equal(isLiveIntelPayload(missing), false)
   assert.equal(isLiveIntelPayload(fixture()), true)
 })
+
+test('CISA calendar dates reject rollover and locale-dependent input', () => {
+  for (const field of ['dateAdded', 'dueDate']) {
+    for (const value of ['2026-02-30', '2026-13-01', '09/22/2026', '2026-09-22T00:00:00Z']) {
+      const data = fixture(); data.kev[0][field] = value
+      assert.equal(isLiveIntelPayload(data), false, field + ': ' + value)
+    }
+  }
+  const unknownDeadline = fixture(); unknownDeadline.kev[0].dueDate = 'Unknown'
+  assert.equal(isLiveIntelPayload(unknownDeadline), true)
+  const leapDay = fixture(); leapDay.kev[0].dateAdded = '2024-02-29'
+  assert.equal(isLiveIntelPayload(leapDay), true)
+})

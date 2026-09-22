@@ -1,5 +1,6 @@
 import type { LiveIntelPayload } from '../../shared/live-intel.ts'
 import { CISA_NAME, NEWS_NAME } from '../../shared/live-intel.ts'
+import { isCalendarDate } from './timestamps.ts'
 
 export const DEFAULT_POLL_MS = 60_000
 export const RETRY_POLL_MS = 90_000
@@ -88,7 +89,7 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
   if (!hasUniqueIds(value.kev) || !hasUniqueIds(value.news)) return false
   return value.kev.every((item) => isRecord(item) &&
     hasStrings(item, ['id', 'title', 'vendor', 'product', 'dateAdded', 'dueDate', 'ransomwareUse']) &&
-    isDate(item.dateAdded) && isKevRecordLink(item.id, item.url)) &&
+    isCalendarDate(item.dateAdded) && (item.dueDate === 'Unknown' || isCalendarDate(item.dueDate)) && isKevRecordLink(item.id, item.url)) &&
     value.news.every((item) => isRecord(item) &&
       hasStrings(item, ['id', 'title', 'source', 'author']) && isDate(item.createdAt) &&
       isCount(item.points) && isNewsRecordLink(item.id, item.url))
