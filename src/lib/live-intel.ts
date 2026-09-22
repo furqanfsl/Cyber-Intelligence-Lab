@@ -69,6 +69,7 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
     (source.message === undefined || typeof source.message === 'string') &&
     (source.lastSuccessAt === undefined || isDate(source.lastSuccessAt)))) return false
   if (!Array.isArray(value.kev) || !Array.isArray(value.news)) return false
+  if (value.sources[0].count !== value.kev.length || value.sources[1].count !== value.news.length) return false
   if (value.kev.length > 100 || value.news.length > 100) return false
   if (!hasUniqueIds(value.kev) || !hasUniqueIds(value.news)) return false
   return value.kev.every((item) => isRecord(item) &&

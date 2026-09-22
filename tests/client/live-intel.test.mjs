@@ -226,3 +226,14 @@ test('duplicate source record identifiers are rejected before React reconciliati
   empty.sources.forEach(source => { source.count = 0 })
   assert.equal(isLiveIntelPayload(empty), true)
 })
+
+test('source counts must match delivered rows even during partial and stale refreshes', () => {
+  for (const [index, key] of [[0, 'kev'], [1, 'news']]) {
+    const missing = fixture(); missing[key] = []
+    assert.equal(isLiveIntelPayload(missing), false)
+    const inflated = fixture(); inflated.sources[index].count = 2
+    assert.equal(isLiveIntelPayload(inflated), false)
+    const retained = fixture(); retained.sources[index].status = 'stale'
+    assert.equal(isLiveIntelPayload(retained), true)
+  }
+})
