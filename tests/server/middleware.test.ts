@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { createServer } from 'node:http'
+import { createServer, request } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import test, { type TestContext } from 'node:test'
 import { createLiveIntelMiddleware } from '../../server/middleware.ts'
@@ -37,6 +37,26 @@ test('route allows query strings but never prefix matches another resource', asy
   for (const path of ['/api/live-intel-extra', '/api/live-intel/child', '/api/live-intel/', '/api/other']) {
     assert.equal((await fetch(`${base}${path}`)).status, 404)
   }
+  assert.equal(calls, 1)
+})
+
+test('raw encoded, normalized, and absolute-form paths cannot alias the intelligence route', async (t) => {
+  let calls = 0
+  const base = new URL(await start(t, async () => { calls++; return payload }))
+  for (const path of ['/api/%6cive-intel', '/api//live-intel', '/api/./live-intel', '/api/live-intel%3Frefresh=1', 'http://example.com/api/live-intel']) {
+    const status = await new Promise<number>((resolve, reject) => {
+      const req = request({ hostname: base.hostname, port: base.port, path }, (response) => {
+        response.resume()
+        response.on('end', () => resolve(response.statusCode ?? 0))
+      })
+      req.on('error', reject)
+      req.end()
+    })
+    assert.equal(status, 404, path)
+  }
+  assert.equal(calls, 0)
+  const allowed = await fetch(new URL('/api/live-intel?source=http://127.0.0.1/private', base))
+  assert.equal(allowed.status, 200)
   assert.equal(calls, 1)
 })
 
