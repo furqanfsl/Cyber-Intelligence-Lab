@@ -18,6 +18,7 @@ function freezePayload(payload: LiveIntelPayload): LiveIntelPayload {
 /** One instance per server: single-flight refresh and per-query last-known-good data. */
 export function createLiveIntelService({ loadJson = createJsonLoader(), now = Date.now }: ServiceOptions = {}) {
   let cachedPayload: LiveIntelPayload | undefined
+  let cachedAt = 0
   let expiresAt = 0
   let inFlight: Promise<LiveIntelPayload> | undefined
   let cisa: Snapshot<KevItem> | undefined
@@ -74,12 +75,15 @@ export function createLiveIntelService({ loadJson = createJsonLoader(), now = Da
 
   return {
     get(): Promise<LiveIntelPayload> {
-      if (cachedPayload && now() < expiresAt) return Promise.resolve(cachedPayload)
       if (inFlight) return inFlight
+      const currentTime = now()
+      // A backwards wall-clock adjustment must not keep an old snapshot fresh indefinitely.
+      if (cachedPayload && currentTime >= cachedAt && currentTime < expiresAt) return Promise.resolve(cachedPayload)
       inFlight = refresh().then((payload) => {
         cachedPayload = freezePayload(payload)
         // Network time must not shorten the advertised cache duration.
-        expiresAt = now() + CACHE_TTL_MS
+        cachedAt = now()
+        expiresAt = cachedAt + CACHE_TTL_MS
         return payload
       }).finally(() => { inFlight = undefined })
       return inFlight

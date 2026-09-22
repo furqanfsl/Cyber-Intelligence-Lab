@@ -196,3 +196,18 @@ test('callers cannot mutate a shared cached snapshot or its retained source data
   assert.deepEqual(stale.kev, expected.kev)
   assert.deepEqual(stale.news, expected.news)
 })
+
+test('a backwards wall-clock adjustment invalidates rather than prolongs a cached snapshot', async () => {
+  let time = 3_600_000
+  let calls = 0
+  const service = createLiveIntelService({ now: () => time, loadJson: async (url) => { calls++; return successfulData(url) } })
+  const first = await service.get()
+  time -= 3_000_000
+  const refreshed = await service.get()
+  assert.notStrictEqual(refreshed, first)
+  assert.equal(calls, 8)
+  assert.equal(refreshed.generatedAt, new Date(time).toISOString())
+  time += CACHE_TTL_MS - 1
+  assert.strictEqual(await service.get(), refreshed)
+  assert.equal(calls, 8)
+})
