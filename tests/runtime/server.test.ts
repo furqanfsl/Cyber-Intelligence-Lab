@@ -447,7 +447,7 @@ test('graceful shutdown lets an already active response finish before closing', 
     response.end('completed before shutdown')
   })
   t.after(() => { release(); server.closeAllConnections() })
-  const active = get('/api/live-intel')
+  const active = get('/api/live-intel', 'GET', { connection: 'close' })
   await ready
   const before = new Set(process.listeners('SIGTERM'))
   installShutdownHandlers(server)
@@ -461,4 +461,29 @@ test('graceful shutdown lets an already active response finish before closing', 
   release()
   assert.equal((await active).body, 'completed before shutdown')
   await closed
+})
+
+test('shutdown force-closes an unresponsive request at the documented deadline', async (t) => {
+  let entered!: () => void
+  const ready = new Promise<void>((resolve) => { entered = resolve })
+  const { get, server } = await fixture(t, () => {
+    entered()
+    return new Promise<void>(() => {})
+  })
+  const active = get('/api/live-intel').catch((error: NodeJS.ErrnoException) => error)
+  await ready
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const before = new Set(process.listeners('SIGTERM'))
+  installShutdownHandlers(server)
+  const shutdown = process.listeners('SIGTERM').find((listener) => !before.has(listener))!
+  let didClose = false
+  const closed = once(server, 'close').then(() => { didClose = true })
+  shutdown('SIGTERM')
+  t.mock.timers.tick(9_999)
+  assert.equal(didClose, false)
+  t.mock.timers.tick(1)
+  await closed
+  const result = await active
+  assert.ok(result instanceof Error)
+  assert.equal((result as NodeJS.ErrnoException).code, 'ECONNRESET')
 })
