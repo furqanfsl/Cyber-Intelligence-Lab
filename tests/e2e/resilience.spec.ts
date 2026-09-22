@@ -69,3 +69,16 @@ test('healthy empty sources remain current without an outage notice', async ({ p
   await expect(page.getByText('No CISA records are available.', { exact: true })).toBeVisible()
   await expect(page.getByText('No cyber news records are available.', { exact: true })).toBeVisible()
 })
+
+test('an empty failed server snapshot cannot erase cached browser records', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
+    ...intelligence, kev: [], news: [], sources: intelligence.sources.map((source) => ({ ...source, status: 'error', count: 0 })),
+  } }))
+  await page.getByRole('button', { name: 'Refresh sources' }).click()
+  await expect(page.locator('.live-status-badge')).toHaveText('Stale data')
+  await expect(page.getByRole('link', { name: /Open CISA record/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Open discussion record/ })).toBeVisible()
+  await expect(page.locator('.source-health-panel')).toContainText('previous browser snapshot')
+})
