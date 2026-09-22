@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node runtime/server.ts",
+    "typecheck": "tsc -b && tsc -p tsconfig.tests.json",
+    "test": "node --test tests/server/*.test.ts tests/client/*.test.mjs tests/runtime/*.test.ts",
+    "test:e2e": "playwright test",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -22,5 +27,8 @@
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }
