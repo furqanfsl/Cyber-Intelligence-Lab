@@ -5,6 +5,12 @@ type FetchOptions = { fetchImpl?: typeof fetch; timeoutMs?: number; maxBytes?: n
 
 /** Bound both download size and duration, and never follow off-allowlist redirects. */
 export function createJsonLoader({ fetchImpl = fetch, timeoutMs = 9_000, maxBytes = 5 * 1_024 * 1_024 }: FetchOptions = {}): JsonLoader {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 2_147_483_647) {
+    throw new RangeError('timeoutMs must be a positive supported timer interval')
+  }
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) {
+    throw new RangeError('maxBytes must be a positive safe integer')
+  }
   return async (url) => {
     if (!ALLOWED_SOURCE_URLS.has(url)) throw new Error('Source URL is not allowed')
     const controller = new AbortController()

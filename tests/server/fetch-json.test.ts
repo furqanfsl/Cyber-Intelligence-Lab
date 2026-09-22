@@ -3,6 +3,15 @@ import test from 'node:test'
 import { createJsonLoader } from '../../server/fetch-json.ts'
 import { CISA_URL, NEWS_URLS } from '../../server/sources.ts'
 
+test('transport rejects limits that disable bounds or overflow Node timers', () => {
+  for (const timeoutMs of [0, -1, 0.5, NaN, Infinity, 2_147_483_648]) {
+    assert.throws(() => createJsonLoader({ timeoutMs }), /timeoutMs/)
+  }
+  for (const maxBytes of [0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => createJsonLoader({ maxBytes }), /maxBytes/)
+  }
+})
+
 test('transport only permits exact fixed source URLs and disables redirects', async () => {
   const calls: string[] = []
   const load = createJsonLoader({ fetchImpl: async (url, options) => {
