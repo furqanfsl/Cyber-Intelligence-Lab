@@ -118,6 +118,13 @@ export function createAppServer(options: ServerOptions = {}) {
       sendError(request, response, 405, 'Method not allowed')
       return
     }
+    if (Number(request.headers['content-length'] ?? 0) > 0 || request.headers['transfer-encoding'] !== undefined) {
+      // No route consumes a request body. Close instead of retaining unread bytes
+      // on a persistent connection or starting unnecessary upstream work.
+      response.setHeader('connection', 'close')
+      sendError(request, response, 400, 'Request bodies are not supported')
+      return
+    }
     if (health) {
       // Process readiness is independent of third-party intelligence availability.
       const body = JSON.stringify({ status: 'ok' })

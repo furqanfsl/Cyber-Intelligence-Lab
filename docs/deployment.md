@@ -117,6 +117,8 @@ Fallback requires an explicit `text/html` media type with a nonzero valid
 quality value; `text/html;q=0` and wildcard-only requests keep their `404`.
 Directory requests are not listed or automatically mapped to nested index files;
 only `/` maps directly to the application's `index.html`.
+Read requests with nonempty bodies or transfer encodings receive `400` and close
+the connection. No endpoint accepts an upload or uses a request body.
 
 Static responses include a weak, file-metadata `ETag`. Browsers can revalidate
 with `If-None-Match`; matching `GET` and `HEAD` requests return a bodyless `304`.

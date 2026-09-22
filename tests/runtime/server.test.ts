@@ -40,7 +40,7 @@ async function fixture(t: TestContext, handler?: (request: IncomingMessage, resp
   const address = server.address()
   assert.ok(address && typeof address !== 'string')
   const port = address.port
-  function get(path: string, method = 'GET', headers: Record<string, string> = {}) {
+  function get(path: string, method = 'GET', headers: Record<string, string> = {}, body?: string) {
     return new Promise<{ status: number; body: string; bytes: Buffer; headers: import('node:http').IncomingHttpHeaders }>((resolve, reject) => {
       const req = request({ hostname: '127.0.0.1', port, path, method, headers }, (response) => {
         const chunks: Buffer[] = []
@@ -51,7 +51,7 @@ async function fixture(t: TestContext, handler?: (request: IncomingMessage, resp
         })
       })
       req.on('error', reject)
-      req.end()
+      req.end(body)
     })
   }
   return { get, directory, distDir, server, calls: () => calls }
@@ -274,6 +274,19 @@ test('unsupported API methods return JSON and do not invoke the source handler',
   assert.equal(response.headers.allow, 'GET, HEAD')
   assert.equal(JSON.parse(response.body).error, 'Method not allowed')
   assert.equal(calls(), 0)
+})
+
+test('read-only endpoints reject request bodies without invoking source work', async (t) => {
+  const { get, calls } = await fixture(t)
+  for (const path of ['/', '/healthz', '/api/live-intel']) {
+    const response = await get(path, 'GET', { 'content-length': '1' }, 'x')
+    assert.equal(response.status, 400, path)
+    assert.equal(response.headers.connection, 'close')
+  }
+  const chunked = await get('/api/live-intel', 'GET', { 'transfer-encoding': 'chunked' }, 'x')
+  assert.equal(chunked.status, 400)
+  assert.equal(calls(), 0)
+  assert.equal((await get('/healthz', 'GET', { 'content-length': '0' })).status, 200)
 })
 
 test('readiness probes return minimal uncached JSON without fetching intelligence', async (t) => {
