@@ -45,3 +45,15 @@ test('already-queued ticks from a cancelled interval cannot run after hide or di
   const latestTick = [...e.jobs.values()][0]
   stop(); latestTick(); assert.equal(ticks, 1)
 })
+
+test('invalid interval delays cannot silently become CPU-heavy immediate timers', () => {
+  const e = environment()
+  for (const delay of [0, -1, 1.5, NaN, Infinity, 2_147_483_648]) {
+    assert.throws(() => createVisibleInterval(() => {}, delay, e.target, e.timers), RangeError)
+    assert.equal(e.jobs.size, 0)
+  }
+  for (const delay of [1, 2_147_483_647]) {
+    const stop = createVisibleInterval(() => {}, delay, e.target, e.timers)
+    assert.equal(e.jobs.size, 1); stop()
+  }
+})

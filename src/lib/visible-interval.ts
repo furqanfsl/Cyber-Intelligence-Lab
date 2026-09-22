@@ -3,6 +3,9 @@ type TimerOptions = { schedule?: typeof setInterval; cancel?: typeof clearInterv
 
 /** Run an opt-in interval only while its page is visible. Disposal never resumes it. */
 export function createVisibleInterval(callback: () => void, delay: number, target: VisibilityTarget, { schedule = setInterval, cancel = clearInterval }: TimerOptions = {}) {
+  if (!Number.isInteger(delay) || delay < 1 || delay > 2_147_483_647) {
+    throw new RangeError('Interval delay must be a positive, safe browser timer duration')
+  }
   let timer: ReturnType<typeof setInterval> | undefined
   let disposed = false
   let generation = 0
