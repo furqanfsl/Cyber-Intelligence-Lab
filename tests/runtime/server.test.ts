@@ -374,6 +374,17 @@ test('fails before listening when the build is absent or has no index', async (t
   assert.throws(() => createAppServer({ distDir: directory }), /npm run build/)
 })
 
+test('startup rejects a file as build root and a directory as the entry document', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'cyber-lab-invalid-build-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
+  const fileRoot = join(directory, 'not-a-directory')
+  await writeFile(fileRoot, 'not a build')
+  assert.throws(() => createAppServer({ distDir: fileRoot }), /Run npm run build/)
+  const directoryEntry = join(directory, 'dist')
+  await mkdir(join(directoryEntry, 'index.html'), { recursive: true })
+  assert.throws(() => createAppServer({ distDir: directoryEntry }), /Run npm run build/)
+})
+
 test('listener configuration is local by default and validates port and bind addresses', () => {
   assert.deepEqual(readListenOptions({}), { host: '127.0.0.1', port: 3000 })
   assert.deepEqual(readListenOptions({ HOST: '0.0.0.0', PORT: '8080' }), { host: '0.0.0.0', port: 8080 })
