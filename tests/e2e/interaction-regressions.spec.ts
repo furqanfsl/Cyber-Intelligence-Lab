@@ -60,3 +60,13 @@ test('all artifact tabs expose distinct panels and one tab stop', async ({ page 
   expect(contents.size).toBe(4)
   await expect(page.getByRole('checkbox')).toHaveCount(0)
 })
+
+test('response and back-to-top actions navigate to existing visible sections', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'View response', exact: true }).click()
+  await expect(page).toHaveURL(/#response$/)
+  await expect(page.locator('#response h2')).toBeInViewport()
+  await page.getByRole('link', { name: /Back to top/ }).click()
+  await expect(page).toHaveURL(/#top$/)
+  await expect(page.getByRole('heading', { level: 1 })).toBeInViewport()
+})
