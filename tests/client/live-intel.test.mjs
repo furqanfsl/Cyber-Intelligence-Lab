@@ -237,3 +237,20 @@ test('source counts must match delivered rows even during partial and stale refr
     assert.equal(isLiveIntelPayload(retained), true)
   }
 })
+
+test('CISA records link only to their own canonical CVE catalog search', () => {
+  for (const url of [
+    'https://www.cisa.gov/other-page',
+    'https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-99999',
+    fixture().kev[0].url + '&search_api_fulltext=CVE-2026-99999',
+    fixture().kev[0].url + '#unrelated',
+  ]) {
+    const data = fixture(); data.kev[0].url = url; assert.equal(isLiveIntelPayload(data), false)
+  }
+  for (const id of ['cve-2026-12345', 'CVE-2026-123', 'CVE-2026-' + '1'.repeat(56)]) {
+    const data = fixture(); data.kev[0].id = id
+    data.kev[0].url = 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=' + id
+    assert.equal(isLiveIntelPayload(data), false)
+  }
+  assert.equal(isLiveIntelPayload(fixture()), true)
+})

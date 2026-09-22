@@ -58,6 +58,12 @@ function isSourceUrl(value: unknown, hostname: string): boolean {
   }
 }
 
+function isKevRecordLink(id: unknown, value: unknown): boolean {
+  if (typeof id !== 'string' || id.length > 64 || !/^CVE-\d{4}-\d{4,}$/.test(id)) return false
+  return isSourceUrl(value, 'www.cisa.gov') &&
+    value === `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${id}`
+}
+
 /** Validate the same-origin response before rendering dates, links, or records. */
 export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
   if (!isRecord(value) || !isDate(value.generatedAt)) return false
@@ -74,7 +80,7 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
   if (!hasUniqueIds(value.kev) || !hasUniqueIds(value.news)) return false
   return value.kev.every((item) => isRecord(item) &&
     hasStrings(item, ['id', 'title', 'vendor', 'product', 'dateAdded', 'dueDate', 'ransomwareUse']) &&
-    isDate(item.dateAdded) && isSourceUrl(item.url, 'www.cisa.gov')) &&
+    isDate(item.dateAdded) && isKevRecordLink(item.id, item.url)) &&
     value.news.every((item) => isRecord(item) &&
       hasStrings(item, ['id', 'title', 'source', 'author']) && isDate(item.createdAt) &&
       isCount(item.points) && isSourceUrl(item.url, 'news.ycombinator.com'))
