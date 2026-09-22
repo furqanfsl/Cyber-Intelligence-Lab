@@ -67,6 +67,34 @@ test('serves the built homepage with safe headers and no absolute paths', async 
   assert.equal(response.headers['cache-control'], 'no-cache')
 })
 
+test('production CSP restricts active content while supporting local fonts and React style attributes', async (t) => {
+  const { get } = await fixture(t)
+  const response = await get('/')
+  const policy = String(response.headers['content-security-policy'])
+  const directives = new Map(policy.split('; ').map((directive) => {
+    const [name, ...values] = directive.split(' ')
+    return [name, values.join(' ')]
+  }))
+  for (const directive of ['default-src', 'script-src', 'font-src', 'img-src', 'connect-src', 'style-src-elem']) {
+    assert.equal(directives.get(directive), "'self'", directive)
+  }
+  for (const directive of ['script-src-attr', 'object-src', 'base-uri', 'frame-src', 'frame-ancestors', 'form-action']) {
+    assert.equal(directives.get(directive), "'none'", directive)
+  }
+  assert.equal(directives.get('style-src-attr'), "'unsafe-inline'")
+  assert.equal(directives.get('style-src'), "'self' 'unsafe-inline'")
+  assert.doesNotMatch(policy, /unsafe-eval|https:|\*/)
+  assert.equal(response.headers['permissions-policy'], 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), clipboard-write=(self)')
+  for (const path of ['/api/live-intel', '/healthz', '/missing.js']) {
+    const other = await get(path)
+    assert.equal(other.headers['content-security-policy'], policy, path)
+    assert.equal(other.headers['permissions-policy'], response.headers['permissions-policy'], path)
+  }
+  const notModified = await get('/', 'GET', { 'if-none-match': response.headers.etag! })
+  assert.equal(notModified.status, 304)
+  assert.equal(notModified.headers['content-security-policy'], policy)
+})
+
 test('serves JavaScript, CSS, SVG and percent-encoded filenames with their MIME types', async (t) => {
   const { get } = await fixture(t)
   for (const [path, mime] of [

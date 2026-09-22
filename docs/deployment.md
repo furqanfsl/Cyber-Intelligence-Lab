@@ -73,12 +73,34 @@ assets, fetch OSINT, or wait on third-party services. Source health belongs to
 - Allow outbound HTTPS to the fixed CISA and Hacker News Algolia source hosts.
   No API key is needed. Source failures appear in the application; they must not
   be represented as a healthy fresh feed.
-- The runtime sends `nosniff`, framing protection and a no-referrer policy. If you
-  add a Content Security Policy at the proxy, allow this app's same-origin
-  scripts, styles, images and API requests; React also sets some inline styles.
+- The runtime sends `nosniff`, framing protection, a no-referrer policy and the
+  production browser policies described below. Preserve them at the proxy.
 - `SIGINT` and `SIGTERM` stop new connections and allow active responses to finish,
   with a 10-second shutdown deadline. Use a process supervisor to restart after
   unexpected exits.
+
+## Browser security policies
+
+The production server includes an enforced Content Security Policy. Scripts,
+stylesheet elements, fonts, images and API connections stay same-origin. Inline
+scripts, script event handlers and `eval` are not allowed. Objects, frames,
+framing, base-URL changes and form submissions are disabled. Local font files
+remain compatible without an external font allowlist.
+
+React's dynamic bar widths use style attributes, so `style-src-attr` allows
+inline styles while `style-src-elem` permits only same-origin stylesheets. The
+`style-src` fallback also allows inline styles for browsers without the more
+specific CSP directives; this exception does **not** allow inline scripts.
+Review the policy when introducing a legitimate new resource origin rather
+than weakening it with a wildcard. Vite development and HMR are unaffected.
+
+Permissions Policy disables camera, microphone, geolocation, payment and USB
+access. Same-origin clipboard writes remain allowed for Copy Brief. Browser
+support varies; these policies complement, rather than replace, safe code and
+HTTPS. TLS/HSTS are the responsibility of the deployment ingress.
+
+Policy references: [Content Security Policy](https://www.w3.org/TR/CSP3/)
+and [Permissions Policy](https://w3c.github.io/webappsec-permissions-policy/).
 
 ## Route and security checks
 

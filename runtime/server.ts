@@ -10,6 +10,14 @@ import { createLiveIntelMiddleware } from '../server/middleware.ts'
 type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => void | Promise<void>
 type ServerOptions = { distDir?: string; liveIntelMiddleware?: Middleware }
 const DEFAULT_DIST = fileURLToPath(new URL('../dist/', import.meta.url))
+// This policy belongs to the production runtime, not Vite's development/HMR server.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'", "script-src 'self'", "script-src-attr 'none'",
+  "style-src 'self' 'unsafe-inline'", "style-src-elem 'self'", "style-src-attr 'unsafe-inline'",
+  "font-src 'self'", "img-src 'self'", "connect-src 'self'",
+  "object-src 'none'", "base-uri 'none'", "frame-src 'none'", "frame-ancestors 'none'", "form-action 'none'",
+].join('; ')
+const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), clipboard-write=(self)'
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
@@ -60,6 +68,8 @@ export function createAppServer(options: ServerOptions = {}) {
     response.setHeader('x-content-type-options', 'nosniff')
     response.setHeader('x-frame-options', 'DENY')
     response.setHeader('referrer-policy', 'no-referrer')
+    response.setHeader('content-security-policy', CONTENT_SECURITY_POLICY)
+    response.setHeader('permissions-policy', PERMISSIONS_POLICY)
     let pathname: string
     try {
       const raw = request.url ?? '/'
