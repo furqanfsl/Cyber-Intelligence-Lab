@@ -63,6 +63,24 @@ test('transport enforces byte limit even when content-length is missing or disho
   }
 })
 
+test('transport counts UTF-8 bytes exactly across chunk boundaries', async () => {
+  const content = '{"title":"\u00e9\ud83d\udd10"}'
+  const bytes = new TextEncoder().encode(content)
+  assert.ok(bytes.length > content.length)
+  const response = () => new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes.slice(0, 5))
+      controller.enqueue(bytes.slice(5, 11))
+      controller.enqueue(bytes.slice(11))
+      controller.close()
+    },
+  }), { headers: { 'content-length': String(bytes.length) } })
+  const exact = createJsonLoader({ maxBytes: bytes.length, fetchImpl: async () => response() })
+  assert.deepEqual(await exact(CISA_URL), JSON.parse(content))
+  const short = createJsonLoader({ maxBytes: bytes.length - 1, fetchImpl: async () => new Response(bytes) })
+  await assert.rejects(short(CISA_URL), /size limit/)
+})
+
 test('transport rejects empty and non-JSON successful responses', async () => {
   for (const response of [new Response(null), new Response('<html>Error</html>'), new Response('')]) {
     const load = createJsonLoader({ fetchImpl: async () => response })
