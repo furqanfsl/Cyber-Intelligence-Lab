@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Local continuity, credentials, and generated test artifacts
+memory.md
+.env
+.env.*
+!.env.example
+coverage/
+playwright-report/
+test-results/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
