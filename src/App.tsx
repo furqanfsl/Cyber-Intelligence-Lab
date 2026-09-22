@@ -16,6 +16,39 @@ type Alert = {
   status: string
 }
 
+type LiveIntelPayload = {
+  generatedAt: string
+  pollAfterMs: number
+  cacheTtlMs: number
+  sources: Array<{
+    name: string
+    status: 'ok' | 'error'
+    count: number
+    message?: string
+  }>
+  kev: Array<{
+    id: string
+    title: string
+    vendor: string
+    product: string
+    dateAdded: string
+    dueDate: string
+    ransomwareUse: string
+    url: string
+  }>
+  news: Array<{
+    id: string
+    title: string
+    url: string
+    source: string
+    author: string
+    points: number
+    createdAt: string
+  }>
+}
+
+type LiveIntelStatus = 'connecting' | 'live' | 'error'
+
 const alerts: Alert[] = [
   {
     id: 'A78-4319',
@@ -185,6 +218,9 @@ function App() {
   const [selectedAlertId, setSelectedAlertId] = useState(alerts[0].id)
   const [tick, setTick] = useState(7523)
   const [copied, setCopied] = useState(false)
+  const [liveIntel, setLiveIntel] = useState<LiveIntelPayload | null>(null)
+  const [liveStatus, setLiveStatus] = useState<LiveIntelStatus>('connecting')
+  const [syncPulse, setSyncPulse] = useState(0)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -192,6 +228,57 @@ function App() {
     }, 2600)
 
     return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    let timeoutId: number | undefined
+    let controller: AbortController | undefined
+
+    async function loadLiveIntel() {
+      controller?.abort()
+      controller = new AbortController()
+
+      try {
+        setLiveStatus((current) => (current === 'live' ? current : 'connecting'))
+        const response = await fetch('/api/live-intel', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          throw new Error(`Live intelligence endpoint returned ${response.status}`)
+        }
+
+        const payload = (await response.json()) as LiveIntelPayload
+
+        if (!alive) {
+          return
+        }
+
+        setLiveIntel(payload)
+        setLiveStatus('live')
+        setSyncPulse((current) => current + 1)
+        timeoutId = window.setTimeout(loadLiveIntel, payload.pollAfterMs || 60_000)
+      } catch (error) {
+        if (!alive || (error instanceof DOMException && error.name === 'AbortError')) {
+          return
+        }
+
+        setLiveStatus('error')
+        timeoutId = window.setTimeout(loadLiveIntel, 90_000)
+      }
+    }
+
+    loadLiveIntel()
+
+    return () => {
+      alive = false
+      controller?.abort()
+      if (timeoutId) {
+        window.clearTimeout(timeoutId)
+      }
+    }
   }, [])
 
   const filteredAlerts = useMemo(() => {
@@ -225,6 +312,24 @@ function App() {
       .catch(() => setCopied(false))
   }
 
+  function refreshLiveIntel() {
+    setSyncPulse((current) => current + 1)
+    setLiveStatus('connecting')
+    fetch('/api/live-intel', { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Live intelligence endpoint returned ${response.status}`)
+        }
+
+        return response.json() as Promise<LiveIntelPayload>
+      })
+      .then((payload) => {
+        setLiveIntel(payload)
+        setLiveStatus('live')
+      })
+      .catch(() => setLiveStatus('error'))
+  }
+
   return (
     <main className="site-shell">
       <Navigation />
@@ -238,6 +343,12 @@ function App() {
         onSelectAlert={setSelectedAlertId}
         onCopyBrief={copyBrief}
         copied={copied}
+      />
+      <LiveIntelSection
+        liveIntel={liveIntel}
+        status={liveStatus}
+        syncPulse={syncPulse}
+        onRefresh={refreshLiveIntel}
       />
       <IncidentResponse selectedAlert={selectedAlert} />
       <CaseStudies />
@@ -256,6 +367,7 @@ function Navigation() {
       </a>
       <nav className="nav-links">
         <a href="#operations">Operations</a>
+        <a href="#live-intel">Live Intel</a>
         <a href="#response">Response</a>
         <a href="#cases">Cases</a>
         <a href="#skills">Skills</a>
@@ -522,6 +634,147 @@ function ThreatOperations({
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  )
+}
+
+function LiveIntelSection({
+  liveIntel,
+  status,
+  syncPulse,
+  onRefresh,
+}: {
+  liveIntel: LiveIntelPayload | null
+  status: LiveIntelStatus
+  syncPulse: number
+  onRefresh: () => void
+}) {
+  const generatedAt = liveIntel?.generatedAt
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'medium',
+      }).format(new Date(liveIntel.generatedAt))
+    : 'Waiting for first sync'
+
+  const nextPollSeconds = Math.round((liveIntel?.pollAfterMs ?? 60_000) / 1000)
+  const kevItems = liveIntel?.kev.slice(0, 5) ?? []
+  const newsItems = liveIntel?.news.slice(0, 5) ?? []
+  const sourceCount = liveIntel?.sources.filter((source) => source.status === 'ok').length ?? 0
+
+  return (
+    <section className="live-intel-section" id="live-intel" aria-live="polite">
+      <div className="section-header reveal">
+        <span>NET.</span>
+        <div>
+          <p className="kicker">Internet OSINT sync</p>
+          <h2>Real public cyber signals, refreshed automatically.</h2>
+        </div>
+        <p className="quote">Open sources. Defensive awareness. Responsible polling.</p>
+      </div>
+
+      <div className="live-intel-grid reveal delay-1">
+        <article className="panel live-status-panel">
+          <div className="panel-heading">
+            <div>
+              <div className="panel-title">Automation status</div>
+              <small>Client polling / server-side source cache</small>
+            </div>
+            <span className={`live-status-badge ${status}`} key={syncPulse}>
+              {status === 'live' ? 'Live sync' : status === 'error' ? 'Source error' : 'Connecting'}
+            </span>
+          </div>
+          <dl className="automation-list">
+            <div>
+              <dt>Last sync</dt>
+              <dd>{generatedAt}</dd>
+            </div>
+            <div>
+              <dt>Next automatic check</dt>
+              <dd>{nextPollSeconds} seconds</dd>
+            </div>
+            <div>
+              <dt>Healthy sources</dt>
+              <dd>
+                {sourceCount}/{liveIntel?.sources.length ?? 2}
+              </dd>
+            </div>
+            <div>
+              <dt>Scope</dt>
+              <dd>Public cyber advisories and news search, not private surveillance.</dd>
+            </div>
+          </dl>
+          <button className="button button-primary live-refresh" type="button" onClick={onRefresh}>
+            <span>Force sync now</span>
+            <span className="button-glyph" aria-hidden="true">
+              ↻
+            </span>
+          </button>
+        </article>
+
+        <article className="panel osint-feed-panel">
+          <div className="panel-heading">
+            <div>
+              <div className="panel-title">CISA exploited vulnerabilities</div>
+              <small>Known Exploited Vulnerabilities catalog</small>
+            </div>
+            <data>{kevItems.length}</data>
+          </div>
+          <div className="osint-list">
+            {kevItems.length ? (
+              kevItems.map((item) => (
+                <a href={item.url} key={item.id} rel="noreferrer" target="_blank">
+                  <span>{item.dateAdded}</span>
+                  <strong>{item.id}</strong>
+                  <p>{item.title}</p>
+                  <small>
+                    {item.vendor} / {item.product} / ransomware use: {item.ransomwareUse}
+                  </small>
+                </a>
+              ))
+            ) : (
+              <p className="empty-feed">Waiting for the CISA feed to respond.</p>
+            )}
+          </div>
+        </article>
+
+        <article className="panel osint-feed-panel">
+          <div className="panel-heading">
+            <div>
+              <div className="panel-title">Cyber news pulse</div>
+              <small>Recent public web stories via Hacker News Algolia</small>
+            </div>
+            <data>{newsItems.length}</data>
+          </div>
+          <div className="osint-list">
+            {newsItems.length ? (
+              newsItems.map((item) => (
+                <a href={item.url} key={item.id} rel="noreferrer" target="_blank">
+                  <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                  <strong>{item.source}</strong>
+                  <p>{item.title}</p>
+                  <small>
+                    by {item.author} / {item.points} points
+                  </small>
+                </a>
+              ))
+            ) : (
+              <p className="empty-feed">Waiting for cyber news search results.</p>
+            )}
+          </div>
+        </article>
+
+        <article className="panel source-health-panel">
+          <div className="panel-title">Source health</div>
+          {(liveIntel?.sources ?? []).map((source) => (
+            <div className="source-row" key={source.name}>
+              <span className={source.status}>{source.status}</span>
+              <strong>{source.name}</strong>
+              <small>{source.message ?? `${source.count} records received`}</small>
+            </div>
+          ))}
+          {!liveIntel && <p className="empty-feed">Establishing live source connections.</p>}
+        </article>
       </div>
     </section>
   )
