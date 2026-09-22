@@ -436,6 +436,23 @@ test('graceful shutdown stops listening and removes its signal handlers', async 
   assert.equal(process.listenerCount('SIGINT'), intCount)
 })
 
+test('installing shutdown hooks twice does not leak or duplicate process listeners', async (t) => {
+  const { server } = await fixture(t)
+  const before = new Set(process.listeners('SIGTERM'))
+  const interrupts = process.listenerCount('SIGINT')
+  installShutdownHandlers(server)
+  installShutdownHandlers(server)
+  assert.equal(process.listenerCount('SIGTERM'), before.size + 1)
+  assert.equal(process.listenerCount('SIGINT'), interrupts + 1)
+  const shutdown = process.listeners('SIGTERM').find((listener) => !before.has(listener))!
+  const closed = once(server, 'close')
+  shutdown('SIGTERM')
+  shutdown('SIGTERM')
+  await closed
+  assert.equal(process.listenerCount('SIGTERM'), before.size)
+  assert.equal(process.listenerCount('SIGINT'), interrupts)
+})
+
 test('graceful shutdown lets an already active response finish before closing', async (t) => {
   let release!: () => void
   let entered!: () => void

@@ -209,7 +209,11 @@ export function readListenOptions(env: NodeJS.ProcessEnv = process.env) {
   return { host, port }
 }
 
+const shutdownServers = new WeakSet<Server>()
+
 export function installShutdownHandlers(server: Server) {
+  if (shutdownServers.has(server)) return
+  shutdownServers.add(server)
   let closing = false
   function shutdown() {
     if (closing) return
@@ -221,6 +225,7 @@ export function installShutdownHandlers(server: Server) {
   process.once('SIGINT', shutdown)
   process.once('SIGTERM', shutdown)
   server.once('close', () => {
+    shutdownServers.delete(server)
     process.removeListener('SIGINT', shutdown)
     process.removeListener('SIGTERM', shutdown)
   })
