@@ -228,3 +228,34 @@ test('separate server instances never share cached records, failures, or in-flig
   assert.equal(healthyCalls, 4)
   assert.equal(failingCalls, 4)
 })
+
+test('expired-cache callers share a failed refresh and release it for the next recovery', async () => {
+  let time = 1_000
+  let calls = 0
+  let fail = false
+  let release: (() => void) | undefined
+  let gate = Promise.resolve()
+  const service = createLiveIntelService({ now: () => time, loadJson: async (url) => {
+    calls++
+    await gate
+    if (fail) throw new Error('offline')
+    return successfulData(url)
+  } })
+  const first = await service.get()
+  time += CACHE_TTL_MS
+  fail = true
+  gate = new Promise<void>((resolve) => { release = resolve })
+  const requests = Array.from({ length: 12 }, () => service.get())
+  assert.equal(calls, 8)
+  assert.ok(requests.every((request) => request === requests[0]))
+  release!()
+  const stale = await Promise.all(requests)
+  assert.ok(stale.every((snapshot) => snapshot === stale[0] && snapshot !== first))
+  assert.ok(stale[0].sources.every((source) => source.status === 'stale'))
+  assert.equal(calls, 8)
+  time += CACHE_TTL_MS
+  fail = false
+  const recovered = await service.get()
+  assert.ok(recovered.sources.every((source) => source.status === 'ok'))
+  assert.equal(calls, 12)
+})
