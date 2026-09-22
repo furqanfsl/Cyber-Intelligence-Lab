@@ -45,3 +45,18 @@ test('an old pending clipboard write cannot confirm a newly selected incident', 
   await expect(page.locator('.copy-feedback')).toBeEmpty()
   await expect(page.getByRole('button', { name: 'Brief copied', exact: true })).toHaveCount(0)
 })
+
+test('all artifact tabs expose distinct panels and one tab stop', async ({ page }) => {
+  await page.goto('/')
+  const contents = new Set<string>()
+  for (const name of ['File', 'Network', 'Process', 'Registry']) {
+    await page.getByRole('tab', { name, exact: true }).click()
+    await expect(page.getByRole('tab', { name, exact: true })).toHaveAttribute('aria-selected', 'true')
+    await expect(page.locator('[role="tab"][tabindex="0"]')).toHaveCount(1)
+    const panel = page.getByRole('tabpanel')
+    await expect(panel).toHaveAttribute('aria-labelledby', 'artifact-tab-' + name.toLowerCase())
+    contents.add((await panel.textContent())!)
+  }
+  expect(contents.size).toBe(4)
+  await expect(page.getByRole('checkbox')).toHaveCount(0)
+})
