@@ -435,3 +435,30 @@ test('graceful shutdown stops listening and removes its signal handlers', async 
   assert.equal(process.listenerCount('SIGTERM'), before.size)
   assert.equal(process.listenerCount('SIGINT'), intCount)
 })
+
+test('graceful shutdown lets an already active response finish before closing', async (t) => {
+  let release!: () => void
+  let entered!: () => void
+  const ready = new Promise<void>((resolve) => { entered = resolve })
+  const finish = new Promise<void>((resolve) => { release = resolve })
+  const { get, server } = await fixture(t, async (_request, response) => {
+    entered()
+    await finish
+    response.end('completed before shutdown')
+  })
+  t.after(() => { release(); server.closeAllConnections() })
+  const active = get('/api/live-intel')
+  await ready
+  const before = new Set(process.listeners('SIGTERM'))
+  installShutdownHandlers(server)
+  const shutdown = process.listeners('SIGTERM').find((listener) => !before.has(listener))!
+  let didClose = false
+  const closed = once(server, 'close').then(() => { didClose = true })
+  shutdown('SIGTERM')
+  await new Promise<void>((resolve) => setImmediate(resolve))
+  assert.equal(server.listening, false)
+  assert.equal(didClose, false)
+  release()
+  assert.equal((await active).body, 'completed before shutdown')
+  await closed
+})
