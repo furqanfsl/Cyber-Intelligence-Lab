@@ -152,3 +152,16 @@ test('combined news prioritizes freshest results across queries before dedupe an
   assert.equal(new Set(result.map((item) => item.id)).size, 12)
   assert.deepEqual([oldest, middle, newest], original)
 })
+
+test('equal-date limit boundaries stay deterministic when source order changes', () => {
+  const vulnerabilities = Array.from({ length: 10 }, (_, index) => kevRecord({ cveID: `CVE-2026-${1000 + index}` }))
+  const expectedKev = Array.from({ length: 8 }, (_, index) => `CVE-2026-${1000 + index}`)
+  assert.deepEqual(parseKev({ vulnerabilities }).map((item) => item.id), expectedKev)
+  assert.deepEqual(parseKev({ vulnerabilities: vulnerabilities.toReversed() }).map((item) => item.id), expectedKev)
+  const groups = [0, 1, 2].map((group) => parseNews({
+    hits: Array.from({ length: 6 }, (_, index) => newsRecord({ objectID: String(100 + group * 6 + index) })).reverse(),
+  }))
+  const expectedNews = Array.from({ length: 12 }, (_, index) => String(100 + index))
+  assert.deepEqual(mergeNews(groups).map((item) => item.id), expectedNews)
+  assert.deepEqual(mergeNews(groups.toReversed().map((group) => group.toReversed())).map((item) => item.id), expectedNews)
+})
