@@ -5,8 +5,8 @@ export const intelligence: LiveIntelPayload = {
   pollAfterMs: 60_000,
   cacheTtlMs: 60_000,
   sources: [
-    { name: 'CISA KEV', status: 'ok', count: 1 },
-    { name: 'Hacker News cyber search', status: 'ok', count: 1 },
+    { name: 'CISA Known Exploited Vulnerabilities', status: 'ok', count: 1 },
+    { name: 'Hacker News Algolia cyber search', status: 'ok', count: 1 },
   ],
   kev: [{
     id: 'CVE-2026-12345', title: 'Example vulnerability record', vendor: 'Example vendor',
