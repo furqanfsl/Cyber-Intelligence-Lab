@@ -1,47 +1,67 @@
 # Cyber Intelligence Lab
 
-A cinematic cybersecurity operations portfolio project built with React, TypeScript, and Vite.
+A defensive cybersecurity learning portfolio built with React, TypeScript, and Vite. Explore simulated incident workflows alongside a real public-source intelligence feed.
 
-## What it shows
+## What is real, and what is simulated?
 
-- Live-style global threat operations console
-- Real public cyber OSINT feed from CISA KEV and Hacker News Algolia
-- Responsible automatic refresh through a local `/api/live-intel` proxy
-- Severity filtering and selectable incident queue
-- Incident response timeline with AI triage report
-- Forensic artifact viewer and containment checklist
-- Cybersecurity case studies for CV/portfolio storytelling
-- Responsive tactical telemetry visual system
+| Area | Data and capability |
+| --- | --- |
+| Live intelligence | Public CISA Known Exploited Vulnerabilities records and cybersecurity stories from Hacker News Algolia. Source health and stale records are labelled. |
+| Operations console | Illustrative map, actor rankings, packet stream, and incidents. The event counter runs only when you start the simulation. |
+| Incident response | Static learning examples, sample artifacts, and a copyable demo brief. No AI model, endpoint action, or containment service is connected. |
+| Case studies | Practice scenarios and example outcomes, not claims of real security operations. |
 
-All threat data is simulated and defensive. The project does not run real scans, target real systems, or include exploit code.
-The live OSINT section reads public internet sources only. It does not monitor private traffic or "everything" on the internet.
+The app does not scan systems, inspect private traffic, detect real attacks, or execute exploits. Public-source records can be incomplete or outdated; verify them at their linked source before using them.
 
 ## Run locally
 
-```powershell
-npm install
+Use **Node.js 24 or later** and npm. The runtime and unit tests use Node's native TypeScript support.
+
+```sh
+npm ci
 npm run dev
 ```
 
-Then open the local URL printed by Vite.
+Open the local URL printed by Vite. Windows users can also run `start.bat`.
 
-## Build
+## Build and run
 
-```powershell
+```sh
 npm run build
+npm start
 ```
 
-## Live intelligence automation
+The production server defaults to `http://127.0.0.1:3000`, serves `dist/`, and provides `/api/live-intel`. See [deployment](docs/deployment.md) for environment settings and hosting requirements. Uploading `dist/` alone to a static host will not provide the API. `npm run preview` is only a local build preview.
 
-When the Vite dev or preview server is running, `/api/live-intel` fetches:
+## Verify changes
 
-- CISA Known Exploited Vulnerabilities catalog
-- Hacker News Algolia cybersecurity/ransomware/vulnerability story search
+```sh
+npm run check
+npx playwright install chromium
+npm run test:e2e
+```
 
-The server caches source responses for 60 seconds so the UI can stay current without hammering public services.
+`check` runs lint, strict type checking, unit/integration tests, and a production build. Browser checks run at desktop and mobile sizes with mocked public-source responses; they do not depend on external services. See the [testing guide](docs/testing.md) for individual commands and local Edge support.
 
-## Design direction
+## How live intelligence works
 
-The interface uses a dark tactical telemetry aesthetic inspired by SOC consoles, declassified intelligence reports, Swiss industrial grids, and high-contrast cybersecurity visualization.
+The server requests only fixed CISA and Hacker News URLs. A shared 60-second cache and in-flight request deduplication reduce upstream traffic. Requests have time and response-size limits. Each source retains its last successful results when refreshes fail; the response and UI label degraded data rather than presenting it as fresh.
 
-Generated visual references are stored in `public/design-reference-*.png` so the art direction stays attached to the project.
+The client validates responses, prevents overlapping refreshes, and retries failures. **Refresh sources** checks the server cache; it does not bypass upstream rate protection. See the [API contract](docs/api.md) for status and timing details.
+
+## Project layout
+
+```text
+src/                  React dashboard, polling hook, client validation
+shared/               API types
+server/               Public-source transport, parsing, cache, HTTP middleware
+runtime/              Production static and API server
+tests/                Unit, integration, and browser regressions
+docs/                 Deployment, testing, and architecture notes
+```
+
+The existing dark tactical visual style is retained. Generated art-direction references live in [docs/design-reference](docs/design-reference), outside the production asset directory.
+
+## Contributing and security
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for focused changes and review checks, and [SECURITY.md](SECURITY.md) for reporting a vulnerability. Do not include credentials, private incident data, or real targets in demo fixtures.
