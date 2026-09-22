@@ -192,6 +192,35 @@ test('unsupported API methods return JSON and do not invoke the source handler',
   assert.equal(calls(), 0)
 })
 
+test('readiness probes return minimal uncached JSON without fetching intelligence', async (t) => {
+  const { get, calls } = await fixture(t)
+  const response = await get('/healthz?probe=1', 'GET', { 'if-none-match': '*' })
+  assert.equal(response.status, 200)
+  assert.deepEqual(JSON.parse(response.body), { status: 'ok' })
+  assert.equal(response.headers['cache-control'], 'no-store')
+  assert.equal(response.headers['content-type'], 'application/json; charset=utf-8')
+  assert.equal(response.headers.etag, undefined)
+  const head = await get('/healthz', 'HEAD')
+  assert.equal(head.status, 200)
+  assert.equal(head.body, '')
+  assert.equal(head.headers['content-length'], response.headers['content-length'])
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']) {
+    const rejected = await get('/healthz', method)
+    assert.equal(rejected.status, 405)
+    assert.equal(rejected.headers.allow, 'GET, HEAD')
+  }
+  for (const path of ['/healthz/', '/healthz/child', '/health%7a']) {
+    assert.equal((await get(path, 'GET', { accept: 'text/html' })).status, 404)
+  }
+  assert.equal(calls(), 0)
+})
+
+test('readiness remains healthy when an intelligence handler is unavailable', async (t) => {
+  const { get } = await fixture(t, () => { throw new Error('upstream unavailable') })
+  assert.equal((await get('/api/live-intel')).status, 500)
+  assert.deepEqual(JSON.parse((await get('/healthz')).body), { status: 'ok' })
+})
+
 test('unexpected handler failures return a generic error rather than exposing server details', async (t) => {
   const { get } = await fixture(t, () => { throw new Error('private path and secret details') })
   const response = await get('/api/live-intel')

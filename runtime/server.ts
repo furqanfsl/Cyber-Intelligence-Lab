@@ -78,6 +78,11 @@ export function createAppServer(options: ServerOptions = {}) {
       return
     }
     const api = pathname === '/api' || pathname.startsWith('/api/')
+    const health = pathname === '/healthz' || pathname.startsWith('/healthz/')
+    if (health && request.url?.split('?')[0] !== '/healthz') {
+      sendError(request, response, 404, 'Health route not found')
+      return
+    }
     if (api && pathname !== '/api/live-intel') {
       sendError(request, response, 404, 'API route not found')
       return
@@ -85,6 +90,17 @@ export function createAppServer(options: ServerOptions = {}) {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.setHeader('allow', 'GET, HEAD')
       sendError(request, response, 405, 'Method not allowed')
+      return
+    }
+    if (health) {
+      // Process readiness is independent of third-party intelligence availability.
+      const body = JSON.stringify({ status: 'ok' })
+      response.writeHead(200, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'content-length': Buffer.byteLength(body),
+      })
+      response.end(request.method === 'HEAD' ? undefined : body)
       return
     }
     if (api) {

@@ -51,6 +51,16 @@ by the machine's firewall. Do not use it for routine private local development.
 No account, private telemetry, or authentication service is provided by this
 portfolio app.
 
+## Health probes
+
+Use `GET /healthz` or `HEAD /healthz` for a lightweight readiness probe. A started
+server returns `200` with `{ "status": "ok" }` (no body for `HEAD`), `no-store`,
+and no deployment paths or upstream details. Other methods return `405`.
+The server validates the build before listening; health probes do not read
+assets, fetch OSINT, or wait on third-party services. Source health belongs to
+`/api/live-intel` and the dashboard, not the process-restart decision. Forward
+`/healthz` through the proxy if your host needs to probe it.
+
 ## Production network boundary
 
 - Put a maintained TLS reverse proxy or your host's HTTPS ingress in front of
