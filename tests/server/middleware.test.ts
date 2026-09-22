@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { createServer, request } from 'node:http'
-import type { AddressInfo } from 'node:net'
+import { createServer, IncomingMessage, request, ServerResponse } from 'node:http'
+import { Socket, type AddressInfo } from 'node:net'
 import test, { type TestContext } from 'node:test'
 import { createLiveIntelMiddleware } from '../../server/middleware.ts'
 import type { LiveIntelPayload } from '../../shared/live-intel.ts'
@@ -89,4 +89,34 @@ test('unexpected service failures produce a safe generic 503 response', async (t
   const head = await fetch(`${base}/api/live-intel`, { method: 'HEAD' })
   assert.equal(head.status, 503)
   assert.equal(await head.text(), '')
+})
+
+test('disconnected clients neither start new work nor receive late success or error writes', async (t) => {
+  function connection() {
+    const incoming = new IncomingMessage(new Socket())
+    incoming.url = '/api/live-intel'
+    incoming.method = 'GET'
+    return { incoming, response: new ServerResponse(incoming) }
+  }
+  let calls = 0
+  const closed = connection()
+  closed.response.destroy()
+  await createLiveIntelMiddleware(async () => { calls++; return payload })(closed.incoming, closed.response, () => {})
+  assert.equal(calls, 0)
+  for (const failed of [false, true]) {
+    const { incoming, response } = connection()
+    let complete: ((value: LiveIntelPayload) => void) | undefined
+    let fail: ((error: Error) => void) | undefined
+    const gate = new Promise<LiveIntelPayload>((resolve, reject) => { complete = resolve; fail = reject })
+    const headers = t.mock.method(response, 'setHeader')
+    const end = t.mock.method(response, 'end')
+    const pending = createLiveIntelMiddleware(() => gate)(incoming, response, () => {})
+    const initialHeaders = headers.mock.callCount()
+    response.destroy()
+    if (failed) fail!(new Error('upstream failed after disconnect'))
+    else complete!(payload)
+    await pending
+    assert.equal(headers.mock.callCount(), initialHeaders)
+    assert.equal(end.mock.callCount(), 0)
+  }
 })

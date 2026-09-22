@@ -8,6 +8,7 @@ export function createLiveIntelMiddleware(getPayload: () => Promise<LiveIntelPay
       next()
       return
     }
+    if (response.destroyed || response.writableEnded) return
     response.setHeader('content-type', 'application/json; charset=utf-8')
     response.setHeader('cache-control', 'no-store')
     response.setHeader('x-content-type-options', 'nosniff')
@@ -18,11 +19,15 @@ export function createLiveIntelMiddleware(getPayload: () => Promise<LiveIntelPay
       return
     }
     try {
-      const body = JSON.stringify(await getPayload())
+      const payload = await getPayload()
+      // A departed client must not cancel shared upstream work or receive a late write.
+      if (response.destroyed || response.writableEnded) return
+      const body = JSON.stringify(payload)
       response.statusCode = 200
       response.setHeader('content-length', Buffer.byteLength(body))
       response.end(request.method === 'HEAD' ? undefined : body)
     } catch {
+      if (response.destroyed || response.writableEnded) return
       response.statusCode = 503
       const body = JSON.stringify({ error: 'Live intelligence is temporarily unavailable.' })
       response.setHeader('content-length', Buffer.byteLength(body))
