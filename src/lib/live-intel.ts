@@ -119,6 +119,8 @@ type PollerOptions = {
 export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, cancel = clearTimeout, onChange }: PollerOptions) {
   let state: LiveIntelState = { ...initialIntelState }
   let stopped = false
+  let paused = false
+  let resumeQueued = false
   let pending: Promise<void> | undefined
   let nextTimer: ReturnType<typeof setTimeout> | undefined
   let requestTimer: ReturnType<typeof setTimeout> | undefined
@@ -131,7 +133,7 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
   }
 
   function refresh(): Promise<void> {
-    if (stopped) return Promise.resolve()
+    if (stopped || paused) return Promise.resolve()
     if (pending) return pending
     if (nextTimer !== undefined) cancel(nextTimer)
     controller = new AbortController()
@@ -140,7 +142,12 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
 
     pending = (async () => {
       let delay = RETRY_POLL_MS
+      let abortRequest: (() => void) | undefined
       try {
+        const cancelled = new Promise<never>((_, reject) => {
+          abortRequest = () => reject(new DOMException('Polling suspended', 'AbortError'))
+          requestController.signal.addEventListener('abort', abortRequest, { once: true })
+        })
         const timeout = new Promise<never>((_, reject) => {
           requestTimer = schedule(() => {
             reject(new IntelRefreshError('The request timed out. Automatic retry is scheduled.'))
@@ -156,10 +163,11 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
           if (!isLiveIntelPayload(payload)) throw new IntelRefreshError('The intelligence service returned invalid data. Automatic retry is scheduled.')
           return payload
         })()
-        const payload = retainUnavailableSources(await Promise.race([request, timeout]), state.data)
+        const payload = retainUnavailableSources(await Promise.race([request, timeout, cancelled]), state.data)
         delay = boundedPollDelay(payload.pollAfterMs)
         publish({ data: payload, status: intelStatus(payload), error: null, pollAfterMs: delay })
       } catch (error) {
+        if (requestController.signal.aborted && !(error instanceof IntelRefreshError)) return
         publish({
           status: state.data ? 'stale' : 'error',
           error: error instanceof IntelRefreshError ? error.message : 'Could not reach the intelligence service. Automatic retry is scheduled.',
@@ -167,10 +175,18 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
         })
       } finally {
         if (requestTimer !== undefined) cancel(requestTimer)
+        if (abortRequest) requestController.signal.removeEventListener('abort', abortRequest)
         requestTimer = undefined
         pending = undefined
         publish({ isRefreshing: false })
-        if (!stopped) nextTimer = schedule(() => { void refresh() }, delay)
+        if (!stopped && !paused) {
+          if (resumeQueued) {
+            resumeQueued = false
+            void refresh()
+          } else {
+            nextTimer = schedule(() => { void refresh() }, delay)
+          }
+        }
       }
     })()
     return pending
@@ -178,6 +194,19 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
 
   return {
     refresh,
+    pause() {
+      if (stopped || paused) return
+      paused = true
+      resumeQueued = false
+      if (nextTimer !== undefined) cancel(nextTimer)
+      controller?.abort()
+    },
+    resume() {
+      if (stopped || !paused) return
+      paused = false
+      if (pending) resumeQueued = true
+      else void refresh()
+    },
     stop() {
       stopped = true
       if (nextTimer !== undefined) cancel(nextTimer)

@@ -176,3 +176,42 @@ test('healthy empty sources are not labelled unavailable when another source fai
   assert.match(emptyFeedMessage('CISA', 'ok', false, true), /unavailable/)
   assert.equal(emptyFeedMessage('CISA', undefined, true, false), 'Checking CISA…')
 })
+
+test('hidden tabs cancel automatic timers and resume exactly once', async () => {
+  let calls = 0; const c = client(async () => { calls++; return response() })
+  await c.poller.refresh(); c.poller.pause()
+  assert.deepEqual(c.clock.delays(), [])
+  await c.poller.refresh(); assert.equal(calls, 1)
+  c.poller.resume(); c.poller.resume(); await flush()
+  assert.equal(calls, 2); assert.deepEqual(c.clock.delays(), [60_000]); c.poller.stop()
+})
+test('hiding an in-flight request aborts without replacing good data with an error', async () => {
+  let calls = 0; let signal
+  const c = client((_url, options) => {
+    calls++; signal = options.signal
+    return calls === 1 ? Promise.resolve(response()) : new Promise(() => {})
+  })
+  await c.poller.refresh(); const previous = c.latest().data
+  const request = c.poller.refresh(); c.poller.pause(); await request
+  assert.equal(signal.aborted, true); assert.equal(c.latest().data, previous)
+  assert.equal(c.latest().error, null); assert.equal(c.latest().isRefreshing, false)
+  assert.deepEqual(c.clock.delays(), []); c.poller.stop()
+})
+test('rapid visibility changes queue only one replacement after aborted request settles', async () => {
+  let calls = 0; const signals = []
+  const c = client((_url, options) => {
+    signals.push(options.signal); calls++
+    return calls === 1 ? new Promise(() => {}) : Promise.resolve(response())
+  })
+  const first = c.poller.refresh(); c.poller.pause(); c.poller.resume(); c.poller.resume()
+  assert.equal(calls, 1); await first; await flush()
+  assert.equal(signals[0].aborted, true); assert.equal(calls, 2)
+  assert.equal(c.latest().status, 'live'); assert.deepEqual(c.clock.delays(), [60_000]); c.poller.stop()
+})
+test('initially hidden polling waits for visibility and cannot resume after disposal', async () => {
+  let calls = 0; const c = client(async () => { calls++; return response() })
+  c.poller.pause(); await c.poller.refresh(); assert.equal(calls, 0)
+  c.poller.resume(); await flush(); assert.equal(calls, 1)
+  c.poller.pause(); c.poller.stop(); c.poller.resume(); await flush()
+  assert.equal(calls, 1); assert.deepEqual(c.clock.delays(), [])
+})

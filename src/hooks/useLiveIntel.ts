@@ -8,8 +8,15 @@ export function useLiveIntel() {
   useEffect(() => {
     const client = createIntelPoller({ onChange: setState })
     poller.current = client
-    void client.refresh()
+    const onVisibilityChange = () => {
+      if (document.hidden) client.pause()
+      else client.resume()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    if (document.hidden) client.pause()
+    else void client.refresh()
     return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
       client.stop()
       if (poller.current === client) poller.current = null
     }
