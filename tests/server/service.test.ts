@@ -171,3 +171,28 @@ test('a valid empty source replaces older records rather than preserving obsolet
   assert.deepEqual(payload.news, [])
   assert.ok(payload.sources.every((source) => source.status === 'ok' && source.count === 0))
 })
+
+test('callers cannot mutate a shared cached snapshot or its retained source data', async () => {
+  let time = 1_000
+  let offline = false
+  const service = createLiveIntelService({ now: () => time, loadJson: async (url) => {
+    if (offline) throw new Error('offline')
+    return successfulData(url)
+  } })
+  const original = await service.get()
+  const expected = structuredClone(original)
+  for (const mutate of [
+    () => { original.generatedAt = 'corrupted' },
+    () => { original.kev[0].title = 'corrupted' },
+    () => { original.news[0].url = 'https://attacker.example/' },
+    () => { original.sources[0].status = 'error' },
+    () => { original.kev.splice(0) },
+    () => { original.sources.push(original.sources[0]) },
+  ]) assert.throws(mutate, TypeError)
+  assert.deepEqual(await service.get(), expected)
+  time += CACHE_TTL_MS
+  offline = true
+  const stale = await service.get()
+  assert.deepEqual(stale.kev, expected.kev)
+  assert.deepEqual(stale.news, expected.news)
+})

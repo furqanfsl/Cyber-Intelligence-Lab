@@ -7,6 +7,14 @@ type Snapshot<T> = { data: T[]; lastSuccessAt: string }
 type SourceResult<T> = { snapshot?: Snapshot<T>; failed: boolean }
 type ServiceOptions = { loadJson?: JsonLoader; now?: () => number }
 
+function freezePayload(payload: LiveIntelPayload): LiveIntelPayload {
+  for (const collection of [payload.sources, payload.kev, payload.news]) {
+    for (const item of collection) Object.freeze(item)
+    Object.freeze(collection)
+  }
+  return Object.freeze(payload)
+}
+
 /** One instance per server: single-flight refresh and per-query last-known-good data. */
 export function createLiveIntelService({ loadJson = createJsonLoader(), now = Date.now }: ServiceOptions = {}) {
   let cachedPayload: LiveIntelPayload | undefined
@@ -69,7 +77,7 @@ export function createLiveIntelService({ loadJson = createJsonLoader(), now = Da
       if (cachedPayload && now() < expiresAt) return Promise.resolve(cachedPayload)
       if (inFlight) return inFlight
       inFlight = refresh().then((payload) => {
-        cachedPayload = payload
+        cachedPayload = freezePayload(payload)
         // Network time must not shorten the advertised cache duration.
         expiresAt = now() + CACHE_TTL_MS
         return payload
