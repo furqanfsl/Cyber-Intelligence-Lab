@@ -6,6 +6,7 @@ import { emptyFeedMessage } from './lib/live-intel'
 import { useLiveIntel } from './hooks/useLiveIntel'
 import { nextTab } from './lib/keyboard-tabs'
 import { createVisibleInterval } from './lib/visible-interval'
+import { formatTimestamp } from './lib/timestamps'
 import './App.css'
 
 type Severity = 'critical' | 'high' | 'medium' | 'low'
@@ -675,10 +676,7 @@ function LiveIntelSection({
   onRefresh: () => void
 }) {
   const generatedAt = liveIntel?.generatedAt
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'medium',
-      }).format(new Date(liveIntel.generatedAt))
+    ? formatTimestamp(liveIntel.generatedAt)
     : 'Waiting for first sync'
 
   const nextPollSeconds = Math.round(state.pollAfterMs / 1000)
@@ -804,7 +802,7 @@ function LiveIntelSection({
               <strong>{source.name}</strong>
               <small>
                 {source.message ?? `${source.count} records received`}
-                {source.lastSuccessAt && ` · Last successful refresh: ${new Date(source.lastSuccessAt).toLocaleString()}`}
+                {source.lastSuccessAt && ` · Last successful refresh: ${formatTimestamp(source.lastSuccessAt)}`}
               </small>
             </div>
           ))}
