@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { once } from 'node:events'
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, symlink, utimes, writeFile } from 'node:fs/promises'
 import { request, type IncomingMessage, type ServerResponse } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -87,6 +87,42 @@ test('HEAD returns file metadata without a response body', async (t) => {
   assert.equal(response.status, 200)
   assert.equal(response.body, '')
   assert.equal(Number(response.headers['content-length']), Buffer.byteLength('console.log("lab")'))
+})
+
+test('static GET and HEAD revalidate matching weak, strong, list and wildcard entity tags', async (t) => {
+  const { get } = await fixture(t)
+  const first = await get('/assets/app.js')
+  const etag = first.headers.etag
+  assert.ok(etag)
+  assert.ok(etag.startsWith('W/"'))
+  for (const method of ['GET', 'HEAD']) {
+    for (const condition of [etag, etag.slice(2), `"other", ${etag}`, '*']) {
+      const response = await get('/assets/app.js', method, { 'if-none-match': condition })
+      assert.equal(response.status, 304)
+      assert.equal(response.body, '')
+      assert.equal(response.headers.etag, etag)
+      assert.equal(response.headers['cache-control'], 'no-cache')
+      assert.equal(response.headers['content-length'], undefined)
+    }
+  }
+})
+
+test('static validators do not turn changed, missing, or dynamic resources into 304 responses', async (t) => {
+  const { get, distDir } = await fixture(t)
+  const first = await get('/assets/app.js')
+  const etag = first.headers.etag!
+  assert.equal((await get('/assets/app.js', 'GET', { 'if-none-match': '"unrelated"' })).status, 200)
+  await writeFile(join(distDir, 'assets', 'app.js'), 'console.log("new")')
+  const changedAt = new Date('2027-01-01T00:00:00Z')
+  await utimes(join(distDir, 'assets', 'app.js'), changedAt, changedAt)
+  const changed = await get('/assets/app.js', 'GET', { 'if-none-match': etag })
+  assert.equal(changed.status, 200)
+  assert.notEqual(changed.headers.etag, etag)
+  assert.equal(changed.body, 'console.log("new")')
+  assert.equal((await get('/missing.js', 'GET', { 'if-none-match': '*' })).status, 404)
+  const api = await get('/api/live-intel', 'GET', { 'if-none-match': '*' })
+  assert.equal(api.status, 200)
+  assert.equal(api.headers.etag, undefined)
 })
 
 test('only HTML navigation requests get an extensionless SPA fallback', async (t) => {

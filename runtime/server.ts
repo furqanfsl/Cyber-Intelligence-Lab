@@ -23,6 +23,12 @@ function inside(root: string, target: string) {
   return path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path)
 }
 
+function matchesEntityTag(condition: string | undefined, etag: string) {
+  if (condition?.trim() === '*') return true
+  // If-None-Match uses weak comparison for both GET and HEAD.
+  return condition?.split(',').some((candidate) => candidate.trim().replace(/^W\//, '') === etag.replace(/^W\//, '')) ?? false
+}
+
 function sendError(request: IncomingMessage, response: ServerResponse, status: number, error: string) {
   if (response.headersSent) {
     response.destroy()
@@ -107,15 +113,23 @@ export function createAppServer(options: ServerOptions = {}) {
       sendError(request, response, 403, 'Forbidden')
       return
     }
-    const info = await stat(file)
+    const info = await stat(file, { bigint: true })
     if (!info.isFile()) {
       sendError(request, response, 404, 'Not found')
       return
     }
+    // A weak metadata validator avoids reading the entire asset merely to revalidate it.
+    const etag = `W/"${info.size.toString(16)}-${info.mtimeNs.toString(16)}-${info.ctimeNs.toString(16)}"`
+    response.setHeader('etag', etag)
+    response.setHeader('cache-control', 'no-cache')
+    if (matchesEntityTag(request.headers['if-none-match'], etag)) {
+      response.writeHead(304)
+      response.end()
+      return
+    }
     response.writeHead(200, {
       'content-type': MIME[extname(file).toLowerCase()] ?? 'application/octet-stream',
-      'content-length': info.size,
-      'cache-control': 'no-cache',
+      'content-length': info.size.toString(),
     })
     if (request.method === 'HEAD') {
       response.end()

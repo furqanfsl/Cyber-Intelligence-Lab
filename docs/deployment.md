@@ -78,6 +78,11 @@ including symlink checks. Malformed encodings, traversal and hidden file request
 are rejected. Missing assets stay `404`; only extensionless requests accepting
 HTML can fall back to the SPA page.
 
+Static responses include a weak, file-metadata `ETag`. Browsers can revalidate
+with `If-None-Match`; matching `GET` and `HEAD` requests return a bodyless `304`.
+These validators are cache hints, not content-integrity hashes. Dynamic API
+responses do not use static validators and remain `no-store`.
+
 ```sh
 npm test
 npm run build
