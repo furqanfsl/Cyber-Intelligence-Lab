@@ -215,3 +215,14 @@ test('initially hidden polling waits for visibility and cannot resume after disp
   c.poller.pause(); c.poller.stop(); c.poller.resume(); await flush()
   assert.equal(calls, 1); assert.deepEqual(c.clock.delays(), [])
 })
+
+test('duplicate source record identifiers are rejected before React reconciliation', () => {
+  for (const key of ['kev', 'news']) {
+    const data = fixture(); data[key].push({ ...data[key][0], title: 'Conflicting duplicate record' })
+    data.sources[key === 'kev' ? 0 : 1].count = 2
+    assert.equal(isLiveIntelPayload(data), false)
+  }
+  const empty = fixture(); empty.kev = []; empty.news = []
+  empty.sources.forEach(source => { source.count = 0 })
+  assert.equal(isLiveIntelPayload(empty), true)
+})

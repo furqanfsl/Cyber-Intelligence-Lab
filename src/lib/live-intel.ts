@@ -43,6 +43,11 @@ function isCount(value: unknown): boolean {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
+function hasUniqueIds(items: unknown[]): boolean {
+  const ids = items.map((item) => isRecord(item) ? item.id : undefined)
+  return ids.every((id) => typeof id === 'string') && new Set(ids).size === ids.length
+}
+
 function isSourceUrl(value: unknown, hostname: string): boolean {
   if (typeof value !== 'string') return false
   try {
@@ -65,6 +70,7 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
     (source.lastSuccessAt === undefined || isDate(source.lastSuccessAt)))) return false
   if (!Array.isArray(value.kev) || !Array.isArray(value.news)) return false
   if (value.kev.length > 100 || value.news.length > 100) return false
+  if (!hasUniqueIds(value.kev) || !hasUniqueIds(value.news)) return false
   return value.kev.every((item) => isRecord(item) &&
     hasStrings(item, ['id', 'title', 'vendor', 'product', 'dateAdded', 'dueDate', 'ransomwareUse']) &&
     isDate(item.dateAdded) && isSourceUrl(item.url, 'www.cisa.gov')) &&
