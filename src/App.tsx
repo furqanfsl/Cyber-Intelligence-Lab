@@ -5,6 +5,7 @@ import type { LiveIntelState } from './lib/live-intel'
 import { emptyFeedMessage } from './lib/live-intel'
 import { useLiveIntel } from './hooks/useLiveIntel'
 import { nextTab } from './lib/keyboard-tabs'
+import { createVisibleInterval } from './lib/visible-interval'
 import './App.css'
 
 type Severity = 'critical' | 'high' | 'medium' | 'low'
@@ -298,10 +299,9 @@ function App() {
 
   useEffect(() => {
     if (!simulationRunning) return
-    const timer = window.setInterval(() => {
+    return createVisibleInterval(() => {
       setTick((current) => current + 7)
-    }, 2600)
-    return () => window.clearInterval(timer)
+    }, 2600, document)
   }, [simulationRunning])
 
   useEffect(() => {
