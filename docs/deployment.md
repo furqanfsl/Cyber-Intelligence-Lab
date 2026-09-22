@@ -109,6 +109,8 @@ methods return `405`. Static files are resolved within the real build directory,
 including symlink checks. Malformed encodings, traversal and hidden file requests
 are rejected. Missing assets stay `404`; only extensionless requests accepting
 HTML can fall back to the SPA page.
+Fallback requires an explicit `text/html` media type with a nonzero valid
+quality value; `text/html;q=0` and wildcard-only requests keep their `404`.
 
 Static responses include a weak, file-metadata `ETag`. Browsers can revalidate
 with `If-None-Match`; matching `GET` and `HEAD` requests return a bodyless `304`.

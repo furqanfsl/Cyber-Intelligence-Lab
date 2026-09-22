@@ -37,6 +37,16 @@ function matchesEntityTag(condition: string | undefined, etag: string) {
   return condition?.split(',').some((candidate) => candidate.trim().replace(/^W\//, '') === etag.replace(/^W\//, '')) ?? false
 }
 
+function acceptsHtml(accept = '') {
+  return accept.split(',').some((range) => {
+    const [mediaType, ...parameters] = range.toLowerCase().split(';').map((value) => value.trim())
+    if (mediaType !== 'text/html') return false
+    const quality = parameters.filter((parameter) => parameter.startsWith('q='))
+    if (!quality.length) return true
+    return quality.length === 1 && /^q=(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(quality[0]) && Number(quality[0].slice(2)) > 0
+  })
+}
+
 function sendError(request: IncomingMessage, response: ServerResponse, status: number, error: string) {
   if (response.headersSent) {
     response.destroy()
@@ -127,7 +137,7 @@ export function createAppServer(options: ServerOptions = {}) {
       file = await realpath(file)
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT' && (error as NodeJS.ErrnoException).code !== 'ENOTDIR') throw error
-      const navigation = (request.headers.accept ?? '').includes('text/html')
+      const navigation = acceptsHtml(request.headers.accept)
       if (!navigation || extname(pathname) || pathname.startsWith('/assets/')) {
         sendError(request, response, 404, 'Not found')
         return

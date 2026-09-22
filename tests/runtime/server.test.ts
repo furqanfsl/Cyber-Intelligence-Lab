@@ -187,6 +187,16 @@ test('only HTML navigation requests get an extensionless SPA fallback', async (t
   }
 })
 
+test('SPA fallback honors HTML media types and explicit quality refusals', async (t) => {
+  const { get } = await fixture(t)
+  for (const accept of ['text/html;q=0', 'text/html;q=0.000, */*;q=1', 'application/nottext/html', 'text/html;q=bogus', 'text/html;q=1.5']) {
+    assert.equal((await get('/incident/details', 'GET', { accept })).status, 404, accept)
+  }
+  for (const accept of ['TEXT/HTML', 'application/json, text/html; q=0.5', 'text/html; charset=utf-8']) {
+    assert.equal((await get('/incident/details', 'GET', { accept })).status, 200, accept)
+  }
+})
+
 test('rejects unsupported file methods without changing files', async (t) => {
   const { get } = await fixture(t)
   const response = await get('/index.html', 'POST')
