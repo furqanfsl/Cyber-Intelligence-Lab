@@ -366,3 +366,16 @@ test('late timed-out responses cannot overwrite a successful recovery snapshot',
   assert.equal(c.latest().status, 'live'); assert.equal(c.states.length, delivered)
   assert.deepEqual(c.clock.delays(), [60_000]); c.poller.stop()
 })
+
+test('unmount cancels a queued visibility resume before it can issue another request', async () => {
+  let calls = 0
+  const c = client(() => { calls++; return new Promise(() => {}) })
+  const request = c.poller.refresh()
+  c.poller.pause(); c.poller.resume()
+  const updatesBeforeUnmount = c.states.length
+  c.poller.stop(); c.poller.stop()
+  await request; await flush(); c.poller.resume()
+  assert.equal(calls, 1)
+  assert.equal(c.states.length, updatesBeforeUnmount)
+  assert.deepEqual(c.clock.delays(), [])
+})
