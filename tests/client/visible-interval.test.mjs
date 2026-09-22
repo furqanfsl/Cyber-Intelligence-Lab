@@ -34,3 +34,14 @@ test('user pause disposes the listener and visibility cannot restart the simulat
   stop(); e.visibility(true); e.visibility(false); stop()
   assert.equal(e.jobs.size, 0)
 })
+
+test('already-queued ticks from a cancelled interval cannot run after hide or disposal', () => {
+  const e = environment(); let ticks = 0
+  const stop = createVisibleInterval(() => ticks++, 2600, e.target, e.timers)
+  const previousTick = [...e.jobs.values()][0]
+  e.visibility(true); previousTick(); assert.equal(ticks, 0)
+  e.visibility(false); previousTick(); assert.equal(ticks, 0)
+  e.tick(); assert.equal(ticks, 1)
+  const latestTick = [...e.jobs.values()][0]
+  stop(); latestTick(); assert.equal(ticks, 1)
+})
