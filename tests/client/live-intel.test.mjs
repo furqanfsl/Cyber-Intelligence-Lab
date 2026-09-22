@@ -317,3 +317,22 @@ test('record labels are nonblank and bounded by Unicode code points', () => {
     assert.equal(isLiveIntelPayload(unicode), false)
   }
 })
+
+test('partial refresh combines retained CISA records with fresh news without mutating prior health', async () => {
+  const update = fixture()
+  update.generatedAt = '2026-09-22T13:00:00Z'
+  update.kev = []; update.sources[0] = { ...update.sources[0], status: 'error', count: 0, message: 'CISA unavailable.' }
+  update.news[0].title = 'Newly retrieved discussion'
+  const replies = [response(), response(update)]
+  const c = client(async () => replies.shift())
+  await c.poller.refresh(); const previous = c.latest().data
+  await c.poller.refresh()
+  assert.equal(c.latest().status, 'partial')
+  assert.equal(c.latest().data.kev[0].id, previous.kev[0].id)
+  assert.equal(c.latest().data.news[0].title, 'Newly retrieved discussion')
+  assert.equal(c.latest().data.sources[0].lastSuccessAt, previous.generatedAt)
+  assert.equal(c.latest().data.sources[0].status, 'stale')
+  assert.equal(previous.sources[0].status, 'ok')
+  assert.equal(previous.news[0].title, 'Example story')
+  c.poller.stop()
+})
