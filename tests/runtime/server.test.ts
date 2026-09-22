@@ -1,0 +1,200 @@
+import assert from 'node:assert/strict'
+import { once } from 'node:events'
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { request, type IncomingMessage, type ServerResponse } from 'node:http'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { test, type TestContext } from 'node:test'
+import { createAppServer, installShutdownHandlers, readListenOptions } from '../../runtime/server.ts'
+
+async function fixture(t: TestContext, handler?: (request: IncomingMessage, response: ServerResponse) => void | Promise<void>) {
+  const directory = await mkdtemp(join(tmpdir(), 'cyber-lab-runtime-'))
+  const distDir = join(directory, 'dist')
+  await mkdir(join(distDir, 'assets'), { recursive: true })
+  await writeFile(join(distDir, 'index.html'), '<!doctype html><title>Cyber lab</title>')
+  await writeFile(join(distDir, 'assets', 'app.js'), 'console.log("lab")')
+  await writeFile(join(distDir, 'assets', 'app.css'), 'body { color: white; }')
+  await writeFile(join(distDir, 'favicon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>')
+  await writeFile(join(distDir, 'space name.txt'), 'encoded filename')
+  await writeFile(join(directory, 'private.txt'), 'must never be served')
+  let calls = 0
+  const server = createAppServer({
+    distDir,
+    liveIntelMiddleware: handler ?? ((_request, response) => {
+      calls += 1
+      response.setHeader('content-type', 'application/json; charset=utf-8')
+      response.end(JSON.stringify({ sources: [], calls }))
+    }),
+  })
+  server.listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  t.after(async () => {
+    if (server.listening) {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => error ? reject(error) : resolve())
+        server.closeAllConnections()
+      })
+    }
+    await rm(directory, { recursive: true, force: true })
+  })
+  const address = server.address()
+  assert.ok(address && typeof address !== 'string')
+  const port = address.port
+  function get(path: string, method = 'GET', headers: Record<string, string> = {}) {
+    return new Promise<{ status: number; body: string; headers: import('node:http').IncomingHttpHeaders }>((resolve, reject) => {
+      const req = request({ hostname: '127.0.0.1', port, path, method, headers }, (response) => {
+        let body = ''
+        response.setEncoding('utf8')
+        response.on('data', (chunk: string) => { body += chunk })
+        response.on('end', () => resolve({ status: response.statusCode ?? 0, body, headers: response.headers }))
+      })
+      req.on('error', reject)
+      req.end()
+    })
+  }
+  return { get, directory, distDir, server, calls: () => calls }
+}
+
+test('serves the built homepage with safe headers and no absolute paths', async (t) => {
+  const { get } = await fixture(t)
+  const response = await get('/')
+  assert.equal(response.status, 200)
+  assert.match(response.body, /Cyber lab/)
+  assert.equal(response.headers['content-type'], 'text/html; charset=utf-8')
+  assert.equal(response.headers['x-content-type-options'], 'nosniff')
+  assert.equal(response.headers['x-frame-options'], 'DENY')
+  assert.equal(response.headers['referrer-policy'], 'no-referrer')
+  assert.equal(response.headers['cache-control'], 'no-cache')
+})
+
+test('serves JavaScript, CSS, SVG and percent-encoded filenames with their MIME types', async (t) => {
+  const { get } = await fixture(t)
+  for (const [path, mime] of [
+    ['/assets/app.js?v=1', 'text/javascript; charset=utf-8'],
+    ['/assets/app.css', 'text/css; charset=utf-8'],
+    ['/favicon.svg', 'image/svg+xml'],
+    ['/space%20name.txt', 'text/plain; charset=utf-8'],
+  ]) {
+    const response = await get(path)
+    assert.equal(response.status, 200, path)
+    assert.equal(response.headers['content-type'], mime, path)
+  }
+})
+
+test('HEAD returns file metadata without a response body', async (t) => {
+  const { get } = await fixture(t)
+  const response = await get('/assets/app.js', 'HEAD')
+  assert.equal(response.status, 200)
+  assert.equal(response.body, '')
+  assert.equal(Number(response.headers['content-length']), Buffer.byteLength('console.log("lab")'))
+})
+
+test('only HTML navigation requests get an extensionless SPA fallback', async (t) => {
+  const { get } = await fixture(t)
+  assert.equal((await get('/incident/overview', 'GET', { accept: 'text/html' })).status, 200)
+  for (const path of ['/incident/overview', '/assets/missing.js', '/assets/missing', '/missing.svg']) {
+    const headers: Record<string, string> = path === '/incident/overview' ? {} : { accept: 'text/html' }
+    const response = await get(path, 'GET', headers)
+    assert.equal(response.status, 404, path)
+    assert.doesNotMatch(response.body, /Cyber lab/, path)
+  }
+})
+
+test('rejects unsupported file methods without changing files', async (t) => {
+  const { get } = await fixture(t)
+  const response = await get('/index.html', 'POST')
+  assert.equal(response.status, 405)
+  assert.equal(response.headers.allow, 'GET, HEAD')
+  assert.equal((await get('/')).status, 200)
+})
+
+test('shares the injected API handler only for the exact supported route', async (t) => {
+  const fixtureData = await fixture(t)
+  const response = await fixtureData.get('/api/live-intel?check=1')
+  assert.equal(response.status, 200)
+  assert.deepEqual(JSON.parse(response.body), { sources: [], calls: 1 })
+  const head = await fixtureData.get('/api/live-intel', 'HEAD')
+  assert.equal(head.status, 200)
+  assert.equal(head.body, '')
+  for (const path of ['/api', '/api/unknown', '/api/live-intel/extra', '/api/live-intel/']) {
+    const unknown = await fixtureData.get(path, 'GET', { accept: 'text/html' })
+    assert.equal(unknown.status, 404, path)
+    assert.match(unknown.headers['content-type'] ?? '', /application\/json/)
+  }
+  assert.equal(fixtureData.calls(), 2)
+})
+
+test('unsupported API methods return JSON and do not invoke the source handler', async (t) => {
+  const { get, calls } = await fixture(t)
+  const response = await get('/api/live-intel', 'POST')
+  assert.equal(response.status, 405)
+  assert.equal(response.headers.allow, 'GET, HEAD')
+  assert.equal(JSON.parse(response.body).error, 'Method not allowed')
+  assert.equal(calls(), 0)
+})
+
+test('unexpected handler failures return a generic error rather than exposing server details', async (t) => {
+  const { get } = await fixture(t, () => { throw new Error('private path and secret details') })
+  const response = await get('/api/live-intel')
+  assert.equal(response.status, 500)
+  assert.deepEqual(JSON.parse(response.body), { error: 'Unable to serve request' })
+  assert.doesNotMatch(response.body, /private|secret|Error|stack/)
+})
+
+test('rejects raw and encoded traversal, backslashes, NULs and dotfiles', async (t) => {
+  const { get } = await fixture(t)
+  for (const path of ['/../private.txt', '/%2e%2e/private.txt', '/assets/%2e%2e/%2e%2e/private.txt', '/..%5cprivate.txt', '/%00', '/.env', '/.git/config']) {
+    const response = await get(path)
+    assert.ok([400, 403, 404].includes(response.status), `${path}: ${response.status}`)
+    assert.doesNotMatch(response.body, /must never be served/)
+  }
+})
+
+test('malformed URL encoding returns a controlled client error', async (t) => {
+  const { get } = await fixture(t)
+  const response = await get('/%E0%A4%A')
+  assert.equal(response.status, 400)
+  assert.doesNotMatch(response.body, /URIError|stack|dist/)
+})
+
+test('a directory symlink cannot escape the build directory', async (t) => {
+  const { get, directory, distDir } = await fixture(t)
+  await symlink(directory, join(distDir, 'escape'), process.platform === 'win32' ? 'junction' : 'dir')
+  const response = await get('/escape/private.txt')
+  assert.equal(response.status, 403)
+  assert.doesNotMatch(response.body, /must never be served/)
+})
+
+test('fails before listening when the build is absent or has no index', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'cyber-lab-missing-dist-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
+  assert.throws(() => createAppServer({ distDir: join(directory, 'missing') }), /npm run build/)
+  assert.throws(() => createAppServer({ distDir: directory }), /npm run build/)
+})
+
+test('listener configuration is local by default and validates port and bind addresses', () => {
+  assert.deepEqual(readListenOptions({}), { host: '127.0.0.1', port: 3000 })
+  assert.deepEqual(readListenOptions({ HOST: '0.0.0.0', PORT: '8080' }), { host: '0.0.0.0', port: 8080 })
+  assert.deepEqual(readListenOptions({ HOST: '::1', PORT: '3001' }), { host: '::1', port: 3001 })
+  for (const port of ['', '0', '-1', '65536', '3.5', '3000oops']) {
+    assert.throws(() => readListenOptions({ PORT: port }), /PORT/)
+  }
+  for (const host of ['', 'https://example.com', '0.0.0.0:3000', 'attacker.example']) {
+    assert.throws(() => readListenOptions({ HOST: host }), /HOST/)
+  }
+})
+
+test('graceful shutdown stops listening and removes its signal handlers', async (t) => {
+  const { server } = await fixture(t)
+  const before = new Set(process.listeners('SIGTERM'))
+  const intCount = process.listenerCount('SIGINT')
+  installShutdownHandlers(server)
+  const shutdown = process.listeners('SIGTERM').find((listener) => !before.has(listener))
+  assert.ok(shutdown)
+  const closed = once(server, 'close')
+  shutdown('SIGTERM')
+  await closed
+  assert.equal(server.listening, false)
+  assert.equal(process.listenerCount('SIGTERM'), before.size)
+  assert.equal(process.listenerCount('SIGINT'), intCount)
+})
