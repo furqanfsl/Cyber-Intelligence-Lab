@@ -353,3 +353,16 @@ test('the request deadline covers a stalled JSON body after response headers arr
   assert.deepEqual(c.clock.delays(), [RETRY_POLL_MS])
   body.close(); await flush(); c.poller.stop()
 })
+
+test('late timed-out responses cannot overwrite a successful recovery snapshot', async () => {
+  let calls = 0; let resolveFirst
+  const fresh = fixture(); fresh.generatedAt = '2026-09-22T13:00:00Z'; fresh.news[0].title = 'Fresh recovery record'
+  const c = client(() => ++calls === 1 ? new Promise(resolve => { resolveFirst = resolve }) : Promise.resolve(response(fresh)))
+  const first = c.poller.refresh(); c.clock.run(REQUEST_TIMEOUT_MS); await first
+  await c.poller.refresh(); const delivered = c.states.length
+  resolveFirst(response()); await flush()
+  assert.equal(c.latest().data.news[0].title, 'Fresh recovery record')
+  assert.equal(c.latest().data.generatedAt, fresh.generatedAt)
+  assert.equal(c.latest().status, 'live'); assert.equal(c.states.length, delivered)
+  assert.deepEqual(c.clock.delays(), [60_000]); c.poller.stop()
+})
