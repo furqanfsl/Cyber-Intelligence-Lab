@@ -81,6 +81,14 @@ test('news validates timestamp dates and normalizes timezone offsets', () => {
   assert.equal(item.createdAt, '2026-09-20T11:30:00.000Z')
 })
 
+test('news timestamps reject clock rollover while retaining valid subsecond and offset precision', () => {
+  for (const created_at of ['2026-09-20T24:00:00Z', '2026-09-20T12:60:00Z', '2026-09-20T12:00:60Z', '2026-09-20T12:00Z', '2026-09-20T12:00:00+24:00']) {
+    assert.throws(() => parseNews({ hits: [newsRecord({ created_at })] }), /No valid news records/)
+  }
+  const [item] = parseNews({ hits: [newsRecord({ created_at: '2026-09-20T00:30:00.123456+01:00' })] })
+  assert.equal(item.createdAt, '2026-09-19T23:30:00.123Z')
+})
+
 test('news requires a nonempty title and normalizes invalid point counts', () => {
   assert.throws(() => parseNews({ hits: [newsRecord({ title: ' ' })] }), /No valid news records/)
   for (const points of ['42', -1, 1.5, Infinity, Number.MAX_SAFE_INTEGER + 1, {}]) {

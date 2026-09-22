@@ -24,10 +24,10 @@ function dateOnly(value: unknown): string | undefined {
 }
 
 function timestamp(value: unknown): string | undefined {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value)) return
+  if (typeof value !== 'string' || value !== value.trim()) return
+  if (!/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(value)) return
   if (!dateOnly(value.slice(0, 10))) return
-  // Require a timezone so parsing does not depend on the server's locale.
-  if (!/(Z|[+-]\d{2}:\d{2})$/.test(value)) return
+  // Validate clock fields before Date.parse can silently normalize 24:00 to tomorrow.
   const milliseconds = Date.parse(value)
   if (Number.isFinite(milliseconds)) return new Date(milliseconds).toISOString()
 }
