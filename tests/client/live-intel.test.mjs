@@ -267,3 +267,14 @@ test('discussion records cannot misdirect readers to another story or route', ()
   large.news[0].url = 'https://news.ycombinator.com/item?id=' + large.news[0].id
   assert.equal(isLiveIntelPayload(large), true)
 })
+
+test('health records must identify canonical sources in the feed association order', () => {
+  const swapped = fixture(); swapped.sources.reverse(); assert.equal(isLiveIntelPayload(swapped), false)
+  const duplicate = fixture(); duplicate.sources[1].name = duplicate.sources[0].name
+  assert.equal(isLiveIntelPayload(duplicate), false)
+  const unknown = fixture(); unknown.sources[0].name = 'Unofficial source'
+  assert.equal(isLiveIntelPayload(unknown), false)
+  const missing = fixture(); missing.sources[1] = null
+  assert.equal(isLiveIntelPayload(missing), false)
+  assert.equal(isLiveIntelPayload(fixture()), true)
+})

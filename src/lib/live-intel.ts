@@ -1,4 +1,5 @@
 import type { LiveIntelPayload } from '../../shared/live-intel.ts'
+import { CISA_NAME, NEWS_NAME } from '../../shared/live-intel.ts'
 
 export const DEFAULT_POLL_MS = 60_000
 export const RETRY_POLL_MS = 90_000
@@ -75,6 +76,8 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
   if (typeof value.pollAfterMs !== 'number' || !Number.isFinite(value.pollAfterMs)) return false
   if (typeof value.cacheTtlMs !== 'number' || !Number.isFinite(value.cacheTtlMs) || value.cacheTtlMs < 0) return false
   if (!Array.isArray(value.sources) || value.sources.length !== 2) return false
+  if (!isRecord(value.sources[0]) || value.sources[0].name !== CISA_NAME ||
+    !isRecord(value.sources[1]) || value.sources[1].name !== NEWS_NAME) return false
   if (!value.sources.every((source) => isRecord(source) && typeof source.name === 'string' &&
     ['ok', 'stale', 'error'].includes(String(source.status)) && isCount(source.count) &&
     (source.message === undefined || typeof source.message === 'string') &&
