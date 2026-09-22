@@ -355,6 +355,17 @@ test('malformed URL encoding returns a controlled client error', async (t) => {
   assert.doesNotMatch(response.body, /URIError|stack|dist/)
 })
 
+test('proxy-form and network-path request targets cannot bypass local routing', async (t) => {
+  const { get, calls } = await fixture(t)
+  for (const path of ['https://external.example/api/live-intel', '//external.example/api/live-intel', '*']) {
+    const response = await get(path)
+    assert.equal(response.status, 400, path)
+    assert.deepEqual(JSON.parse(response.body), { error: 'Invalid request path' })
+    assert.equal(response.headers['cache-control'], 'no-store')
+  }
+  assert.equal(calls(), 0)
+})
+
 test('encoded path separators cannot create alternate API or asset routes', async (t) => {
   const { get, calls } = await fixture(t)
   for (const path of ['/api%2flive-intel', '/api%2Flive-intel', '/assets%2fapp.js', '/assets%5capp.js']) {
