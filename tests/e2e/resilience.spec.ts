@@ -94,3 +94,16 @@ test('a stalled request times out and releases the refresh control', async ({ pa
   await expect(page.getByRole('button', { name: 'Refresh sources' })).toBeEnabled()
   await expect(page.locator('.live-intel-grid')).toHaveAttribute('aria-busy', 'false')
 })
+
+test('automatic retry recovers a timeout without another click', async ({ page }) => {
+  await page.clock.install()
+  await page.route('**/api/live-intel', () => {})
+  await page.goto('/')
+  await expect(page.locator('.live-refresh')).toBeDisabled()
+  await page.clock.fastForward(20_100)
+  await expect(page.locator('.live-status-badge')).toHaveText('Source error')
+  await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
+  await page.clock.fastForward(90_100)
+  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await expect(page.locator('.feed-notice')).toHaveCount(0)
+})
