@@ -20,3 +20,19 @@ test('invalid, missing, or timezone-free input has a safe readable fallback', ()
   }
   assert.equal(formatTimestamp('2026-09-22T12:00:00Z', { timeZone: 'not-a-zone' }), 'Time unavailable')
 })
+
+test('repeated daylight-saving clock times remain distinguishable by their UTC offsets', () => {
+  const options = { locale: 'en-GB', timeZone: 'Europe/London' }
+  const before = formatTimestamp('2026-10-25T00:30:00Z', options)
+  const after = formatTimestamp('2026-10-25T01:30:00Z', options)
+  assert.match(before, /01:30:00 GMT\+1/)
+  assert.match(after, /01:30:00 GMT(?:\+0)?$/)
+  assert.notEqual(before, after)
+})
+test('local timezone conversion preserves the correct calendar day across year boundaries', () => {
+  const instant = '2026-01-01T00:15:00Z'
+  const west = formatTimestamp(instant, { locale: 'en-GB', timeZone: 'America/Los_Angeles' })
+  const east = formatTimestamp(instant, { locale: 'en-GB', timeZone: 'Asia/Tokyo' })
+  assert.match(west, /31 Dec 2025, 16:15:00 GMT-8/)
+  assert.match(east, /1 Jan 2026, 09:15:00 GMT\+9/)
+})
