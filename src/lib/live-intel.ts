@@ -176,7 +176,7 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
           }, REQUEST_TIMEOUT_MS)
         })
         const request = (async () => {
-          const response = await fetcher('/api/live-intel', { cache: 'no-store', signal: requestController.signal })
+          const response = await fetcher('/api/live-intel', { cache: 'no-store', redirect: 'error', signal: requestController.signal })
           if (!response.ok) throw new IntelRefreshError('The intelligence service is unavailable. Automatic retry is scheduled.')
           const payload: unknown = await response.json().catch(() => {
             throw new IntelRefreshError('The intelligence service returned invalid data. Automatic retry is scheduled.')

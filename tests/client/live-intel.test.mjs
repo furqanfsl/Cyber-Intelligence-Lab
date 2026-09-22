@@ -379,3 +379,24 @@ test('unmount cancels a queued visibility resume before it can issue another req
   assert.equal(c.states.length, updatesBeforeUnmount)
   assert.deepEqual(c.clock.delays(), [])
 })
+
+test('the client refuses API redirects instead of following an unexpected destination', async () => {
+  const { createServer } = await import('node:http')
+  let destinationRequests = 0
+  const server = createServer((request, response) => {
+    if (request.url === '/api/live-intel') { response.writeHead(302, { Location: '/unexpected' }); response.end() }
+    else { destinationRequests++; response.end(JSON.stringify(fixture())) }
+  })
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+  const base = 'http://127.0.0.1:' + server.address().port
+  const c = client((url, options) => fetch(base + url, options))
+  try {
+    await c.poller.refresh()
+    assert.equal(destinationRequests, 0)
+    assert.equal(c.latest().status, 'error')
+    assert.match(c.latest().error, /Could not reach/)
+    assert.deepEqual(c.clock.delays(), [RETRY_POLL_MS])
+  } finally {
+    c.poller.stop(); await new Promise(resolve => server.close(resolve))
+  }
+})
