@@ -54,6 +54,9 @@ portfolio app.
 Invalid `HOST` or `PORT` values stop startup with exit code `1` and an explanatory
 message. Check the hosting service's environment settings rather than retrying
 the same invalid configuration in a restart loop.
+An occupied port also exits with code `1`; stop the previous instance or select
+a different `PORT`. A startup error does not terminate the process already using
+that port.
 
 ## Health probes
 
