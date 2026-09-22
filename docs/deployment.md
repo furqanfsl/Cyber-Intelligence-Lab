@@ -51,6 +51,10 @@ by the machine's firewall. Do not use it for routine private local development.
 No account, private telemetry, or authentication service is provided by this
 portfolio app.
 
+Invalid `HOST` or `PORT` values stop startup with exit code `1` and an explanatory
+message. Check the hosting service's environment settings rather than retrying
+the same invalid configuration in a restart loop.
+
 ## Health probes
 
 Use `GET /healthz` or `HEAD /healthz` for a lightweight readiness probe. A started
