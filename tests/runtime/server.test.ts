@@ -109,6 +109,22 @@ test('serves JavaScript, CSS, SVG and percent-encoded filenames with their MIME 
   }
 })
 
+test('optional build assets retain correct MIME types under nosniff', async (t) => {
+  const { get, distDir } = await fixture(t)
+  for (const [name, mime] of [
+    ['module.mjs', 'text/javascript; charset=utf-8'], ['engine.wasm', 'application/wasm'],
+    ['font.ttf', 'font/ttf'], ['font.otf', 'font/otf'], ['poster.AVIF', 'image/avif'],
+    ['animation.gif', 'image/gif'], ['app.webmanifest', 'application/manifest+json'],
+    ['opaque.bin', 'application/octet-stream'],
+  ]) {
+    await writeFile(join(distDir, 'assets', name), 'asset fixture')
+    const response = await get(`/assets/${name}`)
+    assert.equal(response.status, 200, name)
+    assert.equal(response.headers['content-type'], mime, name)
+    assert.equal(response.headers['x-content-type-options'], 'nosniff', name)
+  }
+})
+
 test('HEAD returns file metadata without a response body', async (t) => {
   const { get } = await fixture(t)
   const response = await get('/assets/app.js', 'HEAD')

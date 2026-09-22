@@ -24,6 +24,9 @@ const MIME: Record<string, string> = {
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon',
   '.woff': 'font/woff', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm',
+  '.ttf': 'font/ttf', '.otf': 'font/otf', '.avif': 'image/avif', '.gif': 'image/gif',
+  '.webmanifest': 'application/manifest+json',
 }
 
 function inside(root: string, target: string) {
