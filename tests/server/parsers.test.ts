@@ -101,6 +101,18 @@ test('display text truncation preserves full Unicode code points at the limit', 
   assert.equal(news.title.isWellFormed(), true)
 })
 
+test('plain feed labels normalize whitespace and remove invisible control overrides', () => {
+  const [news] = parseNews({ hits: [newsRecord({ title: ' Alert\r\n\t\u202efile.exe\u202c\u0000 ', author: '\u0000\u202e ' })] })
+  assert.equal(news.title, 'Alert file.exe')
+  assert.equal(news.author, 'unknown')
+  const [kev] = parseKev({ vulnerabilities: [kevRecord({
+    vulnerabilityName: '\u0000\u202e', shortDescription: 'Useful\t fallback', product: 'Safe\u2066 name\u2069',
+  })] })
+  assert.equal(kev.title, 'Useful fallback')
+  assert.equal(kev.product, 'Safe name')
+  assert.throws(() => parseNews({ hits: [newsRecord({ title: '\u0000\u202e' })] }), /No valid news records/)
+})
+
 test('news query normalization drops malformed records and bounds results', () => {
   const hits = Array.from({ length: 9 }, (_, index) => newsRecord({ objectID: String(100 + index), created_at: `2026-09-${10 + index}T12:00:00Z` }))
   const items = parseNews({ hits: [null, {}, ...hits, hits[8]] })

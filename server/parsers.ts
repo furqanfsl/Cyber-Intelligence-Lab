@@ -6,9 +6,11 @@ function record(value: unknown): value is Record<string, unknown> {
 
 function text(value: unknown, fallback = ''): string {
   if (typeof value !== 'string') return fallback
+  // Feed titles are plain labels, not a channel for terminal controls or bidi overrides.
+  const normalized = value.replace(/\s+/gu, ' ').replace(/[\p{Cc}\p{Bidi_Control}]/gu, '').trim()
   let result = ''
   let length = 0
-  for (const character of value.trim()) {
+  for (const character of normalized) {
     if (length++ === 1_000) break
     result += character
   }
