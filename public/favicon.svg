@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Cyber Intelligence Lab">
+  <rect width="64" height="64" fill="#070c0c"/>
+  <path d="M8 8h48v48H8z" fill="none" stroke="#e0f1f0" stroke-opacity=".45" stroke-width="2"/>
+  <path d="M8 8h17M39 56h17M56 8v17M8 39v17" stroke="#ff2e2e" stroke-width="4"/>
+  <text x="32" y="39" fill="#eff7f6" font-family="Consolas, monospace" font-size="20" font-weight="800" text-anchor="middle" letter-spacing="-1">CIL</text>
+</svg>

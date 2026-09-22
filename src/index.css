@@ -1,0 +1,57 @@
+:root {
+  --bg: #070c0c;
+  --panel: #0b1414;
+  --panel-deep: #060909;
+  --text-strong: #eff7f6;
+  --text: #b7c7c5;
+  --text-muted: #718481;
+  --line: rgba(224, 241, 240, 0.2);
+  --line-soft: rgba(224, 241, 240, 0.115);
+  --line-hot: rgba(255, 46, 46, 0.72);
+  --red: #ff2e2e;
+  --green: #62ff95;
+  --display: 'Monument Extended', 'Bahnschrift', 'Aptos Display', 'Segoe UI Variable Display', sans-serif;
+  --mono: 'JetBrains Mono', 'Cascadia Mono', 'IBM Plex Mono', Consolas, monospace;
+  --sans: 'Satoshi', 'Aptos', 'Segoe UI Variable Text', system-ui, sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  color: var(--text);
+  background: var(--bg);
+  font-family: var(--sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100dvh;
+  margin: 0;
+  background: var(--bg);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: #160707;
+  background: var(--red);
+}
