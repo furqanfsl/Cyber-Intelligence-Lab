@@ -7,6 +7,7 @@ import { useLiveIntel } from './hooks/useLiveIntel'
 import { nextTab } from './lib/keyboard-tabs'
 import { createVisibleInterval } from './lib/visible-interval'
 import { formatTimestamp } from './lib/timestamps'
+import { intelAnnouncement } from './lib/intel-announcement'
 import './App.css'
 
 type Severity = 'critical' | 'high' | 'medium' | 'low'
@@ -700,18 +701,21 @@ function LiveIntelSection({
         <p className="quote">Open sources. Defensive awareness. Responsible polling.</p>
       </div>
 
-      <div className="live-intel-grid reveal delay-1">
+      <p className="sr-only" id="intel-announcement" role="status" aria-live="polite" aria-atomic="true">
+        {intelAnnouncement(state)}
+      </p>
+      <div className="live-intel-grid reveal delay-1" aria-busy={state.isRefreshing}>
         <article className="panel live-status-panel">
           <div className="panel-heading">
             <div>
               <div className="panel-title">Automation status</div>
               <small>Client polling / server-side source cache</small>
             </div>
-            <span className={`live-status-badge ${state.status}`} role="status">
+            <span className={`live-status-badge ${state.status}`}>
               {state.isRefreshing ? 'Refreshing' : statusLabels[state.status]}
             </span>
           </div>
-          {statusMessage && <p className="feed-notice" role="status">{statusMessage}</p>}
+          {statusMessage && <p className="feed-notice">{statusMessage}</p>}
           <dl className="automation-list">
             <div>
               <dt>Snapshot generated</dt>
