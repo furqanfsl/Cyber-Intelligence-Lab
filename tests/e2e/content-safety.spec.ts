@@ -12,8 +12,9 @@ test('source titles containing markup cannot create active elements', async ({ p
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
-  await expect(page.getByText(title, { exact: true })).toBeVisible()
-  await expect(page.locator('.osint-list img')).toHaveCount(0)
+  await expect(page.locator('.osint-list').getByText(title, { exact: true })).toBeVisible()
+  await expect(page.locator('.hero-brief').getByText(title, { exact: true })).toBeVisible()
+  await expect(page.locator('.osint-list img, .hero-brief img')).toHaveCount(0)
   expect(await page.locator('body').getAttribute('data-injected')).toBeNull()
 })
 

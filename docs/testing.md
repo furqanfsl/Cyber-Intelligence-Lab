@@ -59,7 +59,24 @@ for the native runner's limitations.
 - Production HTTP tests use temporary static files and ephemeral ports.
 - Browser tests mock `/api/live-intel` for deterministic success, malformed data, partial failure, and stale-data scenarios.
 - Interaction checks cover keyboard tabs, severity filtering, clipboard success/failure, simulation controls, and narrow viewport overflow.
+- Scenario checks verify that each incident changes the entire dossier, including all four artifact tabs, rather than only the title.
+- Connectivity checks cover offline retention, one reconnect request, advancing last-check timestamps with cached snapshots, countdowns and automatically updated source records.
+- Feed tools cover snapshot search, no-match recovery, expanded records, self-hosted fonts, active navigation and coherent simulation totals.
 
 Mocked tests do not prove upstream availability. For a live smoke check, start the app and inspect `/api/live-intel` plus the source-health panel. Do not turn external-service availability into a flaky CI requirement.
 
 Failure screenshots and traces are written to `test-results/`. CI retains failed browser artifacts for seven days. These generated files are ignored by Git.
+
+## Visual and accessibility review
+
+The 22 September 2026 workspace review inspected desktop and mobile renders at
+320, 390, 768, 1280 and 1440 pixels. Buttons, severity words, focus states,
+readability, clipping, sticky navigation and selected-scenario content were
+checked alongside the automated suite (162 unit/integration tests and 104
+desktop/mobile browser checks at that review).
+
+A separate temporary axe-core 4.13 scan used WCAG 2 A/AA and 2.1 A/AA rules on
+1440px and 390px views, with both ransomware and cloud scenarios selected. It
+reported no automated violations; this is not an accessibility certification.
+Manual review also checked labels over moving map paths, reduced motion and
+forced colours, which automated contrast checks could not fully resolve.

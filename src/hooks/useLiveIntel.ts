@@ -12,11 +12,18 @@ export function useLiveIntel() {
       if (document.hidden) client.pause()
       else client.resume()
     }
+    const onOnline = () => client.setOnline(true)
+    const onOffline = () => client.setOnline(false)
     document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
     if (document.hidden) client.pause()
-    else void client.refresh()
+    client.setOnline(navigator.onLine)
+    if (!document.hidden) void client.refresh()
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
       client.stop()
       if (poller.current === client) poller.current = null
     }

@@ -2,6 +2,9 @@ import type { LiveIntelState } from './live-intel.ts'
 
 /** Keep refresh announcements brief instead of rereading the entire feed. */
 export function intelAnnouncement(state: LiveIntelState): string {
+  if (!state.isOnline) return state.data
+    ? 'You are offline. Saved intelligence records may be out of date.'
+    : 'You are offline. Reconnect to load public intelligence.'
   if (state.isRefreshing) return 'Refreshing public intelligence sources.'
   if (state.status === 'connecting') return 'Connecting to public intelligence sources.'
   if (state.status === 'live') return 'Public intelligence refresh complete. Sources are current.'

@@ -13,6 +13,9 @@ export type LiveIntelState = {
   isRefreshing: boolean
   error: string | null
   pollAfterMs: number
+  isOnline: boolean
+  lastCheckedAt: string | null
+  nextCheckAt: string | null
 }
 
 export const initialIntelState: LiveIntelState = {
@@ -21,6 +24,9 @@ export const initialIntelState: LiveIntelState = {
   isRefreshing: false,
   error: null,
   pollAfterMs: DEFAULT_POLL_MS,
+  isOnline: true,
+  lastCheckedAt: null,
+  nextCheckAt: null,
 }
 
 export function boundedPollDelay(value: unknown): number {
@@ -133,11 +139,12 @@ type PollerOptions = {
   fetcher?: typeof fetch
   schedule?: typeof setTimeout
   cancel?: typeof clearTimeout
+  now?: () => number
   onChange: (state: LiveIntelState) => void
 }
 
 /** One request owns the next poll. Manual refresh shares any in-flight request. */
-export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, cancel = clearTimeout, onChange }: PollerOptions) {
+export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, cancel = clearTimeout, now = Date.now, onChange }: PollerOptions) {
   let state: LiveIntelState = { ...initialIntelState }
   let stopped = false
   let paused = false
@@ -154,12 +161,13 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
   }
 
   function refresh(): Promise<void> {
-    if (stopped || paused) return Promise.resolve()
+    if (stopped || paused || !state.isOnline) return Promise.resolve()
     if (pending) return pending
     if (nextTimer !== undefined) cancel(nextTimer)
+    nextTimer = undefined
     controller = new AbortController()
     const requestController = controller
-    publish({ isRefreshing: true, error: null })
+    publish({ isRefreshing: true, error: null, nextCheckAt: null })
 
     pending = (async () => {
       let delay = RETRY_POLL_MS
@@ -186,13 +194,15 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
         })()
         const payload = retainUnavailableSources(await Promise.race([request, timeout, cancelled]), state.data)
         delay = boundedPollDelay(payload.pollAfterMs)
-        publish({ data: payload, status: intelStatus(payload), error: null, pollAfterMs: delay })
+        publish({ data: payload, status: intelStatus(payload), error: null, pollAfterMs: delay, lastCheckedAt: new Date(now()).toISOString() })
       } catch (error) {
+        if (stopped || paused || !state.isOnline) return
         if (requestController.signal.aborted && !(error instanceof IntelRefreshError)) return
         publish({
           status: state.data ? 'stale' : 'error',
           error: error instanceof IntelRefreshError ? error.message : 'Could not reach the intelligence service. Automatic retry is scheduled.',
           pollAfterMs: delay,
+          lastCheckedAt: new Date(now()).toISOString(),
         })
       } finally {
         if (requestTimer !== undefined) cancel(requestTimer)
@@ -200,12 +210,13 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
         requestTimer = undefined
         pending = undefined
         publish({ isRefreshing: false })
-        if (!stopped && !paused) {
+        if (!stopped && !paused && state.isOnline) {
           if (resumeQueued) {
             resumeQueued = false
             void refresh()
           } else {
             nextTimer = schedule(() => { void refresh() }, delay)
+            publish({ nextCheckAt: new Date(now() + delay).toISOString() })
           }
         }
       }
@@ -220,13 +231,39 @@ export function createIntelPoller({ fetcher = fetch, schedule = setTimeout, canc
       paused = true
       resumeQueued = false
       if (nextTimer !== undefined) cancel(nextTimer)
+      nextTimer = undefined
       controller?.abort()
+      publish({ nextCheckAt: null })
     },
     resume() {
       if (stopped || !paused) return
       paused = false
+      if (!state.isOnline) return
       if (pending) resumeQueued = true
       else void refresh()
+    },
+    setOnline(online: boolean) {
+      if (stopped || state.isOnline === online) return
+      if (!online) {
+        resumeQueued = false
+        if (nextTimer !== undefined) cancel(nextTimer)
+        nextTimer = undefined
+        controller?.abort()
+        publish({
+          isOnline: false,
+          isRefreshing: false,
+          nextCheckAt: null,
+          status: state.data ? 'stale' : 'error',
+          error: state.data
+            ? 'You are offline. Showing saved records; reconnect to check public sources.'
+            : 'You are offline. Reconnect to load public intelligence.',
+        })
+      } else {
+        publish({ isOnline: true, error: null })
+        if (paused) return
+        if (pending) resumeQueued = true
+        else void refresh()
+      }
     },
     stop() {
       stopped = true

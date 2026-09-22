@@ -29,10 +29,10 @@ function scheduler() {
   }
 }
 
-function client(fetcher) {
+function client(fetcher, options = {}) {
   const clock = scheduler()
   const states = []
-  const poller = createIntelPoller({ fetcher, schedule: clock.schedule, cancel: clock.cancel, onChange: (state) => states.push(state) })
+  const poller = createIntelPoller({ fetcher, schedule: clock.schedule, cancel: clock.cancel, now: options.now, onChange: (state) => states.push(state) })
   return { clock, states, poller, latest: () => states.at(-1) }
 }
 
@@ -399,4 +399,112 @@ test('the client refuses API redirects instead of following an unexpected destin
   } finally {
     c.poller.stop(); await new Promise(resolve => server.close(resolve))
   }
+})
+
+test('initial offline state waits for reconnection instead of issuing failing requests', async () => {
+  let requests = 0
+  const c = client(async () => { requests++; return response() })
+  c.poller.setOnline(false); await c.poller.refresh()
+  assert.equal(requests, 0); assert.equal(c.latest().isOnline, false)
+  assert.equal(c.latest().status, 'error'); assert.match(c.latest().error, /offline/)
+  assert.equal(c.latest().lastCheckedAt, null); assert.equal(c.latest().nextCheckAt, null)
+  assert.deepEqual(c.clock.delays(), [])
+  c.poller.setOnline(true); c.poller.setOnline(true); await flush()
+  assert.equal(requests, 1); assert.equal(c.latest().isOnline, true)
+  assert.equal(c.latest().status, 'live'); c.poller.stop()
+})
+
+test('going offline marks retained records stale and cancels future checks', async () => {
+  const c = client(async () => response())
+  await c.poller.refresh()
+  const saved = c.latest().data; const checked = c.latest().lastCheckedAt
+  c.poller.setOnline(false)
+  assert.equal(c.latest().data, saved); assert.equal(c.latest().status, 'stale')
+  assert.equal(c.latest().isRefreshing, false); assert.match(c.latest().error, /saved records/)
+  assert.equal(c.latest().lastCheckedAt, checked); assert.equal(c.latest().nextCheckAt, null)
+  assert.deepEqual(c.clock.delays(), []); c.poller.stop()
+})
+
+test('a rapid offline-online change aborts the old request and queues one recovery', async () => {
+  let calls = 0; let firstSignal
+  const c = client((_url, options) => {
+    calls++
+    if (calls === 1) { firstSignal = options.signal; return new Promise(() => {}) }
+    return Promise.resolve(response())
+  })
+  const initial = c.poller.refresh()
+  c.poller.setOnline(false); c.poller.setOnline(true); c.poller.setOnline(true)
+  assert.equal(firstSignal.aborted, true); assert.equal(calls, 1)
+  await initial; await flush()
+  assert.equal(calls, 2); assert.equal(c.latest().status, 'live')
+  assert.deepEqual(c.clock.delays(), [60_000]); c.poller.stop()
+})
+
+test('reconnection while hidden waits until the page becomes visible', async () => {
+  let calls = 0; const c = client(async () => { calls++; return response() })
+  c.poller.pause(); c.poller.setOnline(false); c.poller.setOnline(true)
+  await flush(); assert.equal(calls, 0); assert.equal(c.latest().nextCheckAt, null)
+  c.poller.resume(); await flush(); assert.equal(calls, 1)
+  c.poller.pause(); c.poller.setOnline(false); c.poller.resume()
+  await flush(); assert.equal(calls, 1)
+  c.poller.setOnline(true); await flush(); assert.equal(calls, 2); c.poller.stop()
+})
+
+test('reconnecting retains stale status until a fresh response actually succeeds', async () => {
+  let calls = 0; let complete
+  const c = client(() => ++calls === 1 ? Promise.resolve(response()) : new Promise(resolve => { complete = resolve }))
+  await c.poller.refresh(); c.poller.setOnline(false); c.poller.setOnline(true)
+  assert.equal(c.latest().status, 'stale'); assert.equal(c.latest().isRefreshing, true)
+  assert.equal(c.latest().nextCheckAt, null)
+  complete(response()); await flush()
+  assert.equal(c.latest().status, 'live'); c.poller.stop()
+})
+
+test('connectivity events after disposal cannot publish updates or restart timers', async () => {
+  let calls = 0; const c = client(async () => { calls++; return response() })
+  await c.poller.refresh(); c.poller.stop(); const updates = c.states.length
+  c.poller.setOnline(false); c.poller.setOnline(true); await c.poller.refresh()
+  assert.equal(c.states.length, updates); assert.equal(calls, 1)
+  assert.deepEqual(c.clock.delays(), [])
+})
+
+test('browser check times advance even when the server returns the same cached snapshot', async () => {
+  let now = Date.parse('2026-09-22T12:00:00Z')
+  const c = client(async () => response(), { now: () => now })
+  await c.poller.refresh()
+  assert.equal(c.latest().lastCheckedAt, '2026-09-22T12:00:00.000Z')
+  assert.equal(c.latest().nextCheckAt, '2026-09-22T12:01:00.000Z')
+  const sourceSnapshot = c.latest().data.generatedAt
+  now += 15_000; await c.poller.refresh()
+  assert.equal(c.latest().data.generatedAt, sourceSnapshot)
+  assert.equal(c.latest().lastCheckedAt, '2026-09-22T12:00:15.000Z')
+  assert.equal(c.latest().nextCheckAt, '2026-09-22T12:01:15.000Z'); c.poller.stop()
+})
+
+test('failed checks record their completion time and the actual retry deadline', async () => {
+  const c = client(async () => new Response('', { status: 503 }), { now: () => Date.parse('2026-09-22T12:00:00Z') })
+  await c.poller.refresh()
+  assert.equal(c.latest().lastCheckedAt, '2026-09-22T12:00:00.000Z')
+  assert.equal(c.latest().nextCheckAt, '2026-09-22T12:01:30.000Z')
+  assert.deepEqual(c.clock.delays(), [RETRY_POLL_MS]); c.poller.stop()
+})
+
+test('manual checks and visibility pauses clear the advertised automatic deadline', async () => {
+  let calls = 0; let complete
+  const c = client(() => ++calls === 1 ? Promise.resolve(response()) : new Promise(resolve => { complete = resolve }))
+  await c.poller.refresh(); assert.ok(c.latest().nextCheckAt)
+  c.poller.pause(); assert.equal(c.latest().nextCheckAt, null)
+  c.poller.resume(); assert.equal(c.latest().nextCheckAt, null)
+  assert.equal(c.latest().isRefreshing, true)
+  complete(response()); await flush(); assert.ok(c.latest().nextCheckAt)
+  c.poller.stop()
+})
+
+test('wall-clock corrections recompute displayed deadlines without changing timer durations', async () => {
+  let now = Date.parse('2026-09-22T12:00:00Z')
+  const c = client(async () => response(), { now: () => now })
+  await c.poller.refresh(); now -= 3_600_000; await c.poller.refresh()
+  assert.equal(c.latest().lastCheckedAt, '2026-09-22T11:00:00.000Z')
+  assert.equal(c.latest().nextCheckAt, '2026-09-22T11:01:00.000Z')
+  assert.deepEqual(c.clock.delays(), [60_000]); c.poller.stop()
 })

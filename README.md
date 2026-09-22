@@ -8,7 +8,7 @@ A defensive cybersecurity learning portfolio built with React, TypeScript, and V
 | --- | --- |
 | Live intelligence | Public CISA Known Exploited Vulnerabilities records and cybersecurity stories from Hacker News Algolia. Source health and stale records are labelled. |
 | Operations console | Illustrative map, actor rankings, packet stream, and incidents. The event counter runs only when you start the simulation. |
-| Incident response | Static learning examples, sample artifacts, and a copyable demo brief. No AI model, endpoint action, or containment service is connected. |
+| Incident response | Five linked learning scenarios: selecting an incident updates its risk, timeline, indicators, actions and forensic artifacts. Copy a clearly labelled exercise brief. No AI model, endpoint action, or containment service is connected. |
 | Case studies | Practice scenarios and example outcomes, not claims of real security operations. |
 
 The app does not scan systems, inspect private traffic, detect real attacks, or execute exploits. Public-source records can be incomplete or outdated; verify them at their linked source before using them.
@@ -47,7 +47,7 @@ npm run test:e2e
 
 The server requests only fixed CISA and Hacker News URLs. A shared 60-second cache and in-flight request deduplication reduce upstream traffic. Requests have time and response-size limits. Each source retains its last successful results when refreshes fail; the response and UI label degraded data rather than presenting it as fresh.
 
-The client validates responses, prevents overlapping refreshes, and retries failures. **Refresh sources** checks the server cache; it does not bypass upstream rate protection. See the [API contract](docs/api.md) for status and timing details.
+The client validates responses, prevents overlapping refreshes, and retries failures. It pauses checks while hidden or offline and checks again on return. Last checked, snapshot generation time and the next-check countdown distinguish browser activity from upstream publication dates. **Refresh sources** checks the server cache; it does not bypass upstream rate protection. Search the current snapshot or expand each feed beyond its latest five records. See [live-data freshness and limitations](docs/live-data.md) and the [API contract](docs/api.md).
 
 ## Project layout
 
@@ -60,7 +60,7 @@ tests/                Unit, integration, and browser regressions
 docs/                 Deployment, testing, and architecture notes
 ```
 
-The existing dark tactical visual style is retained. Generated art-direction references live in [docs/design-reference](docs/design-reference), outside the production asset directory.
+The dark analyst workspace uses labelled severity colours, keyboard-operable controls and self-hosted OFL-licensed fonts; source links and acknowledgements are in [public/fonts/SOURCES.md](public/fonts/SOURCES.md). Generated art-direction references live in [docs/design-reference](docs/design-reference), outside the production asset directory.
 
 ## Contributing and security
 
