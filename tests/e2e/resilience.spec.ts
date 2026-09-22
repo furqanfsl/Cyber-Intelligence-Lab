@@ -19,3 +19,18 @@ test('a delayed refresh announces busy state without hiding existing records', a
   await expect(page.locator('.live-intel-grid')).toHaveAttribute('aria-busy', 'false')
   await expect(page.locator('#intel-announcement')).toContainText('refresh complete')
 })
+
+test('manual refresh is disabled until the current request finishes', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  let held: Route | undefined
+  let count = 0
+  await page.route('**/api/live-intel', (route) => { count += 1; held = route })
+  await page.getByRole('button', { name: 'Refresh sources' }).click()
+  await expect(page.locator('.live-refresh')).toBeDisabled()
+  await page.locator('.live-refresh').dispatchEvent('click')
+  expect(count).toBe(1)
+  await held!.fulfill({ json: intelligence })
+  await expect(page.getByRole('button', { name: 'Refresh sources' })).toBeEnabled()
+  expect(count).toBe(1)
+})
