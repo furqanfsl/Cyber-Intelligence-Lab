@@ -34,7 +34,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function hasStrings(value: Record<string, unknown>, keys: string[]): boolean {
-  return keys.every((key) => typeof value[key] === 'string')
+  return keys.every((key) => {
+    const text = value[key]
+    return typeof text === 'string' && text.length <= 2_000 && text.trim().length > 0 && [...text].length <= 1_000
+  })
 }
 
 function isCount(value: unknown): boolean {

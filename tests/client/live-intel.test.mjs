@@ -304,3 +304,16 @@ test('snapshot and source timestamps require an explicit timezone and real clock
   const offset = fixture(); offset.generatedAt = '2026-09-22T17:30:00+05:30'
   assert.equal(isLiveIntelPayload(offset), true)
 })
+
+test('record labels are nonblank and bounded by Unicode code points', () => {
+  for (const key of ['kev', 'news']) {
+    for (const title of ['', ' \t ', 'x'.repeat(1001)]) {
+      const data = fixture(); data[key][0].title = title
+      assert.equal(isLiveIntelPayload(data), false)
+    }
+    const unicode = fixture(); unicode[key][0].title = '😀'.repeat(1000)
+    assert.equal(isLiveIntelPayload(unicode), true)
+    unicode[key][0].title += '😀'
+    assert.equal(isLiveIntelPayload(unicode), false)
+  }
+})
