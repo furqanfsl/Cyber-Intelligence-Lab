@@ -82,3 +82,15 @@ test('an empty failed server snapshot cannot erase cached browser records', asyn
   await expect(page.getByRole('link', { name: /Open discussion record/ })).toBeVisible()
   await expect(page.locator('.source-health-panel')).toContainText('previous browser snapshot')
 })
+
+test('a stalled request times out and releases the refresh control', async ({ page }) => {
+  await page.clock.install()
+  await page.route('**/api/live-intel', () => {})
+  await page.goto('/')
+  await expect(page.locator('.live-refresh')).toBeDisabled()
+  await page.clock.fastForward(20_100)
+  await expect(page.locator('.live-status-badge')).toHaveText('Source error')
+  await expect(page.locator('.feed-notice')).toContainText('timed out')
+  await expect(page.getByRole('button', { name: 'Refresh sources' })).toBeEnabled()
+  await expect(page.locator('.live-intel-grid')).toHaveAttribute('aria-busy', 'false')
+})
