@@ -254,3 +254,16 @@ test('CISA records link only to their own canonical CVE catalog search', () => {
   }
   assert.equal(isLiveIntelPayload(fixture()), true)
 })
+
+test('discussion records cannot misdirect readers to another story or route', () => {
+  for (const url of ['https://news.ycombinator.com/login', 'https://news.ycombinator.com/item?id=999', fixture().news[0].url + '&id=999']) {
+    const data = fixture(); data.news[0].url = url; assert.equal(isLiveIntelPayload(data), false)
+  }
+  for (const id of ['0', '-1', '0123', '1e4', '1'.repeat(21)]) {
+    const data = fixture(); data.news[0].id = id; data.news[0].url = 'https://news.ycombinator.com/item?id=' + id
+    assert.equal(isLiveIntelPayload(data), false)
+  }
+  const large = fixture(); large.news[0].id = '9'.repeat(20)
+  large.news[0].url = 'https://news.ycombinator.com/item?id=' + large.news[0].id
+  assert.equal(isLiveIntelPayload(large), true)
+})

@@ -64,6 +64,11 @@ function isKevRecordLink(id: unknown, value: unknown): boolean {
     value === `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${id}`
 }
 
+function isNewsRecordLink(id: unknown, value: unknown): boolean {
+  if (typeof id !== 'string' || !/^[1-9]\d{0,19}$/.test(id)) return false
+  return isSourceUrl(value, 'news.ycombinator.com') && value === `https://news.ycombinator.com/item?id=${id}`
+}
+
 /** Validate the same-origin response before rendering dates, links, or records. */
 export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
   if (!isRecord(value) || !isDate(value.generatedAt)) return false
@@ -83,7 +88,7 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
     isDate(item.dateAdded) && isKevRecordLink(item.id, item.url)) &&
     value.news.every((item) => isRecord(item) &&
       hasStrings(item, ['id', 'title', 'source', 'author']) && isDate(item.createdAt) &&
-      isCount(item.points) && isSourceUrl(item.url, 'news.ycombinator.com'))
+      isCount(item.points) && isNewsRecordLink(item.id, item.url))
 }
 
 export function intelStatus(payload: LiveIntelPayload): LiveIntelStatus {
