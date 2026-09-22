@@ -580,7 +580,7 @@ button {
 .panel-controls button,
 .severity-filter button,
 .tab-row button {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.025);
   color: var(--text);
@@ -914,7 +914,7 @@ button {
   gap: 0.7rem;
 }
 
-.containment-mini label {
+.containment-mini .checklist-item {
   display: flex;
   gap: 0.72rem;
   align-items: center;
@@ -923,11 +923,6 @@ button {
   font-size: 0.78rem;
 }
 
-.containment-mini input {
-  width: 17px;
-  height: 17px;
-  accent-color: var(--green);
-}
 
 .queue-panel {
   min-height: 270px;
@@ -939,7 +934,7 @@ button {
   gap: 0.8rem;
   align-items: center;
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   border: 0;
   border-bottom: 1px solid var(--line-soft);
   background: transparent;
@@ -961,11 +956,11 @@ button {
 }
 
 .queue-row strong {
-  overflow: hidden;
   color: inherit;
-  text-overflow: ellipsis;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 .queue-row small {
@@ -1438,7 +1433,7 @@ button {
   margin-top: 1rem;
 }
 
-.checklist label {
+.checklist .checklist-item {
   display: flex;
   gap: 0.8rem;
   align-items: center;
@@ -1447,11 +1442,6 @@ button {
   font-size: 0.78rem;
 }
 
-.checklist input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--green);
-}
 
 .case-header {
   display: grid;
@@ -1636,8 +1626,7 @@ button {
 .reveal,
 .panel,
 .case-row,
-.skills-grid article,
-.osint-list a {
+.skills-grid article {
   opacity: 0;
   transform: translateY(26px);
   transition:
@@ -1652,8 +1641,7 @@ button {
 .reveal.is-visible,
 .panel.is-visible,
 .case-row.is-visible,
-.skills-grid article.is-visible,
-.osint-list a.is-visible {
+.skills-grid article.is-visible {
   opacity: 1;
   transform: translateY(0);
 }
@@ -1960,3 +1948,85 @@ button {
     transition-duration: 1ms !important;
   }
 }
+
+/* Interaction and status clarity without changing the established console style. */
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.8rem 1rem;
+  color: var(--bg);
+  background: var(--green);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: translateY(0); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+section[id] { scroll-margin-top: 140px; }
+.nav-links a { display: inline-flex; align-items: center; min-height: 44px; }
+button:disabled { cursor: wait; opacity: 0.72; }
+.checklist-item { margin: 0; line-height: 1.5; }
+.checklist-state {
+  flex: 0 0 4.5rem;
+  color: var(--green);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+.checklist-state.pending { color: var(--text); }
+.copy-feedback, .feed-notice {
+  color: var(--text);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.copy-feedback:empty { display: none; }
+.feed-notice { padding-left: 0.8rem; border-left: 2px solid #f5d742; }
+.live-status-badge { flex-shrink: 0; }
+.live-status-badge.partial, .live-status-badge.stale, .source-row span.stale { color: #f5d742; }
+.panel-controls button[aria-pressed="true"] { border-color: var(--green); color: var(--green); }
+.forensic-content:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .panel, .case-row, .skills-grid article { opacity: 1; transform: none; }
+  .arc-layer path { animation: none; }
+}
+@media (forced-colors: active) {
+  .button, .tab-row button, .severity-filter button { border: 1px solid ButtonText; }
+  .severity-filter button.active, .tab-row button.active { outline: 2px solid Highlight; }
+  .queue-row.active { border: 2px solid Highlight; }
+}
+
+.simulation-paused .arc-layer path { animation-play-state: paused; }
+.live-status-panel .panel-heading { flex-wrap: wrap; }
+.skip-link:not(:focus) { clip-path: inset(50%); }
+.panel-controls button, .severity-filter button, .tab-row button { font-size: 0.75rem; }
+@media (max-width: 520px) {
+  .tab-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* A percentage minimum included the header height and pushed the map into the queue. */
+.map-panel { display: flex; flex-direction: column; }
+.threat-map.compact { flex: 1; min-height: 340px; }
+/* Packet rows adapt to their narrow panel rather than painting over the next column. */
+.stream-panel .packet-stream p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 0.65rem;
+}
+.packet-stream strong { min-width: 0; overflow-wrap: anywhere; }
+.map-visual { position: absolute; inset: 0; }
+.threat-map.compact { display: flex; flex-direction: column; }
+.threat-map.compact .map-visual { position: relative; inset: auto; flex: 1; min-height: 300px; }
+.threat-map.compact .map-readout { position: static; align-self: flex-end; margin: 0 0.5rem 0.5rem; }
+.case-row .red-text { font-size: 1rem; line-height: 1.4; }

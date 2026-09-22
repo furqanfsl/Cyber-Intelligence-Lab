@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { KeyboardEvent } from 'react'
+import type { LiveIntelPayload } from '../shared/live-intel'
+import type { LiveIntelState } from './lib/live-intel'
+import { emptyFeedMessage } from './lib/live-intel'
+import { useLiveIntel } from './hooks/useLiveIntel'
+import { nextTab } from './lib/keyboard-tabs'
 import './App.css'
 
 type Severity = 'critical' | 'high' | 'medium' | 'low'
@@ -15,39 +21,6 @@ type Alert = {
   technique: string
   status: string
 }
-
-type LiveIntelPayload = {
-  generatedAt: string
-  pollAfterMs: number
-  cacheTtlMs: number
-  sources: Array<{
-    name: string
-    status: 'ok' | 'error'
-    count: number
-    message?: string
-  }>
-  kev: Array<{
-    id: string
-    title: string
-    vendor: string
-    product: string
-    dateAdded: string
-    dueDate: string
-    ransomwareUse: string
-    url: string
-  }>
-  news: Array<{
-    id: string
-    title: string
-    url: string
-    source: string
-    author: string
-    points: number
-    createdAt: string
-  }>
-}
-
-type LiveIntelStatus = 'connecting' | 'live' | 'error'
 
 const alerts: Alert[] = [
   {
@@ -121,8 +94,8 @@ const threatActors = [
 ]
 
 const packetRows = [
-  ['TCP', '185.199.110.42', '10.23.44.17', 'PSH', 'len=517'],
-  ['DNS', '10.23.44.17', 'update-service.net', 'A?', 'blocked'],
+  ['TCP', '192.0.2.42', '10.23.44.17', 'PSH', 'len=517'],
+  ['DNS', '10.23.44.17', 'update-service.example', 'A?', 'blocked'],
   ['TLS', '203.0.113.9', '10.23.44.17', 'CLIENT HELLO', 'sni redacted'],
   ['HTTP', '10.23.44.17', '198.51.100.42', 'GET', '/payload denied'],
   ['TCP', '198.51.100.23', '10.23.44.17', 'RST', 'policy match'],
@@ -134,10 +107,10 @@ const caseStudies = [
     label: 'Incident response / enterprise',
     title: 'Ransomware containment',
     summary:
-      'Contained an active ransomware scenario across 1,200 simulated endpoints, isolated lateral movement, and restored service workflow without ransom payment.',
+      'A fictional ransomware exercise showing how analysts might isolate lateral movement and plan service recovery across a sample estate.',
     impact: '> 99%',
     metric: 'threat contained',
-    extra: '1,200+ endpoints secured',
+    extra: '1,200 sample endpoints',
     tools: ['CrowdStrike', 'Splunk', 'Velociraptor', 'Wireshark'],
     timeline: '36 hours',
     category: 'Ransomware',
@@ -146,10 +119,10 @@ const caseStudies = [
     label: 'Threat hunting / email security',
     title: 'Phishing takedown',
     summary:
-      'Tracked and dismantled phishing infrastructure targeting executive teams through IOC clustering, domain evidence, and detection tuning.',
+      'A fictional email-security exercise covering indicator grouping, evidence review, and a proposed phishing response. No domains were taken down.',
     impact: '> 92%',
-    metric: 'malicious traffic reduced',
-    extra: '17 domains taken down',
+    metric: 'traffic reduction target',
+    extra: '17 example domains',
     tools: ['MISP', 'Maltego', 'Proofpoint', 'Python'],
     timeline: '2 weeks',
     category: 'Phishing',
@@ -158,10 +131,10 @@ const caseStudies = [
     label: 'Cloud security / attack surface',
     title: 'Cloud misconfiguration hunt',
     summary:
-      'Identified critical public exposure patterns across multi-cloud assets and built repeatable checks for over-permissive access paths.',
+      'A fictional cloud-security exercise exploring public exposure and over-permissive access. No real cloud environments were scanned or remediated.',
     impact: '> 70',
-    metric: 'risks remediated',
-    extra: '0 exposure incidents',
+    metric: 'example risk findings',
+    extra: 'Sample target only',
     tools: ['AWS CLI', 'ScoutSuite', 'Prowler', 'Terraform'],
     timeline: '3 weeks',
     category: 'Misconfiguration',
@@ -238,7 +211,7 @@ const artifactTabs: Record<
   network: {
     label: 'Network',
     fields: [
-      ['Source IP', '185.199.110.42'],
+      ['Source IP', '192.0.2.42'],
       ['Destination', '10.23.44.17:49712'],
       ['Protocol', 'HTTPS / suspicious beacon'],
       ['Disposition', 'Blocked at perimeter'],
@@ -291,33 +264,25 @@ function severityLabel(severity: Severity) {
 
 function useProfessionalReveal() {
   useEffect(() => {
-    const elements = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        '.reveal, .panel, .case-row, .skills-grid article, .osint-list a',
-      ),
-    )
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible')
-          }
-        })
-      },
-      {
-        rootMargin: '0px 0px -10% 0px',
-        threshold: 0.12,
-      },
-    )
-
+    const elements = document.querySelectorAll<HTMLElement>('.reveal, .panel, .case-row, .skills-grid article')
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+      elements.forEach((element) => element.classList.add('is-visible'))
+      return
+    }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible')
+          observer.unobserve(entry.target)
+        }
+      })
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 })
     elements.forEach((element, index) => {
       element.style.setProperty('--reveal-index', String(index % 6))
       observer.observe(element)
     })
-
     return () => observer.disconnect()
-  })
+  }, [])
 }
 
 function App() {
@@ -326,80 +291,39 @@ function App() {
   const [selectedSeverity, setSelectedSeverity] = useState<'all' | Severity>('all')
   const [selectedAlertId, setSelectedAlertId] = useState(alerts[0].id)
   const [tick, setTick] = useState(7523)
-  const [copied, setCopied] = useState(false)
-  const [liveIntel, setLiveIntel] = useState<LiveIntelPayload | null>(null)
-  const [liveStatus, setLiveStatus] = useState<LiveIntelStatus>('connecting')
-  const [syncPulse, setSyncPulse] = useState(0)
+  const [simulationRunning, setSimulationRunning] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied' | 'error'>('idle')
+  const copyRequest = useRef(0)
+  const intel = useLiveIntel()
 
   useEffect(() => {
+    if (!simulationRunning) return
     const timer = window.setInterval(() => {
-      setTick((current) => current + Math.floor(Math.random() * 9) + 3)
+      setTick((current) => current + 7)
     }, 2600)
-
     return () => window.clearInterval(timer)
+  }, [simulationRunning])
+
+  useEffect(() => {
+    return () => { copyRequest.current += 1 }
   }, [])
 
   useEffect(() => {
-    let alive = true
-    let timeoutId: number | undefined
-    let controller: AbortController | undefined
+    if (copyStatus !== 'copied') return
+    const timer = window.setTimeout(() => setCopyStatus('idle'), 2400)
+    return () => window.clearTimeout(timer)
+  }, [copyStatus])
 
-    async function loadLiveIntel() {
-      controller?.abort()
-      controller = new AbortController()
-
-      try {
-        setLiveStatus((current) => (current === 'live' ? current : 'connecting'))
-        const response = await fetch('/api/live-intel', {
-          cache: 'no-store',
-          signal: controller.signal,
-        })
-
-        if (!response.ok) {
-          throw new Error(`Live intelligence endpoint returned ${response.status}`)
-        }
-
-        const payload = (await response.json()) as LiveIntelPayload
-
-        if (!alive) {
-          return
-        }
-
-        setLiveIntel(payload)
-        setLiveStatus('live')
-        setSyncPulse((current) => current + 1)
-        timeoutId = window.setTimeout(loadLiveIntel, payload.pollAfterMs || 60_000)
-      } catch (error) {
-        if (!alive || (error instanceof DOMException && error.name === 'AbortError')) {
-          return
-        }
-
-        setLiveStatus('error')
-        timeoutId = window.setTimeout(loadLiveIntel, 90_000)
-      }
-    }
-
-    loadLiveIntel()
-
-    return () => {
-      alive = false
-      controller?.abort()
-      if (timeoutId) {
-        window.clearTimeout(timeoutId)
-      }
-    }
-  }, [])
-
-  const filteredAlerts = useMemo(() => {
-    if (selectedSeverity === 'all') {
-      return alerts
-    }
-
-    return alerts.filter((alert) => alert.severity === selectedSeverity)
-  }, [selectedSeverity])
+  const filteredAlerts = selectedSeverity === 'all' ? alerts : alerts.filter((alert) => alert.severity === selectedSeverity)
 
   const selectedAlert =
     alerts.find((alert) => alert.id === selectedAlertId) ?? filteredAlerts[0] ?? alerts[0]
+
+  function selectAlert(id: string) {
+    copyRequest.current += 1
+    setCopyStatus('idle')
+    setSelectedAlertId(id)
+  }
 
   function handleSeverityChange(nextSeverity: 'all' | Severity) {
     setSelectedSeverity(nextSeverity)
@@ -407,63 +331,47 @@ function App() {
       nextSeverity === 'all'
         ? alerts[0]
         : alerts.find((alert) => alert.severity === nextSeverity) ?? alerts[0]
-    setSelectedAlertId(nextAlert.id)
+    selectAlert(nextAlert.id)
   }
 
-  function copyBrief() {
-    const brief = `${selectedAlert.id} | ${selectedAlert.title} | ${selectedAlert.severity} | ${selectedAlert.technique}`
-    navigator.clipboard
-      ?.writeText(brief)
-      .then(() => {
-        setCopied(true)
-        window.setTimeout(() => setCopied(false), 1800)
-      })
-      .catch(() => setCopied(false))
-  }
-
-  function refreshLiveIntel() {
-    setSyncPulse((current) => current + 1)
-    setLiveStatus('connecting')
-    fetch('/api/live-intel', { cache: 'no-store' })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Live intelligence endpoint returned ${response.status}`)
-        }
-
-        return response.json() as Promise<LiveIntelPayload>
-      })
-      .then((payload) => {
-        setLiveIntel(payload)
-        setLiveStatus('live')
-      })
-      .catch(() => setLiveStatus('error'))
+  async function copyBrief() {
+    const request = ++copyRequest.current
+    setCopyStatus('copying')
+    const brief = `SIMULATED INCIDENT (not live telemetry) | ${selectedAlert.id} | ${selectedAlert.title} | ${selectedAlert.severity} | ${selectedAlert.technique}`
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable')
+      await navigator.clipboard.writeText(brief)
+      if (copyRequest.current === request) setCopyStatus('copied')
+    } catch {
+      if (copyRequest.current === request) setCopyStatus('error')
+    }
   }
 
   return (
-    <main className="site-shell">
+    <div className={`site-shell${simulationRunning ? '' : ' simulation-paused'}`}>
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <Navigation />
-      <Hero tick={tick} />
-      <ThreatOperations
-        tick={tick}
-        selectedSeverity={selectedSeverity}
-        selectedAlert={selectedAlert}
-        filteredAlerts={filteredAlerts}
-        onSeverityChange={handleSeverityChange}
-        onSelectAlert={setSelectedAlertId}
-        onCopyBrief={copyBrief}
-        copied={copied}
-      />
-      <LiveIntelSection
-        liveIntel={liveIntel}
-        status={liveStatus}
-        syncPulse={syncPulse}
-        onRefresh={refreshLiveIntel}
-      />
-      <IncidentResponse selectedAlert={selectedAlert} />
-      <CaseStudies />
-      <SkillMatrix />
+      <main id="main-content" tabIndex={-1}>
+        <Hero tick={tick} />
+        <ThreatOperations
+          tick={tick}
+          selectedSeverity={selectedSeverity}
+          selectedAlert={selectedAlert}
+          filteredAlerts={filteredAlerts}
+          onSeverityChange={handleSeverityChange}
+          onSelectAlert={selectAlert}
+          onCopyBrief={copyBrief}
+          copyStatus={copyStatus}
+          simulationRunning={simulationRunning}
+          onToggleSimulation={() => setSimulationRunning((running) => !running)}
+        />
+        <LiveIntelSection liveIntel={intel.data} state={intel} onRefresh={intel.refresh} />
+        <IncidentResponse selectedAlert={selectedAlert} />
+        <CaseStudies />
+        <SkillMatrix />
+      </main>
       <Footer />
-    </main>
+    </div>
   )
 }
 
@@ -474,7 +382,7 @@ function Navigation() {
         <span className="brand-mark">CIL</span>
         <span>Cyber Intelligence Lab</span>
       </a>
-      <nav className="nav-links">
+      <nav className="nav-links" aria-label="Primary navigation">
         <a href="#operations">Operations</a>
         <a href="#live-intel">Live Intel</a>
         <a href="#response">Response</a>
@@ -482,8 +390,8 @@ function Navigation() {
         <a href="#skills">Skills</a>
       </nav>
       <div className="nav-status" aria-label="Lab status">
-        <span className="status-dot"></span>
-        All systems operational
+        <span className="status-dot" aria-hidden="true"></span>
+        Demo console / public OSINT
       </div>
     </header>
   )
@@ -493,11 +401,10 @@ function Hero({ tick }: { tick: number }) {
   return (
     <section className="hero-section section-grid" id="top">
       <div className="hero-copy reveal">
-        <p className="kicker">Global threat observatory</p>
+        <p className="kicker">Defensive security portfolio</p>
         <h1>Cyber Intelligence Lab</h1>
         <p className="hero-subtitle">
-          Threat detection, incident response, and real-world intelligence built into one
-          cinematic security operations experience.
+          Explore simulated incident workflows alongside real public advisories. This lab does not monitor networks, detect attacks, or take security actions.
         </p>
         <div className="hero-actions" aria-label="Primary actions">
           <a className="button button-primary" href="#operations">
@@ -513,31 +420,31 @@ function Hero({ tick }: { tick: number }) {
             </span>
           </a>
         </div>
-        <dl className="signal-strip" aria-label="Cyber lab metrics">
+        <dl className="signal-strip" aria-label="Illustrative demo metrics">
           <div>
-            <dt>24/7</dt>
-            <dd>Threat monitoring</dd>
+            <dt>Demo</dt>
+            <dd>Simulated telemetry</dd>
           </div>
           <div>
             <dt>137</dt>
-            <dd>Open incident signals</dd>
+            <dd>Example incident signals</dd>
           </div>
           <div>
             <dt>{tick.toLocaleString()}</dt>
-            <dd>Live attack events</dd>
+            <dd>Simulated events</dd>
           </div>
         </dl>
       </div>
 
-      <div className="hero-console reveal delay-1" aria-label="Live global threat console preview">
+      <div className="hero-console reveal delay-1" aria-label="Simulated global threat console preview">
         <ThreatMap compact={false} tick={tick} />
         <div className="hero-console-bottom">
           <PacketStream compact />
           <div className="system-log">
-            <div className="panel-title">System log // SOC</div>
+            <div className="panel-title">Example log // SOC</div>
             {[
               ['ALERT', 'Suspicious lateral movement detected'],
-              ['INFO', 'New IOC matched against global feed'],
+              ['INFO', 'Example IOC match in demo feed'],
               ['WARN', 'Multiple failed login attempts'],
               ['SUCCESS', 'Endpoint isolated: 10.0.4.21'],
               ['INFO', 'Forensic artifact collection queued'],
@@ -562,7 +469,9 @@ function ThreatOperations({
   onSeverityChange,
   onSelectAlert,
   onCopyBrief,
-  copied,
+  copyStatus,
+  simulationRunning,
+  onToggleSimulation,
 }: {
   tick: number
   selectedSeverity: 'all' | Severity
@@ -571,7 +480,9 @@ function ThreatOperations({
   onSeverityChange: (severity: 'all' | Severity) => void
   onSelectAlert: (id: string) => void
   onCopyBrief: () => void
-  copied: boolean
+  copyStatus: 'idle' | 'copying' | 'copied' | 'error'
+  simulationRunning: boolean
+  onToggleSimulation: () => void
 }) {
   const severityOptions: Array<'all' | Severity> = ['all', 'critical', 'high', 'medium', 'low']
 
@@ -580,15 +491,15 @@ function ThreatOperations({
       <div className="section-header reveal">
         <span>02.</span>
         <div>
-          <p className="kicker">Threat operations</p>
-          <h2>Live global threat intelligence. Real-world impact.</h2>
+          <p className="kicker">Threat operations / simulation</p>
+          <h2>A practice console, not live monitoring.</h2>
         </div>
-        <p className="quote">Intelligence turns noise into advantage.</p>
+        <p className="quote">All actors, counts and incidents below are illustrative.</p>
       </div>
 
       <div className="ops-grid reveal delay-1">
         <aside className="panel actor-panel">
-          <div className="panel-title">Top threat actors</div>
+          <div className="panel-title">Example actor rankings</div>
           <div className="actor-list">
             {threatActors.map((actor, index) => (
               <div className="actor-row" key={actor.name}>
@@ -605,13 +516,13 @@ function ThreatOperations({
         <div className="panel map-panel">
           <div className="panel-heading">
             <div>
-              <div className="panel-title">Global threat map</div>
-              <small>Live attacks: {tick.toLocaleString()}</small>
+              <div className="panel-title">Simulated threat map</div>
+              <small>Simulated events: {tick.toLocaleString()}</small>
             </div>
-            <div className="panel-controls" aria-label="Map controls">
-              <button type="button">Live</button>
-              <button type="button">Last 24h</button>
-              <button type="button">All threats</button>
+            <div className="panel-controls" aria-label="Simulation controls">
+              <button type="button" aria-pressed={simulationRunning} onClick={onToggleSimulation}>
+                {simulationRunning ? 'Pause simulation' : 'Start simulation'}
+              </button>
             </div>
           </div>
           <ThreatMap compact tick={tick} />
@@ -620,7 +531,7 @@ function ThreatOperations({
         <aside className="panel alert-panel" aria-live="polite">
           <div className="panel-heading">
             <div>
-              <div className="panel-title">Selected alert</div>
+              <div className="panel-title">Selected demo alert</div>
               <small>#{selectedAlert.id}</small>
             </div>
             <span className={`severity-badge ${selectedAlert.severity}`}>
@@ -651,20 +562,23 @@ function ThreatOperations({
             </div>
           </dl>
           <div className="action-row">
-            <button className="button button-primary slim" type="button">
-              Take action
-            </button>
-            <button className="button button-secondary slim" type="button" onClick={onCopyBrief}>
-              {copied ? 'Brief copied' : 'Copy brief'}
+            <a className="button button-primary slim" href="#response">
+              View response
+            </a>
+            <button className="button button-secondary slim" type="button" onClick={onCopyBrief} disabled={copyStatus === 'copying'}>
+              {copyStatus === 'copied' ? 'Brief copied' : copyStatus === 'copying' ? 'Copying…' : 'Copy brief'}
             </button>
           </div>
+          <p className="copy-feedback" role="status">
+            {copyStatus === 'error' ? 'Clipboard access is unavailable. Select and copy the alert details instead.' : copyStatus === 'copied' ? 'Demo brief copied to clipboard.' : ''}
+          </p>
           <div className="related-iocs">
-            <div className="panel-title">Related IOCs</div>
+            <div className="panel-title">Example IOCs / reserved addresses</div>
             {[
               ['Hash', '3f2a...9e7c'],
-              ['Domain', 'update-service[.]net'],
-              ['URL', 'hxxp://185.199.110.42/payload'],
-              ['IP', '185.199.110.42'],
+              ['Domain', 'update-service[.]example'],
+              ['URL', 'hxxp://192.0.2.42/payload'],
+              ['IP', '192.0.2.42'],
               ['Mutex', 'Global\\RHUB_7A3F'],
             ].map(([label, value]) => (
               <div className="ioc-row" key={label}>
@@ -674,12 +588,12 @@ function ThreatOperations({
             ))}
           </div>
           <div className="containment-mini">
-            <div className="panel-title">Immediate containment</div>
+            <div className="panel-title">Example containment status</div>
             {['Isolate host', 'Reset credentials', 'Block perimeter IOCs'].map((item) => (
-              <label key={item}>
-                <input type="checkbox" checked readOnly />
+              <p className="checklist-item" key={item}>
+                <span className="checklist-state">Done</span>
                 <span>{item}</span>
-              </label>
+              </p>
             ))}
           </div>
         </aside>
@@ -687,7 +601,7 @@ function ThreatOperations({
         <div className="panel queue-panel">
           <div className="panel-heading">
             <div>
-              <div className="panel-title">Live incident queue</div>
+              <div className="panel-title">Demo incident queue</div>
               <small>{filteredAlerts.length} filtered signals</small>
             </div>
             <div className="severity-filter" aria-label="Threat severity filter">
@@ -696,6 +610,7 @@ function ThreatOperations({
                   className={selectedSeverity === severity ? 'active' : ''}
                   key={severity}
                   type="button"
+                  aria-pressed={selectedSeverity === severity}
                   onClick={() => onSeverityChange(severity)}
                 >
                   {severity}
@@ -709,10 +624,12 @@ function ThreatOperations({
                 className={selectedAlert.id === alert.id ? 'queue-row active' : 'queue-row'}
                 key={alert.id}
                 type="button"
+                aria-pressed={selectedAlert.id === alert.id}
+                aria-label={`${alert.title}, ${alert.severity}, ${alert.region}, ${alert.time}`}
                 onClick={() => onSelectAlert(alert.id)}
               >
                 <time>{alert.time}</time>
-                <span className={`severity-dot ${alert.severity}`}></span>
+                <span className={`severity-dot ${alert.severity}`} aria-hidden="true"></span>
                 <strong>{alert.title}</strong>
                 <small>{alert.region}</small>
               </button>
@@ -725,7 +642,7 @@ function ThreatOperations({
         </div>
 
         <div className="panel vector-panel">
-          <div className="panel-title">Top exploit vectors</div>
+          <div className="panel-title">Example exploit vectors</div>
           {[
             ['Initial access', 28],
             ['Public-facing app', 22],
@@ -750,13 +667,11 @@ function ThreatOperations({
 
 function LiveIntelSection({
   liveIntel,
-  status,
-  syncPulse,
+  state,
   onRefresh,
 }: {
   liveIntel: LiveIntelPayload | null
-  status: LiveIntelStatus
-  syncPulse: number
+  state: LiveIntelState
   onRefresh: () => void
 }) {
   const generatedAt = liveIntel?.generatedAt
@@ -766,13 +681,18 @@ function LiveIntelSection({
       }).format(new Date(liveIntel.generatedAt))
     : 'Waiting for first sync'
 
-  const nextPollSeconds = Math.round((liveIntel?.pollAfterMs ?? 60_000) / 1000)
+  const nextPollSeconds = Math.round(state.pollAfterMs / 1000)
   const kevItems = liveIntel?.kev.slice(0, 5) ?? []
   const newsItems = liveIntel?.news.slice(0, 5) ?? []
   const sourceCount = liveIntel?.sources.filter((source) => source.status === 'ok').length ?? 0
+  const statusLabels = { connecting: 'Connecting', live: 'Sources current', partial: 'Partial sync', stale: 'Stale data', error: 'Source error' }
+  const statusMessage = state.error ?? (state.status === 'partial'
+    ? 'Some sources could not refresh. Check source health before using these records.'
+    : state.status === 'stale' ? 'Showing previously retrieved records. They may be out of date.'
+    : state.status === 'error' ? 'No reliable source data is available. An automatic retry is scheduled.' : '')
 
   return (
-    <section className="live-intel-section" id="live-intel" aria-live="polite">
+    <section className="live-intel-section" id="live-intel">
       <div className="section-header reveal">
         <span>NET.</span>
         <div>
@@ -789,21 +709,22 @@ function LiveIntelSection({
               <div className="panel-title">Automation status</div>
               <small>Client polling / server-side source cache</small>
             </div>
-            <span className={`live-status-badge ${status}`} key={syncPulse}>
-              {status === 'live' ? 'Live sync' : status === 'error' ? 'Source error' : 'Connecting'}
+            <span className={`live-status-badge ${state.status}`} role="status">
+              {state.isRefreshing ? 'Refreshing' : statusLabels[state.status]}
             </span>
           </div>
+          {statusMessage && <p className="feed-notice" role="status">{statusMessage}</p>}
           <dl className="automation-list">
             <div>
-              <dt>Last sync</dt>
+              <dt>Snapshot generated</dt>
               <dd>{generatedAt}</dd>
             </div>
             <div>
-              <dt>Next automatic check</dt>
-              <dd>{nextPollSeconds} seconds</dd>
+              <dt>Automatic check interval</dt>
+              <dd>{nextPollSeconds} seconds after each response</dd>
             </div>
             <div>
-              <dt>Healthy sources</dt>
+              <dt>{state.error ? 'Previously healthy sources' : 'Healthy sources'}</dt>
               <dd>
                 {sourceCount}/{liveIntel?.sources.length ?? 2}
               </dd>
@@ -813,8 +734,8 @@ function LiveIntelSection({
               <dd>Public cyber advisories and news search, not private surveillance.</dd>
             </div>
           </dl>
-          <button className="button button-primary live-refresh" type="button" onClick={onRefresh}>
-            <span>Force sync now</span>
+          <button className="button button-primary live-refresh" type="button" onClick={onRefresh} disabled={state.isRefreshing}>
+            <span>{state.isRefreshing ? 'Refreshing…' : 'Refresh sources'}</span>
             <span className="button-glyph" aria-hidden="true">
               ↻
             </span>
@@ -839,11 +760,11 @@ function LiveIntelSection({
                   <small>
                     {item.vendor} / {item.product} / ransomware use: {item.ransomwareUse}
                   </small>
-                  <em>Open CISA record</em>
+                  <em>Open CISA record <span className="sr-only">(opens in a new tab)</span></em>
                 </a>
               ))
             ) : (
-              <p className="empty-feed">Waiting for the CISA feed to respond.</p>
+              <p className="empty-feed">{emptyFeedMessage('CISA', liveIntel?.sources[0]?.status, state.isRefreshing, Boolean(state.error))}</p>
             )}
           </div>
         </article>
@@ -866,11 +787,11 @@ function LiveIntelSection({
                   <small>
                     by {item.author} / {item.points} points
                   </small>
-                  <em>Open discussion record</em>
+                  <em>Open discussion record <span className="sr-only">(opens in a new tab)</span></em>
                 </a>
               ))
             ) : (
-              <p className="empty-feed">Waiting for cyber news search results.</p>
+              <p className="empty-feed">{emptyFeedMessage('cyber news', liveIntel?.sources[1]?.status, state.isRefreshing, Boolean(state.error))}</p>
             )}
           </div>
         </article>
@@ -879,12 +800,15 @@ function LiveIntelSection({
           <div className="panel-title">Source health</div>
           {(liveIntel?.sources ?? []).map((source) => (
             <div className="source-row" key={source.name}>
-              <span className={source.status}>{source.status}</span>
+              <span className={state.error ? 'stale' : source.status}>{state.error ? 'unverified' : source.status}</span>
               <strong>{source.name}</strong>
-              <small>{source.message ?? `${source.count} records received`}</small>
+              <small>
+                {source.message ?? `${source.count} records received`}
+                {source.lastSuccessAt && ` · Last successful refresh: ${new Date(source.lastSuccessAt).toLocaleString()}`}
+              </small>
             </div>
           ))}
-          {!liveIntel && <p className="empty-feed">Establishing live source connections.</p>}
+          {!liveIntel && <p className="empty-feed">{state.isRefreshing ? 'Connecting to public sources.' : 'Source health is unavailable until a request succeeds.'}</p>}
         </article>
       </div>
     </section>
@@ -894,30 +818,32 @@ function LiveIntelSection({
 function ThreatMap({ compact, tick }: { compact: boolean; tick: number }) {
   return (
     <div className={compact ? 'threat-map compact' : 'threat-map'}>
-      <div className="map-grid"></div>
-      <svg className="arc-layer" viewBox="0 0 1000 520" aria-hidden="true">
-        <path d="M128 222 C 260 54, 480 60, 610 204" />
-        <path d="M206 316 C 395 168, 585 160, 806 238" />
-        <path d="M628 202 C 718 88, 858 106, 920 198" />
-        <path d="M354 198 C 468 106, 694 92, 842 330" />
-        <path d="M122 278 C 292 358, 528 402, 886 354" />
-      </svg>
-      {[
-        ['na', 'N. America', '1,842'],
-        ['eu', 'Europe', '2,317'],
-        ['asia', 'Asia', '3,961'],
-        ['sa', 'S. America', '672'],
-        ['af', 'Africa', '418'],
-        ['oc', 'Oceania', '293'],
-      ].map(([className, label, value]) => (
-        <div className={`map-node ${className}`} key={className}>
-          <span></span>
-          <strong>{label}</strong>
-          <data>{value}</data>
-        </div>
-      ))}
+      <div className="map-visual">
+        <div className="map-grid"></div>
+        <svg className="arc-layer" viewBox="0 0 1000 520" aria-hidden="true">
+          <path d="M128 222 C 260 54, 480 60, 610 204" />
+          <path d="M206 316 C 395 168, 585 160, 806 238" />
+          <path d="M628 202 C 718 88, 858 106, 920 198" />
+          <path d="M354 198 C 468 106, 694 92, 842 330" />
+          <path d="M122 278 C 292 358, 528 402, 886 354" />
+        </svg>
+        {[
+          ['na', 'N. America', '1,842'],
+          ['eu', 'Europe', '2,317'],
+          ['asia', 'Asia', '3,961'],
+          ['sa', 'S. America', '672'],
+          ['af', 'Africa', '418'],
+          ['oc', 'Oceania', '293'],
+        ].map(([className, label, value]) => (
+          <div className={`map-node ${className}`} key={className}>
+            <span></span>
+            <strong>{label}</strong>
+            <data>{value}</data>
+          </div>
+        ))}
+      </div>
       <div className="map-readout">
-        <span>Live attacks</span>
+        <span>Demo events</span>
         <data>{tick.toLocaleString()}</data>
       </div>
     </div>
@@ -927,7 +853,7 @@ function ThreatMap({ compact, tick }: { compact: boolean; tick: number }) {
 function PacketStream({ compact = false }: { compact?: boolean }) {
   return (
     <div className={compact ? 'packet-stream compact' : 'packet-stream'}>
-      <div className="panel-title">Live packet stream</div>
+      <div className="panel-title">Example packet stream</div>
       {packetRows.map(([protocol, src, dest, flag, note], index) => (
         <p key={`${src}-${dest}-${index}`}>
           <time>14:27:{String(12 - index).padStart(2, '0')}</time>
@@ -946,21 +872,30 @@ function PacketStream({ compact = false }: { compact?: boolean }) {
 function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
   const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactTab>('file')
   const activeArtifact = artifactTabs[activeArtifactTab]
+  const tabs = Object.keys(artifactTabs) as ArtifactTab[]
+
+  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>) {
+    const tab = nextTab(tabs, activeArtifactTab, event.key)
+    if (!tab) return
+    event.preventDefault()
+    setActiveArtifactTab(tab)
+    document.getElementById(`artifact-tab-${tab}`)?.focus()
+  }
 
   return (
     <section className="response-section" id="response">
       <div className="section-header reveal">
         <span>03.</span>
         <div>
-          <p className="kicker">Incident response</p>
-          <h2>From alert to resolution. Augmented by AI.</h2>
+          <p className="kicker">Incident response / simulation</p>
+          <h2>Explore a sample response workflow.</h2>
         </div>
-        <p className="quote">Turn telemetry into action.</p>
+        <p className="quote">Static examples. No AI service or endpoint actions are connected.</p>
       </div>
 
       <div className="response-grid reveal delay-1">
         <div className="panel timeline-panel">
-          <div className="panel-title">Incident timeline</div>
+          <div className="panel-title">Example incident timeline</div>
           <div className="timeline">
             {timeline.map((item) => (
               <article className={`timeline-item ${item.tone}`} key={item.stage}>
@@ -973,8 +908,8 @@ function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
             ))}
           </div>
           <div className="containment-strip">
-            <span></span>
-            <strong>Containment in progress</strong>
+            <span aria-hidden="true"></span>
+            <strong>Simulated containment</strong>
             <small>3 hosts isolated / 12 indicators / 0 confirmed data exposure</small>
           </div>
         </div>
@@ -982,19 +917,19 @@ function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
         <div className="panel triage-panel">
           <div className="panel-heading">
             <div>
-              <div className="panel-title">AI triage report</div>
-              <small>Automated analysis / context enrichment</small>
+              <div className="panel-title">Example triage report</div>
+              <small>Static template / not AI-generated analysis</small>
             </div>
-            <small>Model v2.4.1</small>
+            <small>Demo data</small>
           </div>
           <div className="risk-grid">
             <div>
-              <span>Risk score</span>
+              <span>Example risk score</span>
               <strong>87</strong>
               <small>/ 100</small>
             </div>
             <div>
-              <span>Active threat</span>
+              <span>Selected scenario</span>
               <strong>{selectedAlert.title}</strong>
               <small>{selectedAlert.technique}</small>
             </div>
@@ -1031,15 +966,18 @@ function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
         </div>
 
         <div className="panel forensic-panel">
-          <div className="panel-title">Forensic artifact viewer</div>
+          <div className="panel-title">Sample forensic artifacts</div>
           <div className="tab-row" aria-label="Artifact tabs" role="tablist">
-            {(Object.keys(artifactTabs) as ArtifactTab[]).map((tab) => (
+            {tabs.map((tab) => (
               <button
+                id={`artifact-tab-${tab}`}
                 aria-controls="artifact-panel"
                 aria-selected={activeArtifactTab === tab}
+                tabIndex={activeArtifactTab === tab ? 0 : -1}
                 className={activeArtifactTab === tab ? 'active' : ''}
                 key={tab}
                 onClick={() => setActiveArtifactTab(tab)}
+                onKeyDown={handleTabKey}
                 role="tab"
                 type="button"
               >
@@ -1047,7 +985,7 @@ function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
               </button>
             ))}
           </div>
-          <div className="forensic-content" id="artifact-panel" key={activeArtifactTab} role="tabpanel">
+          <div className="forensic-content" id="artifact-panel" aria-labelledby={`artifact-tab-${activeArtifactTab}`} tabIndex={0} key={activeArtifactTab} role="tabpanel">
             <dl className="detail-list forensic-list">
               {activeArtifact.fields.map(([label, value]) => (
                 <div key={label}>
@@ -1058,10 +996,10 @@ function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
             </dl>
             <div className="checklist">
               {activeArtifact.checklist.map(([label, done]) => (
-                <label key={String(label)}>
-                  <input type="checkbox" checked={Boolean(done)} readOnly />
+                <p className="checklist-item" key={label}>
+                  <span className={done ? 'checklist-state' : 'checklist-state pending'}>{done ? 'Done' : 'Pending'}</span>
                   <span>{label}</span>
-                </label>
+                </p>
               ))}
             </div>
           </div>
@@ -1076,8 +1014,8 @@ function CaseStudies() {
     <section className="case-section" id="cases">
       <div className="case-header reveal">
         <span>04.</span>
-        <p className="kicker">Portfolio / case studies</p>
-        <h2>Real operations. Measurable outcomes.</h2>
+        <p className="kicker">Illustrative case studies</p>
+        <h2>Practice scenarios. Example outcomes.</h2>
       </div>
 
       <div className="case-table reveal delay-1">
@@ -1090,19 +1028,19 @@ function CaseStudies() {
               <span>{study.summary}</span>
             </div>
             <div>
-              <p>Impact</p>
+              <p>Illustrative target</p>
               <strong>{study.impact}</strong>
               <span>{study.metric}</span>
               <span>{study.extra}</span>
             </div>
             <div>
-              <p>Tools used</p>
+              <p>Relevant tools</p>
               {study.tools.map((tool) => (
                 <span key={tool}>{tool}</span>
               ))}
             </div>
             <div>
-              <p>Timeline</p>
+              <p>Example duration</p>
               <strong>{study.timeline}</strong>
             </div>
             <div>
@@ -1111,7 +1049,7 @@ function CaseStudies() {
             </div>
             <div className="success-box">
               <span></span>
-              Operation successful
+              Illustrative scenario
             </div>
           </article>
         ))}
@@ -1124,20 +1062,19 @@ function SkillMatrix() {
   return (
     <section className="skills-section" id="skills">
       <div className="skills-copy reveal">
-        <p className="kicker">Skills demonstrated</p>
-        <h2>Built to show defensive thinking, not just decoration.</h2>
+        <p className="kicker">Learning areas</p>
+        <h2>Security workflows, explained through examples.</h2>
         <p>
-          The lab is a portfolio-grade simulation of how analysts move from signal to
-          decision: triage, enrichment, response, reporting, and measurable risk reduction.
+          The React interface demonstrates filtering, source refresh, and accessible navigation. Security scenarios are illustrative, not evidence of completed operations or tool integrations.
         </p>
       </div>
       <div className="skills-grid reveal delay-1">
         {[
-          ['Threat intelligence', 'IOC clustering, actor tracking, map-based situational awareness'],
+          ['Threat intelligence', 'Example indicators, actor context, and simulated map views'],
           ['Incident response', 'Containment plans, timeline reconstruction, prioritized actions'],
           ['MITRE mapping', 'Tactics and techniques attached to every alert workflow'],
           ['Forensic analysis', 'Artifacts, hashes, process chain, and evidence summaries'],
-          ['Cloud security', 'Exposure checks, remediation records, and prevention metrics'],
+          ['Cloud security', 'Illustrative exposure findings and remediation planning'],
           ['Frontend engineering', 'React, TypeScript, responsive UI, accessible interactions'],
         ].map(([title, copy]) => (
           <article key={title}>
@@ -1155,7 +1092,7 @@ function Footer() {
     <footer className="footer">
       <div>
         <strong>Cyber Intelligence Lab</strong>
-        <span>Defensive simulation. Portfolio-ready cybersecurity interface.</span>
+        <span>Defensive simulation with separate public-source intelligence.</span>
       </div>
       <a className="button button-primary" href="#top">
         <span>Back to top</span>
