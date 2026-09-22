@@ -97,8 +97,8 @@ test('display text truncation preserves full Unicode code points at the limit', 
   assert.equal(news.title, expected)
   assert.equal(kev.title, expected)
   assert.equal(Array.from(kev.vendor).length, 1_000)
-  assert.equal(kev.vendor.isWellFormed(), true)
-  assert.equal(news.title.isWellFormed(), true)
+  assert.equal(new TextDecoder().decode(new TextEncoder().encode(kev.vendor)), kev.vendor)
+  assert.equal(new TextDecoder().decode(new TextEncoder().encode(news.title)), news.title)
 })
 
 test('plain feed labels normalize whitespace and remove invisible control overrides', () => {
@@ -111,6 +111,17 @@ test('plain feed labels normalize whitespace and remove invisible control overri
   assert.equal(kev.title, 'Useful fallback')
   assert.equal(kev.product, 'Safe name')
   assert.throws(() => parseNews({ hits: [newsRecord({ title: '\u0000\u202e' })] }), /No valid news records/)
+})
+
+test('record identifiers are validated intact rather than sanitized or truncated into new IDs', () => {
+  for (const cveID of [`CVE-2026-${'1'.repeat(56)}`, `CVE-2026-${'1'.repeat(1_100)}`, 'CVE-2026-\u202e12345', 'CVE-2026-12\u0000345']) {
+    assert.throws(() => parseKev({ vulnerabilities: [kevRecord({ cveID })] }), /No valid CISA records/)
+  }
+  const longest = `CVE-2026-${'1'.repeat(55)}`
+  assert.equal(parseKev({ vulnerabilities: [kevRecord({ cveID: longest })] })[0].id, longest)
+  for (const objectID of ['12\u0000345', '\u202e12345', '123 45']) {
+    assert.throws(() => parseNews({ hits: [newsRecord({ objectID })] }), /No valid news records/)
+  }
 })
 
 test('news query normalization drops malformed records and bounds results', () => {

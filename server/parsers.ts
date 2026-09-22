@@ -43,9 +43,9 @@ export function parseKev(data: unknown): KevItem[] {
   const items: KevItem[] = []
   for (const item of data.vulnerabilities) {
     if (!record(item)) continue
-    const id = text(item.cveID).toUpperCase()
+    const id = typeof item.cveID === 'string' ? item.cveID.trim().toUpperCase() : ''
     const dateAdded = dateOnly(item.dateAdded)
-    if (!/^CVE-\d{4}-\d{4,}$/.test(id) || !dateAdded) continue
+    if (id.length > 64 || !/^CVE-\d{4}-\d{4,}$/.test(id) || !dateAdded) continue
     items.push({
       id,
       title: text(item.vulnerabilityName, text(item.shortDescription, 'Known exploited vulnerability')),
@@ -74,7 +74,7 @@ export function parseNews(data: unknown): NewsItem[] {
   const items: NewsItem[] = []
   for (const item of data.hits) {
     if (!record(item)) continue
-    const id = text(item.objectID)
+    const id = typeof item.objectID === 'string' ? item.objectID.trim() : ''
     const title = text(item.title, text(item.story_title))
     const createdAt = timestamp(item.created_at)
     if (!/^[1-9]\d{0,19}$/.test(id) || !title || !createdAt) continue
