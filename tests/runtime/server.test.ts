@@ -283,6 +283,15 @@ test('malformed URL encoding returns a controlled client error', async (t) => {
   assert.doesNotMatch(response.body, /URIError|stack|dist/)
 })
 
+test('encoded path separators cannot create alternate API or asset routes', async (t) => {
+  const { get, calls } = await fixture(t)
+  for (const path of ['/api%2flive-intel', '/api%2Flive-intel', '/assets%2fapp.js', '/assets%5capp.js']) {
+    assert.equal((await get(path)).status, 400, path)
+  }
+  assert.equal(calls(), 0)
+  assert.equal((await get('/assets/app.js?ignored=%2f')).status, 200)
+})
+
 test('a directory symlink cannot escape the build directory', async (t) => {
   const { get, directory, distDir } = await fixture(t)
   await symlink(directory, join(distDir, 'escape'), process.platform === 'win32' ? 'junction' : 'dir')

@@ -84,7 +84,10 @@ export function createAppServer(options: ServerOptions = {}) {
     try {
       const raw = request.url ?? '/'
       if (!raw.startsWith('/') || raw.startsWith('//')) throw new Error()
-      pathname = decodeURIComponent(raw.split('?')[0])
+      const encodedPath = raw.split('?')[0]
+      // Avoid disagreement with proxies that decode separators before routing.
+      if (/%(?:2f|5c)/i.test(encodedPath)) throw new Error()
+      pathname = decodeURIComponent(encodedPath)
       // Reject before URL normalization; Windows also treats backslashes, colons and
       // trailing dots/spaces specially. Hidden files never belong to the public app.
       const hasControlCharacter = [...pathname].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)
