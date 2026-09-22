@@ -25,3 +25,18 @@ test('remote error documents do not leak into dashboard notices', async ({ page 
   await expect(page.locator('body')).not.toContainText('private-provider-token-123')
   await expect(page.locator('#intel-announcement')).toContainText('Try refreshing')
 })
+
+test('production policy blocks injected inline script execution', async ({ page }) => {
+  const response = await page.goto('/')
+  expect(response?.headers()['content-security-policy']).toContain("script-src 'self'")
+  await page.evaluate(() => {
+    document.addEventListener('securitypolicyviolation', (event) => {
+      document.documentElement.dataset.blockedDirective = event.effectiveDirective
+    }, { once: true })
+    const script = document.createElement('script')
+    script.textContent = 'document.documentElement.dataset.inlineScriptRan = "yes"'
+    document.body.append(script)
+  })
+  await expect(page.locator('html')).toHaveAttribute('data-blocked-directive', 'script-src-elem')
+  expect(await page.locator('html').getAttribute('data-inline-script-ran')).toBeNull()
+})
