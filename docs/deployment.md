@@ -115,6 +115,8 @@ Reserved Windows device names such as `NUL`, `CON`, and `COM1`, including names
 with extensions, are rejected on every platform for consistent deployment behavior.
 Fallback requires an explicit `text/html` media type with a nonzero valid
 quality value; `text/html;q=0` and wildcard-only requests keep their `404`.
+Directory requests are not listed or automatically mapped to nested index files;
+only `/` maps directly to the application's `index.html`.
 
 Static responses include a weak, file-metadata `ETag`. Browsers can revalidate
 with `If-None-Match`; matching `GET` and `HEAD` requests return a bodyless `304`.

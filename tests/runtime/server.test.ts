@@ -203,6 +203,19 @@ test('only HTML navigation requests get an extensionless SPA fallback', async (t
   }
 })
 
+test('existing directories never become listings or implicit index documents', async (t) => {
+  const { get, distDir } = await fixture(t)
+  await mkdir(join(distDir, 'reports'))
+  await writeFile(join(distDir, 'reports', 'index.html'), '<title>Nested index fixture</title>')
+  for (const path of ['/assets', '/assets/', '/reports', '/reports/']) {
+    const response = await get(path, 'GET', { accept: 'text/html' })
+    assert.equal(response.status, 404, path)
+    assert.doesNotMatch(response.body, /Nested index|app\.js|Cyber lab/)
+    assert.equal(response.headers['cache-control'], 'no-store')
+  }
+  assert.equal((await get('/reports/index.html')).status, 200)
+})
+
 test('SPA fallback honors HTML media types and explicit quality refusals', async (t) => {
   const { get } = await fixture(t)
   for (const accept of ['text/html;q=0', 'text/html;q=0.000, */*;q=1', 'application/nottext/html', 'text/html;q=bogus', 'text/html;q=1.5']) {
