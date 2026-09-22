@@ -17,3 +17,17 @@ test('each severity keeps selected alert and triage context aligned', async ({ p
     await expect(page.locator('.alert-panel .severity-badge')).toHaveText(severity.toUpperCase())
   }
 })
+
+test('a copied brief follows the current selected incident', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+    writeText: async (text: string) => { document.documentElement.dataset.copiedBrief = text },
+  } }))
+  await page.goto('/')
+  await page.locator('.severity-filter').getByRole('button', { name: 'low', exact: true }).click()
+  await page.getByRole('button', { name: 'Copy brief', exact: true }).click()
+  await expect(page.locator('.copy-feedback')).toContainText('copied')
+  const brief = await page.evaluate(() => document.documentElement.dataset.copiedBrief)
+  expect(brief).toContain('E09-7742')
+  expect(brief).toContain('Policy violation on cloud bucket')
+  expect(brief).not.toContain('A78-4319')
+})
