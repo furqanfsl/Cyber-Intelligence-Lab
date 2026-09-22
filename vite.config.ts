@@ -65,12 +65,18 @@ async function fetchJson<T>(url: string): Promise<T> {
   }
 }
 
-function normalizeUrl(url: unknown, fallback: string) {
-  if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
-    return url
+function cisaCatalogSearchUrl(cveId: string) {
+  const url = new URL('https://www.cisa.gov/known-exploited-vulnerabilities-catalog')
+  url.searchParams.set('search_api_fulltext', cveId)
+  return url.toString()
+}
+
+function hackerNewsItemUrl(objectId: unknown) {
+  if (typeof objectId === 'string' && /^\d+$/.test(objectId)) {
+    return `https://news.ycombinator.com/item?id=${objectId}`
   }
 
-  return fallback
+  return 'https://news.ycombinator.com/'
 }
 
 async function getLiveIntel(): Promise<LiveIntelPayload> {
@@ -108,7 +114,7 @@ async function getLiveIntel(): Promise<LiveIntelPayload> {
           dateAdded: item.dateAdded ?? 'Unknown',
           dueDate: item.dueDate ?? 'Unknown',
           ransomwareUse: item.knownRansomwareCampaignUse ?? 'Unknown',
-          url: normalizeUrl(item.notes, 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog'),
+          url: cisaCatalogSearchUrl(item.cveID ?? ''),
         }))
 
       sources.push({ name: 'CISA Known Exploited Vulnerabilities', status: 'ok', count: vulnerabilities.length })
@@ -167,8 +173,8 @@ async function getLiveIntel(): Promise<LiveIntelPayload> {
         .map((item) => ({
           id: item.objectID ?? randomUUID(),
           title: item.title ?? item.story_title ?? 'Cybersecurity story',
-          url: normalizeUrl(item.url ?? item.story_url, 'https://news.ycombinator.com/'),
-          source: 'Hacker News Algolia',
+          url: hackerNewsItemUrl(item.objectID),
+          source: 'HN discussion record',
           author: item.author ?? 'unknown',
           points: item.points ?? 0,
           createdAt: item.created_at ?? generatedAt,

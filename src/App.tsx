@@ -209,11 +209,120 @@ const techniques = [
   ['T1041', 'Exfiltration Over C2 Channel', 'Exfiltration'],
 ]
 
+type ArtifactTab = 'file' | 'network' | 'process' | 'registry'
+
+const artifactTabs: Record<
+  ArtifactTab,
+  {
+    label: string
+    fields: Array<[string, string]>
+    checklist: Array<[string, boolean]>
+  }
+> = {
+  file: {
+    label: 'File',
+    fields: [
+      ['File name', 'invoice_7784.docm'],
+      ['SHA256', '3f2a4ec...f67890'],
+      ['Reputation', 'Malicious / sandbox match'],
+      ['Command line', '[encoded payload redacted]'],
+    ],
+    checklist: [
+      ['Isolate affected hosts', true],
+      ['Terminate malicious processes', true],
+      ['Revoke compromised credentials', true],
+      ['Block IOCs at perimeter', false],
+      ['Validate system integrity', false],
+    ],
+  },
+  network: {
+    label: 'Network',
+    fields: [
+      ['Source IP', '185.199.110.42'],
+      ['Destination', '10.23.44.17:49712'],
+      ['Protocol', 'HTTPS / suspicious beacon'],
+      ['Disposition', 'Blocked at perimeter'],
+    ],
+    checklist: [
+      ['Sinkhole destination domain', true],
+      ['Push perimeter block rule', true],
+      ['Extract JA3 fingerprint', true],
+      ['Hunt for matching SNI', false],
+      ['Notify network owner', false],
+    ],
+  },
+  process: {
+    label: 'Process',
+    fields: [
+      ['Parent', 'WINWORD.EXE'],
+      ['Child', 'powershell.exe -nop -w hidden'],
+      ['PID chain', '3128 / 4188 / 5220'],
+      ['Confidence', 'High-risk execution tree'],
+    ],
+    checklist: [
+      ['Kill child process tree', true],
+      ['Capture memory snapshot', true],
+      ['Preserve parent document', true],
+      ['Review persistence keys', false],
+      ['Add EDR detection logic', false],
+    ],
+  },
+  registry: {
+    label: 'Registry',
+    fields: [
+      ['Hive', 'HKCU\\Software\\Microsoft\\Windows\\Run'],
+      ['Value', 'UpdaterService'],
+      ['Data', 'rundll32 updater.dll,Start'],
+      ['Action', 'Queued for removal'],
+    ],
+    checklist: [
+      ['Export registry evidence', true],
+      ['Remove persistence value', true],
+      ['Search peer endpoints', false],
+      ['Document change window', false],
+      ['Validate reboot state', false],
+    ],
+  },
+}
+
 function severityLabel(severity: Severity) {
   return severity.toUpperCase()
 }
 
+function useProfessionalReveal() {
+  useEffect(() => {
+    const elements = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '.reveal, .panel, .case-row, .skills-grid article, .osint-list a',
+      ),
+    )
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible')
+          }
+        })
+      },
+      {
+        rootMargin: '0px 0px -10% 0px',
+        threshold: 0.12,
+      },
+    )
+
+    elements.forEach((element, index) => {
+      element.style.setProperty('--reveal-index', String(index % 6))
+      observer.observe(element)
+    })
+
+    return () => observer.disconnect()
+  })
+}
+
 function App() {
+  useProfessionalReveal()
+
   const [selectedSeverity, setSelectedSeverity] = useState<'all' | Severity>('all')
   const [selectedAlertId, setSelectedAlertId] = useState(alerts[0].id)
   const [tick, setTick] = useState(7523)
@@ -730,6 +839,7 @@ function LiveIntelSection({
                   <small>
                     {item.vendor} / {item.product} / ransomware use: {item.ransomwareUse}
                   </small>
+                  <em>Open CISA record</em>
                 </a>
               ))
             ) : (
@@ -756,6 +866,7 @@ function LiveIntelSection({
                   <small>
                     by {item.author} / {item.points} points
                   </small>
+                  <em>Open discussion record</em>
                 </a>
               ))
             ) : (
@@ -833,6 +944,9 @@ function PacketStream({ compact = false }: { compact?: boolean }) {
 }
 
 function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
+  const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactTab>('file')
+  const activeArtifact = artifactTabs[activeArtifactTab]
+
   return (
     <section className="response-section" id="response">
       <div className="section-header reveal">
@@ -918,45 +1032,38 @@ function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
 
         <div className="panel forensic-panel">
           <div className="panel-title">Forensic artifact viewer</div>
-          <div className="tab-row" aria-label="Artifact tabs">
-            <button className="active" type="button">
-              File
-            </button>
-            <button type="button">Network</button>
-            <button type="button">Process</button>
-            <button type="button">Registry</button>
-          </div>
-          <dl className="detail-list forensic-list">
-            <div>
-              <dt>File name</dt>
-              <dd>invoice_7784.docm</dd>
-            </div>
-            <div>
-              <dt>SHA256</dt>
-              <dd>3f2a4ec...f67890</dd>
-            </div>
-            <div>
-              <dt>Reputation</dt>
-              <dd>Malicious / sandbox match</dd>
-            </div>
-            <div>
-              <dt>Command line</dt>
-              <dd>[encoded payload redacted]</dd>
-            </div>
-          </dl>
-          <div className="checklist">
-            {[
-              ['Isolate affected hosts', true],
-              ['Terminate malicious processes', true],
-              ['Revoke compromised credentials', true],
-              ['Block IOCs at perimeter', false],
-              ['Validate system integrity', false],
-            ].map(([label, done]) => (
-              <label key={String(label)}>
-                <input type="checkbox" checked={Boolean(done)} readOnly />
-                <span>{label}</span>
-              </label>
+          <div className="tab-row" aria-label="Artifact tabs" role="tablist">
+            {(Object.keys(artifactTabs) as ArtifactTab[]).map((tab) => (
+              <button
+                aria-controls="artifact-panel"
+                aria-selected={activeArtifactTab === tab}
+                className={activeArtifactTab === tab ? 'active' : ''}
+                key={tab}
+                onClick={() => setActiveArtifactTab(tab)}
+                role="tab"
+                type="button"
+              >
+                {artifactTabs[tab].label}
+              </button>
             ))}
+          </div>
+          <div className="forensic-content" id="artifact-panel" key={activeArtifactTab} role="tabpanel">
+            <dl className="detail-list forensic-list">
+              {activeArtifact.fields.map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="checklist">
+              {activeArtifact.checklist.map(([label, done]) => (
+                <label key={String(label)}>
+                  <input type="checkbox" checked={Boolean(done)} readOnly />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
       </div>

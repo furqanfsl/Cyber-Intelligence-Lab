@@ -162,8 +162,8 @@
 
 .hero-section {
   display: grid;
-  grid-template-columns: minmax(430px, 1fr) minmax(560px, 1.1fr);
-  gap: clamp(1.5rem, 3vw, 3.5rem);
+  grid-template-columns: minmax(360px, 0.88fr) minmax(540px, 1.12fr);
+  gap: clamp(2rem, 4vw, 5.5rem);
   align-items: stretch;
   min-height: calc(100dvh - 76px);
   padding: clamp(3rem, 6vw, 7rem) clamp(1.1rem, 4vw, 5.2rem);
@@ -174,6 +174,8 @@
   flex-direction: column;
   justify-content: center;
   min-width: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .kicker {
@@ -199,14 +201,14 @@
 
 .hero-copy h1,
 .case-header h2 {
-  max-width: 780px;
+  max-width: min(100%, 760px);
   margin: 0;
   color: var(--text-strong);
   font-family: var(--display);
-  font-size: clamp(4.8rem, 7.2vw, 10.8rem);
+  font-size: clamp(4rem, 5.45vw, 8.2rem);
   font-weight: 900;
-  letter-spacing: -0.07em;
-  line-height: 0.83;
+  letter-spacing: -0.085em;
+  line-height: 0.86;
   text-transform: uppercase;
   text-wrap: balance;
   text-shadow: 0 0 42px rgba(255, 255, 255, 0.12);
@@ -343,6 +345,11 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 0 0 1px rgba(0, 0, 0, 0.4);
+  transition:
+    border-color 520ms var(--ease),
+    box-shadow 520ms var(--ease),
+    transform 520ms var(--ease),
+    opacity 720ms var(--ease);
 }
 
 .hero-console {
@@ -362,6 +369,41 @@
   opacity: 0.62;
   content: '';
   pointer-events: none;
+  z-index: 0;
+}
+
+.hero-console::after,
+.panel::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 18rem),
+    radial-gradient(circle at var(--glow-x, 12%) var(--glow-y, 0%), rgba(255, 46, 46, 0.1), transparent 16rem);
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 520ms var(--ease);
+}
+
+.hero-console > *,
+.panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-console:hover,
+.panel:hover {
+  border-color: rgba(224, 241, 240, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.52),
+    0 24px 80px rgba(0, 0, 0, 0.22);
+}
+
+.hero-console:hover::after,
+.panel:hover::after {
+  opacity: 1;
 }
 
 .hero-console-bottom {
@@ -538,7 +580,7 @@ button {
 .panel-controls button,
 .severity-filter button,
 .tab-row button {
-  min-height: 34px;
+  min-height: 42px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.025);
   color: var(--text);
@@ -547,7 +589,9 @@ button {
   font-size: 0.65rem;
   letter-spacing: 0.13em;
   padding: 0 0.8rem;
+  position: relative;
   text-transform: uppercase;
+  touch-action: manipulation;
   transition:
     background 420ms var(--ease),
     border-color 420ms var(--ease),
@@ -569,8 +613,11 @@ button {
 .severity-filter button.active,
 .tab-row button.active {
   border-color: var(--red);
-  background: rgba(255, 46, 46, 0.16);
+  background:
+    linear-gradient(90deg, rgba(255, 46, 46, 0.22), rgba(255, 46, 46, 0.06)),
+    rgba(255, 46, 46, 0.12);
   color: var(--text-strong);
+  box-shadow: inset 0 -2px 0 var(--red);
 }
 
 .actor-list,
@@ -989,6 +1036,18 @@ button {
   flex-direction: column;
 }
 
+.source-health-panel {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 0.24fr repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.source-health-panel .panel-title {
+  align-self: start;
+}
+
 .live-status-badge {
   display: inline-flex;
   min-height: 34px;
@@ -1095,6 +1154,18 @@ button {
   font-family: var(--mono);
   font-size: 0.76rem;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.osint-list em {
+  width: max-content;
+  border-bottom: 1px solid currentColor;
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-style: normal;
+  letter-spacing: 0.14em;
+  padding-bottom: 0.2rem;
   text-transform: uppercase;
 }
 
@@ -1357,6 +1428,10 @@ button {
   overflow-wrap: anywhere;
 }
 
+.forensic-content {
+  animation: contentFade 360ms var(--ease) both;
+}
+
 .checklist {
   display: grid;
   gap: 0.72rem;
@@ -1558,17 +1633,41 @@ button {
   color: inherit;
 }
 
-.reveal {
+.reveal,
+.panel,
+.case-row,
+.skills-grid article,
+.osint-list a {
   opacity: 0;
-  transform: translateY(34px);
-  animation: reveal 980ms var(--ease) forwards;
+  transform: translateY(26px);
+  transition:
+    opacity 780ms var(--ease),
+    transform 780ms var(--ease),
+    border-color 520ms var(--ease),
+    background 520ms var(--ease),
+    box-shadow 520ms var(--ease);
+  transition-delay: calc(var(--reveal-index, 0) * 34ms);
+}
+
+.reveal.is-visible,
+.panel.is-visible,
+.case-row.is-visible,
+.skills-grid article.is-visible,
+.osint-list a.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .delay-1 {
-  animation-delay: 180ms;
+  transition-delay: 140ms;
 }
 
-@keyframes reveal {
+@keyframes contentFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1603,6 +1702,11 @@ button {
   .response-grid,
   .skills-section,
   .live-intel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-health-panel {
+    grid-column: auto;
     grid-template-columns: 1fr;
   }
 
@@ -1643,15 +1747,18 @@ button {
   }
 
   .nav-links {
-    justify-content: flex-start;
-    gap: 1.2rem;
-    overflow-x: auto;
-    padding-inline: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2rem clamp(0.7rem, 3.6vw, 1.2rem);
+    overflow: visible;
+    padding: 0.62rem 1rem;
   }
 
   .nav-links a {
     min-width: max-content;
-    padding-block: 1rem;
+    padding-block: 0.42rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
   }
 
   .hero-section,
