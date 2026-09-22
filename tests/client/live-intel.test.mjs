@@ -336,3 +336,20 @@ test('partial refresh combines retained CISA records with fresh news without mut
   assert.equal(previous.news[0].title, 'Example story')
   c.poller.stop()
 })
+
+test('the request deadline covers a stalled JSON body after response headers arrive', async () => {
+  let body; let signal
+  const stream = new ReadableStream({ start(controller) { body = controller; controller.enqueue(new TextEncoder().encode('{')) } })
+  const c = client(async (_url, options) => {
+    signal = options.signal
+    return new Response(stream, { headers: { 'Content-Type': 'application/json' } })
+  })
+  const request = c.poller.refresh(); await flush()
+  assert.equal(c.latest().isRefreshing, true)
+  c.clock.run(REQUEST_TIMEOUT_MS); await request
+  assert.equal(signal.aborted, true)
+  assert.match(c.latest().error, /timed out/)
+  assert.equal(c.latest().isRefreshing, false)
+  assert.deepEqual(c.clock.delays(), [RETRY_POLL_MS])
+  body.close(); await flush(); c.poller.stop()
+})
