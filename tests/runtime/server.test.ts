@@ -135,6 +135,19 @@ test('HEAD returns file metadata without a response body', async (t) => {
   assert.equal(Number(response.headers['content-length']), Buffer.byteLength('console.log("lab")'))
 })
 
+test('HEAD error responses keep GET status and byte metadata without JSON bodies', async (t) => {
+  const { get } = await fixture(t)
+  for (const path of ['/missing.js', '/api/missing', '/%E0%A4%A', '/.env']) {
+    const full = await get(path)
+    const head = await get(path, 'HEAD')
+    assert.equal(head.status, full.status, path)
+    assert.equal(head.bytes.length, 0, path)
+    assert.equal(head.headers['content-length'], String(full.bytes.length), path)
+    assert.equal(head.headers['content-type'], 'application/json; charset=utf-8', path)
+    assert.equal(head.headers['cache-control'], 'no-store', path)
+  }
+})
+
 test('Unicode asset names preserve binary bytes and byte-based content lengths', async (t) => {
   const { get, distDir } = await fixture(t)
   const filename = 'évidence-☃.png'
