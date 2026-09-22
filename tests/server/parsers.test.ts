@@ -1,0 +1,111 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { cisaCatalogSearchUrl, mergeNews, parseKev, parseNews } from '../../server/parsers.ts'
+import { kevRecord, newsRecord } from './fixtures.ts'
+
+test('CISA rejects malformed envelopes rather than reporting a healthy empty source', () => {
+  for (const value of [null, [], true, 'html', {}, { vulnerabilities: {} }]) {
+    assert.throws(() => parseKev(value), /Invalid CISA response/)
+  }
+  assert.deepEqual(parseKev({ vulnerabilities: [] }), [])
+})
+
+test('CISA drops invalid rows and safely defaults optional fields', () => {
+  const [item] = parseKev({ vulnerabilities: [null, 42, kevRecord({ cveID: 'unsafe' }), kevRecord({
+    cveID: ' cve-2026-12345 ', vulnerabilityName: '', shortDescription: '  Verified description  ',
+    vendorProject: {}, product: null, dueDate: '2026-02-30', knownRansomwareCampaignUse: 5,
+  })] })
+  assert.equal(item.id, 'CVE-2026-12345')
+  assert.equal(item.title, 'Verified description')
+  assert.equal(item.vendor, 'Unknown vendor')
+  assert.equal(item.product, 'Unknown product')
+  assert.equal(item.dueDate, 'Unknown')
+  assert.equal(item.ransomwareUse, 'Unknown')
+})
+
+test('CISA requires real calendar dates and stable CVE identifiers', () => {
+  for (const dateAdded of ['2026-02-29', '2026-13-01', 'yesterday', '', undefined]) {
+    assert.throws(() => parseKev({ vulnerabilities: [kevRecord({ dateAdded })] }), /No valid CISA records/)
+  }
+  for (const cveID of [undefined, 'CVE-2026-123', 'javascript:alert(1)', 'CVE-2026-12345&x=1']) {
+    assert.throws(() => parseKev({ vulnerabilities: [kevRecord({ cveID })] }), /No valid CISA records/)
+  }
+  assert.equal(parseKev({ vulnerabilities: [kevRecord({ dateAdded: '2024-02-29' })] })[0].dateAdded, '2024-02-29')
+})
+
+test('CISA sorts, deduplicates and caps without changing upstream records', () => {
+  const records = Array.from({ length: 10 }, (_, index) => kevRecord({ cveID: `CVE-2026-${1000 + index}`, dateAdded: `2026-09-${10 + index}` }))
+  const original = structuredClone(records)
+  const result = parseKev({ vulnerabilities: [...records, records[9]] })
+  assert.equal(result.length, 8)
+  assert.equal(result[0].id, 'CVE-2026-1009')
+  assert.equal(new Set(result.map((item) => item.id)).size, 8)
+  assert.deepEqual(records, original)
+})
+
+test('CISA links use a stable official catalog search, not untrusted notes', () => {
+  const [item] = parseKev({ vulnerabilities: [kevRecord({ notes: 'javascript:alert(1)' })] })
+  const url = new URL(item.url)
+  assert.equal(url.origin, 'https://www.cisa.gov')
+  assert.equal(url.searchParams.get('search_api_fulltext'), item.id)
+  assert.equal(cisaCatalogSearchUrl(item.id), item.url)
+})
+
+test('news rejects malformed envelopes and wholly invalid rows', () => {
+  for (const value of [null, [], true, {}, { hits: 'not an array' }]) {
+    assert.throws(() => parseNews(value), /Invalid news response/)
+  }
+  assert.throws(() => parseNews({ hits: [null, {}, 7] }), /No valid news records/)
+  assert.deepEqual(parseNews({ hits: [] }), [])
+})
+
+test('news accepts only stable positive numeric record IDs', () => {
+  for (const objectID of [undefined, 123, '', '0', '-1', '1&x=2', '01', '1'.repeat(21)]) {
+    assert.throws(() => parseNews({ hits: [newsRecord({ objectID })] }), /No valid news records/)
+  }
+  assert.equal(parseNews({ hits: [newsRecord({ objectID: ' 12345 ' })] })[0].id, '12345')
+})
+
+test('news uses text fallbacks and ignores unsafe upstream URLs', () => {
+  const [item] = parseNews({ hits: [newsRecord({ title: '', story_title: ' Fallback title ', author: {}, url: 'javascript:alert(1)' })] })
+  assert.equal(item.title, 'Fallback title')
+  assert.equal(item.author, 'unknown')
+  assert.equal(item.url, 'https://news.ycombinator.com/item?id=12345')
+})
+
+test('news validates timestamp dates and normalizes timezone offsets', () => {
+  for (const created_at of [undefined, 'yesterday', '2026-02-30T12:00:00Z', '2026-09-20T12:00:00', '2026-09-20T99:00:00Z']) {
+    assert.throws(() => parseNews({ hits: [newsRecord({ created_at })] }), /No valid news records/)
+  }
+  const [item] = parseNews({ hits: [newsRecord({ created_at: '2026-09-20T12:30:00+01:00' })] })
+  assert.equal(item.createdAt, '2026-09-20T11:30:00.000Z')
+})
+
+test('news requires a nonempty title and normalizes invalid point counts', () => {
+  assert.throws(() => parseNews({ hits: [newsRecord({ title: ' ' })] }), /No valid news records/)
+  for (const points of ['42', -1, 1.5, Infinity, Number.MAX_SAFE_INTEGER + 1, {}]) {
+    assert.equal(parseNews({ hits: [newsRecord({ points })] })[0].points, 0)
+  }
+  assert.equal(parseNews({ hits: [newsRecord({ title: 'x'.repeat(2_000) })] })[0].title.length, 1_000)
+})
+
+test('news query normalization drops malformed records and bounds results', () => {
+  const hits = Array.from({ length: 9 }, (_, index) => newsRecord({ objectID: String(100 + index), created_at: `2026-09-${10 + index}T12:00:00Z` }))
+  const items = parseNews({ hits: [null, {}, ...hits, hits[8]] })
+  assert.equal(items.length, 6)
+  assert.equal(items[0].id, '108')
+  assert.equal(new Set(items.map((item) => item.id)).size, 6)
+})
+
+test('combined news prioritizes freshest results across queries before dedupe and limit', () => {
+  const group = (firstId: number, day: number) => parseNews({ hits: Array.from({ length: 6 }, (_, index) => newsRecord({ objectID: String(firstId + index), created_at: `2026-09-${day}T12:00:00Z` })) })
+  const oldest = group(100, 10)
+  const middle = group(200, 15)
+  const newest = group(300, 20)
+  const original = structuredClone([oldest, middle, newest])
+  const result = mergeNews([oldest, middle, newest, newest])
+  assert.equal(result.length, 12)
+  assert.ok(result.every((item) => Number(item.id) >= 200))
+  assert.equal(new Set(result.map((item) => item.id)).size, 12)
+  assert.deepEqual([oldest, middle, newest], original)
+})
