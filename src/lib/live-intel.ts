@@ -1,6 +1,6 @@
 import type { LiveIntelPayload } from '../../shared/live-intel.ts'
 import { CISA_NAME, NEWS_NAME } from '../../shared/live-intel.ts'
-import { isCalendarDate } from './timestamps.ts'
+import { isAbsoluteTimestamp, isCalendarDate } from './timestamps.ts'
 
 export const DEFAULT_POLL_MS = 60_000
 export const RETRY_POLL_MS = 90_000
@@ -37,10 +37,6 @@ function hasStrings(value: Record<string, unknown>, keys: string[]): boolean {
   return keys.every((key) => typeof value[key] === 'string')
 }
 
-function isDate(value: unknown): boolean {
-  return typeof value === 'string' && value.length > 0 && Number.isFinite(Date.parse(value))
-}
-
 function isCount(value: unknown): boolean {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
@@ -73,7 +69,7 @@ function isNewsRecordLink(id: unknown, value: unknown): boolean {
 
 /** Validate the same-origin response before rendering dates, links, or records. */
 export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
-  if (!isRecord(value) || !isDate(value.generatedAt)) return false
+  if (!isRecord(value) || !isAbsoluteTimestamp(value.generatedAt)) return false
   if (typeof value.pollAfterMs !== 'number' || !Number.isFinite(value.pollAfterMs)) return false
   if (typeof value.cacheTtlMs !== 'number' || !Number.isFinite(value.cacheTtlMs) || value.cacheTtlMs < 0) return false
   if (!Array.isArray(value.sources) || value.sources.length !== 2) return false
@@ -82,7 +78,7 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
   if (!value.sources.every((source) => isRecord(source) && typeof source.name === 'string' &&
     ['ok', 'stale', 'error'].includes(String(source.status)) && isCount(source.count) &&
     (source.message === undefined || typeof source.message === 'string') &&
-    (source.lastSuccessAt === undefined || isDate(source.lastSuccessAt)))) return false
+    (source.lastSuccessAt === undefined || isAbsoluteTimestamp(source.lastSuccessAt)))) return false
   if (!Array.isArray(value.kev) || !Array.isArray(value.news)) return false
   if (value.sources[0].count !== value.kev.length || value.sources[1].count !== value.news.length) return false
   if (value.kev.length > 100 || value.news.length > 100) return false
@@ -91,7 +87,7 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
     hasStrings(item, ['id', 'title', 'vendor', 'product', 'dateAdded', 'dueDate', 'ransomwareUse']) &&
     isCalendarDate(item.dateAdded) && (item.dueDate === 'Unknown' || isCalendarDate(item.dueDate)) && isKevRecordLink(item.id, item.url)) &&
     value.news.every((item) => isRecord(item) &&
-      hasStrings(item, ['id', 'title', 'source', 'author']) && isDate(item.createdAt) &&
+      hasStrings(item, ['id', 'title', 'source', 'author']) && isAbsoluteTimestamp(item.createdAt) &&
       isCount(item.points) && isNewsRecordLink(item.id, item.url))
 }
 

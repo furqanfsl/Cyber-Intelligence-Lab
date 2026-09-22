@@ -291,3 +291,16 @@ test('CISA calendar dates reject rollover and locale-dependent input', () => {
   const leapDay = fixture(); leapDay.kev[0].dateAdded = '2024-02-29'
   assert.equal(isLiveIntelPayload(leapDay), true)
 })
+
+test('snapshot and source timestamps require an explicit timezone and real clock time', () => {
+  for (const value of ['2026-09-22', '2026-09-22T12:00:00', '2026-02-30T12:00:00Z', '2026-09-22T24:00:00Z', '2026-09-22T12:60:00Z']) {
+    const snapshot = fixture(); snapshot.generatedAt = value
+    assert.equal(isLiveIntelPayload(snapshot), false)
+    const news = fixture(); news.news[0].createdAt = value
+    assert.equal(isLiveIntelPayload(news), false)
+    const health = fixture(); health.sources[0].lastSuccessAt = value
+    assert.equal(isLiveIntelPayload(health), false)
+  }
+  const offset = fixture(); offset.generatedAt = '2026-09-22T17:30:00+05:30'
+  assert.equal(isLiveIntelPayload(offset), true)
+})
