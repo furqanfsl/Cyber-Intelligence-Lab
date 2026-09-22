@@ -89,6 +89,18 @@ test('news requires a nonempty title and normalizes invalid point counts', () =>
   assert.equal(parseNews({ hits: [newsRecord({ title: 'x'.repeat(2_000) })] })[0].title.length, 1_000)
 })
 
+test('display text truncation preserves full Unicode code points at the limit', () => {
+  const title = `${'x'.repeat(999)}\ud83d\udd10tail`
+  const expected = `${'x'.repeat(999)}\ud83d\udd10`
+  const [news] = parseNews({ hits: [newsRecord({ title })] })
+  const [kev] = parseKev({ vulnerabilities: [kevRecord({ vulnerabilityName: title, vendorProject: '\ud83d\udd10'.repeat(1_001) })] })
+  assert.equal(news.title, expected)
+  assert.equal(kev.title, expected)
+  assert.equal(Array.from(kev.vendor).length, 1_000)
+  assert.equal(kev.vendor.isWellFormed(), true)
+  assert.equal(news.title.isWellFormed(), true)
+})
+
 test('news query normalization drops malformed records and bounds results', () => {
   const hits = Array.from({ length: 9 }, (_, index) => newsRecord({ objectID: String(100 + index), created_at: `2026-09-${10 + index}T12:00:00Z` }))
   const items = parseNews({ hits: [null, {}, ...hits, hits[8]] })

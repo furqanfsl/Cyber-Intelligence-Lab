@@ -5,7 +5,14 @@ function record(value: unknown): value is Record<string, unknown> {
 }
 
 function text(value: unknown, fallback = ''): string {
-  return typeof value === 'string' && value.trim() ? value.trim().slice(0, 1_000) : fallback
+  if (typeof value !== 'string') return fallback
+  let result = ''
+  let length = 0
+  for (const character of value.trim()) {
+    if (length++ === 1_000) break
+    result += character
+  }
+  return result || fallback
 }
 
 function dateOnly(value: unknown): string | undefined {
