@@ -22,12 +22,12 @@ export function createJsonLoader({ fetchImpl = fetch, timeoutMs = 9_000, maxByte
         redirect: 'error',
       })
       if (!response.ok) {
-        await response.body?.cancel()
+        await response.body?.cancel().catch(() => {})
         throw new Error('Source request failed')
       }
       const advertisedSize = Number(response.headers.get('content-length'))
       if (Number.isFinite(advertisedSize) && advertisedSize > maxBytes) {
-        await response.body?.cancel()
+        await response.body?.cancel().catch(() => {})
         throw new Error('Source response exceeded size limit')
       }
       if (!response.body) throw new Error('Source returned an empty response')
@@ -40,11 +40,15 @@ export function createJsonLoader({ fetchImpl = fetch, timeoutMs = 9_000, maxByte
           if (done) break
           size += value.byteLength
           if (size > maxBytes) {
-            await reader.cancel()
+            await reader.cancel().catch(() => {})
             throw new Error('Source response exceeded size limit')
           }
           chunks.push(value)
         }
+      } catch (error) {
+        // Cleanup must neither retain a failed download nor mask its original failure.
+        await reader.cancel().catch(() => {})
+        throw error
       } finally {
         reader.releaseLock()
       }
@@ -57,6 +61,9 @@ export function createJsonLoader({ fetchImpl = fetch, timeoutMs = 9_000, maxByte
       // Reject corrupt UTF-8 rather than silently replacing bytes inside record identifiers.
       // TextDecoder consumes a leading UTF-8 BOM, matching common JSON feed behavior.
       return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown
+    } catch (error) {
+      controller.abort()
+      throw error
     } finally {
       clearTimeout(timeout)
     }

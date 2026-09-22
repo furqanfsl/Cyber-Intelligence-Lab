@@ -117,3 +117,27 @@ test('transport deadline also covers a body stalled after response headers', asy
   })) })
   await assert.rejects(load(CISA_URL), /body aborted/)
 })
+
+test('transport releases failed readers and aborts their underlying request', async () => {
+  let signal: AbortSignal | null | undefined
+  const failure = new Error('stream read failed')
+  const body = new ReadableStream<Uint8Array>({ pull(controller) { controller.error(failure) } })
+  const load = createJsonLoader({ fetchImpl: async (_url, options) => {
+    signal = options?.signal
+    return new Response(body)
+  } })
+  await assert.rejects(load(CISA_URL), (error) => error === failure)
+  assert.equal(body.locked, false)
+  assert.equal(signal?.aborted, true)
+})
+
+test('transport cleanup failures do not replace useful HTTP and size errors', async () => {
+  const failingCancel = () => new ReadableStream<Uint8Array>({
+    start(controller) { controller.enqueue(new TextEncoder().encode('123456')) },
+    cancel() { throw new Error('internal cancellation diagnostics') },
+  })
+  const failedHttp = createJsonLoader({ fetchImpl: async () => new Response(failingCancel(), { status: 503 }) })
+  await assert.rejects(failedHttp(CISA_URL), { message: 'Source request failed' })
+  const oversized = createJsonLoader({ maxBytes: 5, fetchImpl: async () => new Response(failingCancel()) })
+  await assert.rejects(oversized(CISA_URL), { message: 'Source response exceeded size limit' })
+})
