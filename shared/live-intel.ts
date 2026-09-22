@@ -1,4 +1,7 @@
 /** Public API contract shared by the dashboard and the local Vite middleware. */
+export const CISA_NAME = 'CISA Known Exploited Vulnerabilities'
+export const NEWS_NAME = 'Hacker News Algolia cyber search'
+
 export type SourceHealth = {
   name: string
   status: 'ok' | 'stale' | 'error'

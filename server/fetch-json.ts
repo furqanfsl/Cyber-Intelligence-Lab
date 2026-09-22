@@ -1,4 +1,4 @@
-import { ALLOWED_SOURCE_URLS } from './sources.ts'
+import { isAllowedSourceUrl } from './sources.ts'
 
 export type JsonLoader = (url: string) => Promise<unknown>
 type FetchOptions = { fetchImpl?: typeof fetch; timeoutMs?: number; maxBytes?: number }
@@ -12,7 +12,7 @@ export function createJsonLoader({ fetchImpl = fetch, timeoutMs = 9_000, maxByte
     throw new RangeError('maxBytes must be a positive safe integer')
   }
   return async (url) => {
-    if (!ALLOWED_SOURCE_URLS.has(url)) throw new Error('Source URL is not allowed')
+    if (!isAllowedSourceUrl(url)) throw new Error('Source URL is not allowed')
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
     try {
