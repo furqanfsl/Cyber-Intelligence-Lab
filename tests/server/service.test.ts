@@ -211,3 +211,20 @@ test('a backwards wall-clock adjustment invalidates rather than prolongs a cache
   assert.strictEqual(await service.get(), refreshed)
   assert.equal(calls, 8)
 })
+
+test('separate server instances never share cached records, failures, or in-flight refreshes', async () => {
+  let healthyCalls = 0
+  let failingCalls = 0
+  const healthy = createLiveIntelService({ loadJson: async (url) => { healthyCalls++; return successfulData(url) } })
+  const failing = createLiveIntelService({ loadJson: async () => { failingCalls++; throw new Error('offline') } })
+  const [available, unavailable] = await Promise.all([healthy.get(), failing.get()])
+  assert.equal(available.kev.length, 1)
+  assert.equal(available.news.length, 3)
+  assert.deepEqual(unavailable.kev, [])
+  assert.deepEqual(unavailable.news, [])
+  assert.ok(unavailable.sources.every((source) => source.status === 'error' && !source.lastSuccessAt))
+  assert.strictEqual(await healthy.get(), available)
+  assert.strictEqual(await failing.get(), unavailable)
+  assert.equal(healthyCalls, 4)
+  assert.equal(failingCalls, 4)
+})
