@@ -92,7 +92,7 @@ export function createAppServer(options: ServerOptions = {}) {
       // trailing dots/spaces specially. Hidden files never belong to the public app.
       const hasControlCharacter = [...pathname].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)
       if (hasControlCharacter || /[\\:#]/.test(pathname)) throw new Error()
-      if (pathname.split('/').some((part) => part.startsWith('.') || /[. ]$/.test(part))) {
+      if (pathname.split('/').some((part) => part.startsWith('.') || /[. ]$/.test(part) || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part))) {
         sendError(request, response, 403, 'Forbidden')
         return
       }

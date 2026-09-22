@@ -292,6 +292,14 @@ test('encoded path separators cannot create alternate API or asset routes', asyn
   assert.equal((await get('/assets/app.js?ignored=%2f')).status, 200)
 })
 
+test('Windows device names are forbidden consistently before filesystem access', async (t) => {
+  const { get } = await fixture(t)
+  for (const path of ['/NUL', '/con.txt', '/assets/COM1.js', '/lPt9.log', '/PRN/item']) {
+    assert.equal((await get(path, 'GET', { accept: 'text/html' })).status, 403, path)
+  }
+  assert.equal((await get('/console', 'GET', { accept: 'text/html' })).status, 200)
+})
+
 test('a directory symlink cannot escape the build directory', async (t) => {
   const { get, directory, distDir } = await fixture(t)
   await symlink(directory, join(distDir, 'escape'), process.platform === 'win32' ? 'junction' : 'dir')

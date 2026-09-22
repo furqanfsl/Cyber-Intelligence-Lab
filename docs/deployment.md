@@ -111,6 +111,8 @@ are rejected. Missing assets stay `404`; only extensionless requests accepting
 HTML can fall back to the SPA page.
 Encoded slash and backslash separators are rejected rather than treated as route
 aliases, avoiding disagreement with an upstream proxy's path normalization.
+Reserved Windows device names such as `NUL`, `CON`, and `COM1`, including names
+with extensions, are rejected on every platform for consistent deployment behavior.
 Fallback requires an explicit `text/html` media type with a nonzero valid
 quality value; `text/html;q=0` and wildcard-only requests keep their `404`.
 
