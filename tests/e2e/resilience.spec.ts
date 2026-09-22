@@ -34,3 +34,15 @@ test('manual refresh is disabled until the current request finishes', async ({ p
   await expect(page.getByRole('button', { name: 'Refresh sources' })).toBeEnabled()
   expect(count).toBe(1)
 })
+
+test('initial network failure can recover through manual refresh', async ({ page }) => {
+  await page.route('**/api/live-intel', (route) => route.abort('connectionfailed'))
+  await page.goto('/')
+  await expect(page.locator('.live-status-badge')).toHaveText('Source error')
+  await expect(page.locator('.feed-notice')).toContainText('Could not reach')
+  await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
+  await page.getByRole('button', { name: 'Refresh sources' }).click()
+  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await expect(page.locator('.feed-notice')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: /Open CISA record/ })).toBeVisible()
+})
