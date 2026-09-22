@@ -41,12 +41,14 @@ async function fixture(t: TestContext, handler?: (request: IncomingMessage, resp
   assert.ok(address && typeof address !== 'string')
   const port = address.port
   function get(path: string, method = 'GET', headers: Record<string, string> = {}) {
-    return new Promise<{ status: number; body: string; headers: import('node:http').IncomingHttpHeaders }>((resolve, reject) => {
+    return new Promise<{ status: number; body: string; bytes: Buffer; headers: import('node:http').IncomingHttpHeaders }>((resolve, reject) => {
       const req = request({ hostname: '127.0.0.1', port, path, method, headers }, (response) => {
-        let body = ''
-        response.setEncoding('utf8')
-        response.on('data', (chunk: string) => { body += chunk })
-        response.on('end', () => resolve({ status: response.statusCode ?? 0, body, headers: response.headers }))
+        const chunks: Buffer[] = []
+        response.on('data', (chunk: Buffer) => { chunks.push(chunk) })
+        response.on('end', () => {
+          const bytes = Buffer.concat(chunks)
+          resolve({ status: response.statusCode ?? 0, body: bytes.toString('utf8'), bytes, headers: response.headers })
+        })
       })
       req.on('error', reject)
       req.end()
@@ -131,6 +133,21 @@ test('HEAD returns file metadata without a response body', async (t) => {
   assert.equal(response.status, 200)
   assert.equal(response.body, '')
   assert.equal(Number(response.headers['content-length']), Buffer.byteLength('console.log("lab")'))
+})
+
+test('Unicode asset names preserve binary bytes and byte-based content lengths', async (t) => {
+  const { get, distDir } = await fixture(t)
+  const filename = 'évidence-☃.png'
+  const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 255, 128, 195, 169])
+  await writeFile(join(distDir, filename), bytes)
+  const response = await get(`/${encodeURIComponent(filename)}`)
+  assert.equal(response.status, 200)
+  assert.deepEqual(response.bytes, bytes)
+  assert.equal(response.headers['content-length'], String(bytes.length))
+  assert.equal(response.headers['content-type'], 'image/png')
+  const head = await get(`/${encodeURIComponent(filename)}`, 'HEAD')
+  assert.equal(head.bytes.length, 0)
+  assert.equal(head.headers['content-length'], response.headers['content-length'])
 })
 
 test('static GET and HEAD revalidate matching weak, strong, list and wildcard entity tags', async (t) => {
