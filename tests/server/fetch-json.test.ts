@@ -70,6 +70,18 @@ test('transport rejects empty and non-JSON successful responses', async () => {
   }
 })
 
+test('transport rejects malformed UTF-8 but accepts a leading UTF-8 BOM', async () => {
+  const prefix = new TextEncoder().encode('{"id":"')
+  const suffix = new TextEncoder().encode('"}')
+  for (const malformed of [[0xff], [0xc3], [0xc0, 0xaf], [0xed, 0xa0, 0x80]]) {
+    const bytes = Uint8Array.from([...prefix, ...malformed, ...suffix])
+    const load = createJsonLoader({ fetchImpl: async () => new Response(bytes) })
+    await assert.rejects(load(CISA_URL), TypeError)
+  }
+  const bomJson = Uint8Array.from([0xef, 0xbb, 0xbf, ...new TextEncoder().encode('{"ok":true}')])
+  assert.deepEqual(await createJsonLoader({ fetchImpl: async () => new Response(bomJson) })(CISA_URL), { ok: true })
+})
+
 test('transport timeout aborts an upstream fetch that never responds', async () => {
   let aborted = false
   const load = createJsonLoader({ timeoutMs: 5, fetchImpl: async (_url, options) => new Promise((_resolve, reject) => {

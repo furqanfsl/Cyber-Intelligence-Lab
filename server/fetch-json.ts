@@ -54,7 +54,9 @@ export function createJsonLoader({ fetchImpl = fetch, timeoutMs = 9_000, maxByte
         bytes.set(chunk, offset)
         offset += chunk.byteLength
       }
-      return JSON.parse(new TextDecoder().decode(bytes)) as unknown
+      // Reject corrupt UTF-8 rather than silently replacing bytes inside record identifiers.
+      // TextDecoder consumes a leading UTF-8 BOM, matching common JSON feed behavior.
+      return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown
     } finally {
       clearTimeout(timeout)
     }
