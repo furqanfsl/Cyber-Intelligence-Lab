@@ -27,6 +27,9 @@ The deployable tree must contain `dist/`, `runtime/`, `server/`, `shared/`, and
 adapters use Node built-ins and do not require Vite or a separate framework to
 serve requests. Dependency installation and TypeScript are still needed in the
 build environment.
+The entry point resolves `dist/` relative to `runtime/server.ts`, not the process
+working directory. A supervisor can launch the intact deployment tree from a
+different directory without exposing that directory's files.
 
 ## Bind address and port
 

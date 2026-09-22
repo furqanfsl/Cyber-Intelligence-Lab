@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -54,4 +54,47 @@ test('CLI reports an occupied port and exits without leaving a second server', a
   assert.match(result.stderr, /port is already in use/)
   assert.doesNotMatch(result.stderr, /at |server\.ts|Error:/)
   assert.equal(occupied.listening, true)
+})
+
+test('a standalone deployment starts from an unrelated working directory without node_modules', async (t) => {
+  const entry = await deployment(t)
+  const reservation = createServer()
+  reservation.listen(0, '127.0.0.1')
+  await once(reservation, 'listening')
+  const address = reservation.address()
+  assert.ok(address && typeof address !== 'string')
+  const port = address.port
+  await new Promise<void>((resolve) => reservation.close(() => resolve()))
+  const child = spawn(process.execPath, [entry], {
+    cwd: tmpdir(), env: { ...process.env, HOST: '127.0.0.1', PORT: String(port) },
+    stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
+  })
+  let output = ''
+  let errors = ''
+  child.stdout.setEncoding('utf8')
+  child.stderr.setEncoding('utf8')
+  child.stderr.on('data', (chunk: string) => { errors += chunk })
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const deadline = setTimeout(() => reject(new Error(`Startup timed out: ${errors}`)), 5_000)
+      child.once('error', (error) => { clearTimeout(deadline); reject(error) })
+      child.once('exit', (code) => { clearTimeout(deadline); reject(new Error(`Startup exited ${code}: ${errors}`)) })
+      child.stdout.on('data', (chunk: string) => {
+        output += chunk
+        if (output.includes(`http://127.0.0.1:${port}`)) { clearTimeout(deadline); resolve() }
+      })
+    })
+    const homepage = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(3_000) })
+    assert.equal(homepage.status, 200)
+    assert.equal(await homepage.text(), '<title>Isolated deployment fixture</title>')
+    const health = await fetch(`http://127.0.0.1:${port}/healthz`, { signal: AbortSignal.timeout(3_000) })
+    assert.deepEqual(await health.json(), { status: 'ok' })
+    assert.equal(errors, '')
+  } finally {
+    if (child.pid && child.exitCode === null && child.signalCode === null) {
+      const closed = once(child, 'exit')
+      child.kill()
+      await closed
+    }
+  }
 })
