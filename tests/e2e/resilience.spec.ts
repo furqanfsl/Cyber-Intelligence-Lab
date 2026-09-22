@@ -58,3 +58,14 @@ test('an initial total upstream outage does not invent records', async ({ page }
   await expect(page.locator('#intel-announcement')).toContainText('unavailable')
   await expect(page.getByRole('button', { name: 'Refresh sources' })).toBeEnabled()
 })
+
+test('healthy empty sources remain current without an outage notice', async ({ page }) => {
+  await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
+    ...intelligence, kev: [], news: [], sources: intelligence.sources.map((source) => ({ ...source, count: 0 })),
+  } }))
+  await page.goto('/')
+  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await expect(page.locator('.feed-notice')).toHaveCount(0)
+  await expect(page.getByText('No CISA records are available.', { exact: true })).toBeVisible()
+  await expect(page.getByText('No cyber news records are available.', { exact: true })).toBeVisible()
+})
