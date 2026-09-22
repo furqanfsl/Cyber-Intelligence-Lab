@@ -31,3 +31,17 @@ test('a copied brief follows the current selected incident', async ({ page }) =>
   expect(brief).toContain('Policy violation on cloud bucket')
   expect(brief).not.toContain('A78-4319')
 })
+
+test('an old pending clipboard write cannot confirm a newly selected incident', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+    writeText: () => new Promise<void>((resolve) => { window.addEventListener('finish-demo-copy', () => resolve(), { once: true }) }),
+  } }))
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Copy brief', exact: true }).click()
+  await expect(page.locator('.alert-panel button')).toBeDisabled()
+  await page.locator('.severity-filter').getByRole('button', { name: 'low', exact: true }).click()
+  await page.evaluate(() => window.dispatchEvent(new Event('finish-demo-copy')))
+  await expect(page.getByRole('button', { name: 'Copy brief', exact: true })).toBeEnabled()
+  await expect(page.locator('.copy-feedback')).toBeEmpty()
+  await expect(page.getByRole('button', { name: 'Brief copied', exact: true })).toHaveCount(0)
+})
