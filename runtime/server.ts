@@ -120,8 +120,11 @@ export function createAppServer(options: ServerOptions = {}) {
     }
     // A weak metadata validator avoids reading the entire asset merely to revalidate it.
     const etag = `W/"${info.size.toString(16)}-${info.mtimeNs.toString(16)}-${info.ctimeNs.toString(16)}"`
+    const assetPath = relative(root, file).split(sep).join('/')
+    const contentHashedAsset = pathname.startsWith('/assets/') &&
+      /^assets\/(?:[^/]+\/)*[^/]+-[A-Za-z0-9_-]{8,}\.(?:js|css|woff2?|ttf|otf|png|jpe?g|svg|webp|avif|gif|ico|wasm)$/.test(assetPath)
     response.setHeader('etag', etag)
-    response.setHeader('cache-control', 'no-cache')
+    response.setHeader('cache-control', contentHashedAsset ? 'public, max-age=31536000, immutable' : 'no-cache')
     if (matchesEntityTag(request.headers['if-none-match'], etag)) {
       response.writeHead(304)
       response.end()

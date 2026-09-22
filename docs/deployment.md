@@ -83,6 +83,12 @@ with `If-None-Match`; matching `GET` and `HEAD` requests return a bodyless `304`
 These validators are cache hints, not content-integrity hashes. Dynamic API
 responses do not use static validators and remain `no-store`.
 
+Vite's content-hashed JS, CSS, font and image filenames under `/assets/` receive
+`public, max-age=31536000, immutable`. The resolved file must also be a hashed
+asset, so an alias cannot give `index.html` an immutable policy. HTML, SPA
+fallbacks and non-hashed public files use `no-cache` and must revalidate. Keep
+hashed filenames immutable; deploy changed assets under their new build hashes.
+
 ```sh
 npm test
 npm run build

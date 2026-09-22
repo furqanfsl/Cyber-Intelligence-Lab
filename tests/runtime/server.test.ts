@@ -125,6 +125,29 @@ test('static validators do not turn changed, missing, or dynamic resources into 
   assert.equal(api.headers.etag, undefined)
 })
 
+test('only content-hashed assets use immutable long-lived caching', async (t) => {
+  const { get, distDir } = await fixture(t)
+  for (const name of ['index-BBPq_AAX.js', 'index-DSUPjFDl.css', 'font-AB12cd_3.woff2', 'report-AB12cd_3.html', 'index-short.js']) {
+    await writeFile(join(distDir, 'assets', name), 'fixture')
+  }
+  await writeFile(join(distDir, 'index-BBPq_AAX.js'), 'outside assets')
+  for (const path of ['/assets/index-BBPq_AAX.js?version=1', '/assets/index-DSUPjFDl.css', '/assets/font-AB12cd_3.woff2']) {
+    const response = await get(path)
+    assert.equal(response.headers['cache-control'], 'public, max-age=31536000, immutable', path)
+    const revalidated = await get(path, 'HEAD', { 'if-none-match': response.headers.etag! })
+    assert.equal(revalidated.status, 304)
+    assert.equal(revalidated.headers['cache-control'], response.headers['cache-control'])
+  }
+  for (const path of ['/', '/index.html', '/assets/app.js', '/assets/index-short.js', '/assets/report-AB12cd_3.html', '/index-BBPq_AAX.js', '/favicon.svg']) {
+    const response = await get(path)
+    assert.equal(response.headers['cache-control'], 'no-cache', path)
+  }
+  const fallback = await get('/incident/overview', 'GET', { accept: 'text/html' })
+  assert.equal(fallback.headers['cache-control'], 'no-cache')
+  const missing = await get('/assets/missing-AB12cd_3.js')
+  assert.equal(missing.headers['cache-control'], 'no-store')
+})
+
 test('only HTML navigation requests get an extensionless SPA fallback', async (t) => {
   const { get } = await fixture(t)
   assert.equal((await get('/incident/overview', 'GET', { accept: 'text/html' })).status, 200)
