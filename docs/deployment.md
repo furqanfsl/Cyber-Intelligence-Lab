@@ -80,7 +80,7 @@ assets, fetch OSINT, or wait on third-party services. Source health belongs to
 - Configure proxy request limits, connection limits, and operational logging for
   your hosting environment. The in-process public-source cache is not a
   distributed cache or a substitute for edge abuse controls.
-- Allow outbound HTTPS to the fixed CISA and Hacker News Algolia source hosts.
+- Allow outbound HTTPS to the fixed CISA, Microsoft MSRC and Hacker News Algolia source hosts.
   No API key is needed. Source failures appear in the application; they must not
   be represented as a healthy fresh feed.
 - The runtime sends `nosniff`, framing protection, a no-referrer policy and the

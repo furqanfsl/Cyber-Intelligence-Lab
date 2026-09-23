@@ -49,19 +49,19 @@ test('initial network failure can recover through manual refresh', async ({ page
 
 test('an initial total upstream outage does not invent records', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
-    ...intelligence, kev: [], news: [], sources: intelligence.sources.map((source) => ({ ...source, status: 'error', count: 0 })),
+    ...intelligence, kev: [], news: [], advisories: [], sources: intelligence.sources.map((source) => ({ ...source, status: 'error', count: 0 })),
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Source error')
   await expect(page.locator('.osint-list a')).toHaveCount(0)
-  await expect(page.locator('.empty-feed')).toHaveCount(2)
+  await expect(page.locator('.empty-feed')).toHaveCount(3)
   await expect(page.locator('#intel-announcement')).toContainText('unavailable')
   await expect(page.getByRole('button', { name: 'Refresh sources' })).toBeEnabled()
 })
 
 test('healthy empty sources remain current without an outage notice', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
-    ...intelligence, kev: [], news: [], sources: intelligence.sources.map((source) => ({ ...source, count: 0 })),
+    ...intelligence, kev: [], news: [], advisories: [], sources: intelligence.sources.map((source) => ({ ...source, count: 0 })),
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
@@ -74,7 +74,7 @@ test('an empty failed server snapshot cannot erase cached browser records', asyn
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
-    ...intelligence, kev: [], news: [], sources: intelligence.sources.map((source) => ({ ...source, status: 'error', count: 0 })),
+    ...intelligence, kev: [], news: [], advisories: [], sources: intelligence.sources.map((source) => ({ ...source, status: 'error', count: 0 })),
   } }))
   await page.getByRole('button', { name: 'Refresh sources' }).click()
   await expect(page.locator('.live-status-badge')).toHaveText('Stale data')

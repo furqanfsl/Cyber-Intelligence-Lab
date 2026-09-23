@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createJsonLoader } from '../../server/fetch-json.ts'
-import { CISA_URL, NEWS_URLS } from '../../server/sources.ts'
+import { CISA_URL, MSRC_URL, NEWS_URLS } from '../../server/sources.ts'
 
 test('transport rejects limits that disable bounds or overflow Node timers', () => {
   for (const timeoutMs of [0, -1, 0.5, NaN, Infinity, 2_147_483_648]) {
@@ -21,11 +21,11 @@ test('transport only permits exact fixed source URLs and disables redirects', as
     assert.ok(options?.signal)
     return Response.json({ valid: true })
   } })
-  for (const url of [CISA_URL, ...NEWS_URLS]) assert.deepEqual(await load(url), { valid: true })
+  for (const url of [CISA_URL, ...NEWS_URLS, MSRC_URL]) assert.deepEqual(await load(url), { valid: true })
   for (const url of ['http://localhost/', 'https://example.com/', `${CISA_URL}?redirect=x`, 'file:///etc/passwd']) {
     await assert.rejects(load(url), /not allowed/)
   }
-  assert.equal(calls.length, 4)
+  assert.equal(calls.length, 5)
 })
 
 test('transport decodes chunked UTF-8 without corrupting split multi-byte characters', async () => {

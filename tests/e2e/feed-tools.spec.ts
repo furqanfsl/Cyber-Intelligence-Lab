@@ -18,7 +18,7 @@ test('snapshot search filters records without hiding source health and clears cl
   await expect(page.locator('#news-records')).toHaveText('No discussions match this search.')
   await page.getByRole('button', { name: 'Clear search' }).click()
   await expect(search).toHaveValue('')
-  await expect(page.locator('.osint-list a')).toHaveCount(2)
+  await expect(page.locator('.osint-list a')).toHaveCount(3)
 })
 
 test('expanded feed reveals all available records and restores compact mode', async ({ page }) => {
@@ -27,7 +27,7 @@ test('expanded feed reveals all available records and restores compact mode', as
     url: `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-${12345 + index}`,
   }))
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
-    ...intelligence, kev, sources: [{ ...intelligence.sources[0], count: 8 }, intelligence.sources[1]],
+    ...intelligence, kev, sources: [{ ...intelligence.sources[0], count: 8 }, intelligence.sources[1], intelligence.sources[2]],
   } }))
   await page.goto('/')
   await expect(page.locator('#kev-records a')).toHaveCount(5)
@@ -47,14 +47,15 @@ test('simulation counters stay coherent and pause without changing live records'
   const total = page.locator('.map-panel .map-readout data')
   await expect(total).toHaveText('9,503')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
-  await page.clock.fastForward(2600)
   await expect(total).toHaveText('9,510')
+  await page.clock.fastForward(2600)
+  await expect(total).toHaveText('9,517')
   const sum = await page.locator('.map-panel .map-node data').evaluateAll((nodes) => nodes.reduce((value, node) => value + Number(node.textContent!.replaceAll(',', '')), 0))
-  expect(sum).toBe(9510)
+  expect(sum).toBe(9517)
   await page.getByRole('button', { name: 'Pause simulation', exact: true }).click()
   await page.clock.fastForward(5200)
-  await expect(total).toHaveText('9,510')
-  await expect(page.locator('.signal-strip dt').nth(1)).toHaveText('2')
+  await expect(total).toHaveText('9,517')
+  await expect(page.locator('.signal-strip dt').nth(1)).toHaveText('3')
 })
 
 test('self-hosted fonts load and active navigation reflects the current section', async ({ page }) => {

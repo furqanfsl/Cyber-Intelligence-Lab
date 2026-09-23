@@ -8,11 +8,12 @@ test.beforeEach(async ({ page }) => {
 test('source titles containing markup cannot create active elements', async ({ page }) => {
   const title = '<img src=x onerror="document.body.dataset.injected=1"> & public advisory'
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
-    ...intelligence, news: [{ ...intelligence.news[0], title }],
+    ...intelligence, news: [{ ...intelligence.news[0], title }], advisories: [{ ...intelligence.advisories[0], title }],
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
-  await expect(page.locator('.osint-list').getByText(title, { exact: true })).toBeVisible()
+  await expect(page.locator('#news-records').getByText(title, { exact: true })).toBeVisible()
+  await expect(page.locator('#advisory-records').getByText(title, { exact: true })).toBeVisible()
   await expect(page.locator('.hero-brief').getByText(title, { exact: true })).toBeVisible()
   await expect(page.locator('.osint-list img, .hero-brief img')).toHaveCount(0)
   expect(await page.locator('body').getAttribute('data-injected')).toBeNull()

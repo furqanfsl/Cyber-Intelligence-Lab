@@ -5,7 +5,7 @@ import test, { type TestContext } from 'node:test'
 import { createLiveIntelMiddleware } from '../../server/middleware.ts'
 import type { LiveIntelPayload } from '../../shared/live-intel.ts'
 
-const payload: LiveIntelPayload = { generatedAt: '2026-09-22T00:00:00.000Z', pollAfterMs: 60_000, cacheTtlMs: 60_000, sources: [], kev: [], news: [] }
+const payload: LiveIntelPayload = { generatedAt: '2026-09-22T00:00:00.000Z', pollAfterMs: 60_000, cacheTtlMs: 60_000, sources: [], kev: [], news: [], advisories: [] }
 
 async function start(t: TestContext, getPayload: () => Promise<LiveIntelPayload> = async () => payload) {
   const middleware = createLiveIntelMiddleware(getPayload)

@@ -21,3 +21,14 @@ export function newsRecord(overrides: Record<string, unknown> = {}) {
     ...overrides,
   }
 }
+
+export function advisoryRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    ID: '2026-Sep',
+    DocumentTitle: 'September 2026 Security Updates',
+    InitialReleaseDate: '2026-09-08T07:00:00Z',
+    CurrentReleaseDate: '2026-09-22T01:01:57Z',
+    CvrfUrl: 'https://api.msrc.microsoft.com/cvrf/v3.0/cvrf/2026-Sep',
+    ...overrides,
+  }
+}

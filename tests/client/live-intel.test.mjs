@@ -8,8 +8,10 @@ function fixture() {
     sources: [
       { name: 'CISA Known Exploited Vulnerabilities', status: 'ok', count: 1 },
       { name: 'Hacker News Algolia cyber search', status: 'ok', count: 1 },
+      { name: 'Microsoft Security Response Center', status: 'ok', count: 1 },
     ],
     kev: [{ id: 'CVE-2026-12345', title: 'Example vulnerability', vendor: 'Example', product: 'App', dateAdded: '2026-09-22', dueDate: '2026-10-13', ransomwareUse: 'Unknown', url: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2026-12345' }],
+    advisories: [{ id: '2026-Sep', title: 'September 2026 Security Updates', publishedAt: '2026-09-08T07:00:00.000Z', updatedAt: '2026-09-22T07:00:00.000Z', url: 'https://msrc.microsoft.com/update-guide/releaseNote/2026-Sep' }],
     news: [{ id: '123', title: 'Example story', source: 'Hacker News', author: 'example', points: 4, createdAt: '2026-09-22T11:00:00Z', url: 'https://news.ycombinator.com/item?id=123' }],
   }
 }
@@ -45,7 +47,7 @@ test('accepts public source contract and optional health metadata', () => {
   assert.equal(isLiveIntelPayload(data), true)
 })
 test('rejects nonobjects, missing collections, and invalid timestamps', () => {
-  for (const value of [null, [], 'html', {}, { ...fixture(), news: undefined }, { ...fixture(), generatedAt: 'yesterday' }]) assert.equal(isLiveIntelPayload(value), false)
+  for (const value of [null, [], 'html', {}, { ...fixture(), news: undefined }, { ...fixture(), advisories: undefined }, { ...fixture(), generatedAt: 'yesterday' }]) assert.equal(isLiveIntelPayload(value), false)
 })
 test('rejects script, unrelated, credentialed, and insecure source URLs', () => {
   for (const url of ['javascript:alert(1)', 'https://evil.example/', 'http://www.cisa.gov/', 'https://user@www.cisa.gov/', 'https://www.cisa.gov:444/']) {
@@ -72,8 +74,8 @@ test('poll delay bounds zero, negative, nonfinite, and omitted values', () => {
 test('distinguishes current, partially available, stale, and failed sources', () => {
   const data = fixture(); assert.equal(intelStatus(data), 'live')
   data.sources[1].status = 'error'; assert.equal(intelStatus(data), 'partial')
-  data.sources[0].status = 'stale'; data.sources[1].count = 0; assert.equal(intelStatus(data), 'stale')
-  data.kev = []; data.news = []; assert.equal(intelStatus(data), 'error')
+  data.sources[0].status = 'stale'; data.sources[1].count = 0; data.sources[2].status = 'stale'; assert.equal(intelStatus(data), 'stale')
+  data.kev = []; data.news = []; data.advisories = []; assert.equal(intelStatus(data), 'error')
 })
 test('success publishes data and schedules exactly one next check', async () => {
   const c = client(async () => response()); await c.poller.refresh()
@@ -138,31 +140,31 @@ test('successful retry clears previous error state', async () => {
 test('a restarted server cannot erase browser snapshots for unavailable sources', async () => {
   const unavailable = fixture()
   unavailable.sources = unavailable.sources.map(source => ({ ...source, status: 'error', count: 0 }))
-  unavailable.kev = []; unavailable.news = []
+  unavailable.kev = []; unavailable.news = []; unavailable.advisories = []
   const replies = [response(), response(unavailable)]
   const c = client(async () => replies.shift())
   await c.poller.refresh(); await c.poller.refresh()
   assert.equal(c.latest().status, 'stale')
-  assert.equal(c.latest().data.kev.length, 1); assert.equal(c.latest().data.news.length, 1)
+  assert.equal(c.latest().data.kev.length, 1); assert.equal(c.latest().data.news.length, 1); assert.equal(c.latest().data.advisories.length, 1)
   assert.equal(c.latest().data.sources[0].status, 'stale')
   assert.match(c.latest().data.sources[0].message, /previous browser snapshot/)
   c.poller.stop()
 })
 test('a successful empty source replaces old records instead of retaining them forever', async () => {
-  const empty = fixture(); empty.kev = []; empty.news = []
+  const empty = fixture(); empty.kev = []; empty.news = []; empty.advisories = []
   empty.sources = empty.sources.map(source => ({ ...source, count: 0 }))
   const replies = [response(), response(empty)]
   const c = client(async () => replies.shift())
   await c.poller.refresh(); await c.poller.refresh()
   assert.equal(c.latest().status, 'live'); assert.equal(c.latest().data.kev.length, 0)
-  assert.equal(c.latest().data.news.length, 0); c.poller.stop()
+  assert.equal(c.latest().data.news.length, 0); assert.equal(c.latest().data.advisories.length, 0); c.poller.stop()
 })
 
 test('partially successful news queries are partial rather than stale on first load', async () => {
   const data = fixture()
   data.sources[0] = { ...data.sources[0], status: 'error', count: 0 }
   data.sources[1] = { ...data.sources[1], status: 'error', count: 1 }
-  data.kev = []
+  data.kev = []; data.advisories = []; data.sources[2] = { ...data.sources[2], status: 'error', count: 0 }
   const c = client(async () => response(data))
   await c.poller.refresh()
   assert.equal(c.latest().status, 'partial')
@@ -217,18 +219,18 @@ test('initially hidden polling waits for visibility and cannot resume after disp
 })
 
 test('duplicate source record identifiers are rejected before React reconciliation', () => {
-  for (const key of ['kev', 'news']) {
+  for (const key of ['kev', 'news', 'advisories']) {
     const data = fixture(); data[key].push({ ...data[key][0], title: 'Conflicting duplicate record' })
-    data.sources[key === 'kev' ? 0 : 1].count = 2
+    data.sources[['kev', 'news', 'advisories'].indexOf(key)].count = 2
     assert.equal(isLiveIntelPayload(data), false)
   }
-  const empty = fixture(); empty.kev = []; empty.news = []
+  const empty = fixture(); empty.kev = []; empty.news = []; empty.advisories = []
   empty.sources.forEach(source => { source.count = 0 })
   assert.equal(isLiveIntelPayload(empty), true)
 })
 
 test('source counts must match delivered rows even during partial and stale refreshes', () => {
-  for (const [index, key] of [[0, 'kev'], [1, 'news']]) {
+  for (const [index, key] of [[0, 'kev'], [1, 'news'], [2, 'advisories']]) {
     const missing = fixture(); missing[key] = []
     assert.equal(isLiveIntelPayload(missing), false)
     const inflated = fixture(); inflated.sources[index].count = 2
@@ -306,7 +308,7 @@ test('snapshot and source timestamps require an explicit timezone and real clock
 })
 
 test('record labels are nonblank and bounded by Unicode code points', () => {
-  for (const key of ['kev', 'news']) {
+  for (const key of ['kev', 'news', 'advisories']) {
     for (const title of ['', ' \t ', 'x'.repeat(1001)]) {
       const data = fixture(); data[key][0].title = title
       assert.equal(isLiveIntelPayload(data), false)
@@ -507,4 +509,111 @@ test('wall-clock corrections recompute displayed deadlines without changing time
   assert.equal(c.latest().lastCheckedAt, '2026-09-22T11:00:00.000Z')
   assert.equal(c.latest().nextCheckAt, '2026-09-22T11:01:00.000Z')
   assert.deepEqual(c.clock.delays(), [60_000]); c.poller.stop()
+})
+
+test('official advisory links preserve record identity and cannot escape Microsoft release notes', () => {
+  for (const id of ['2026-Sep', '2018-FEB', '2017-May-B']) {
+    const data = fixture(); data.advisories[0].id = id
+    data.advisories[0].url = `https://msrc.microsoft.com/update-guide/releaseNote/${id}`
+    assert.equal(isLiveIntelPayload(data), true, id)
+  }
+  for (const url of [
+    'javascript:alert(1)', 'https://evil.example/2026-Sep',
+    'https://msrc.microsoft.com.evil.example/update-guide/releaseNote/2026-Sep',
+    'http://msrc.microsoft.com/update-guide/releaseNote/2026-Sep',
+    'https://user@msrc.microsoft.com/update-guide/releaseNote/2026-Sep',
+    'https://msrc.microsoft.com:444/update-guide/releaseNote/2026-Sep',
+    'https://msrc.microsoft.com/update-guide/releaseNote/2026-Aug',
+    fixture().advisories[0].url + '?redirect=evil', fixture().advisories[0].url + '#other-record',
+  ]) {
+    const data = fixture(); data.advisories[0].url = url
+    assert.equal(isLiveIntelPayload(data), false, url)
+  }
+  for (const id of ['2026-September', '2026-XYZ', '../2026-Sep', '2026-Sep-AA', '2026-Sep?other']) {
+    const data = fixture(); data.advisories[0].id = id
+    data.advisories[0].url = `https://msrc.microsoft.com/update-guide/releaseNote/${id}`
+    assert.equal(isLiveIntelPayload(data), false, id)
+  }
+})
+
+test('advisories require real absolute timestamps and cannot predate their publication', () => {
+  for (const key of ['publishedAt', 'updatedAt']) {
+    for (const value of [undefined, null, '2026-09-22', '2026-09-22T12:00:00', '2026-02-30T12:00:00Z', '2026-09-22T24:00:00Z']) {
+      const data = fixture(); data.advisories[0][key] = value
+      assert.equal(isLiveIntelPayload(data), false, `${key}: ${value}`)
+    }
+  }
+  const reversed = fixture(); reversed.advisories[0].updatedAt = '2026-09-07T07:00:00.000Z'
+  assert.equal(isLiveIntelPayload(reversed), false)
+  const same = fixture(); same.advisories[0].updatedAt = same.advisories[0].publishedAt
+  assert.equal(isLiveIntelPayload(same), true)
+})
+
+test('a missing or counterfeit third source cannot bypass advisory provenance validation', () => {
+  for (const name of ['Microsoft', 'Microsoft Security Response Center ', 'Unofficial mirror']) {
+    const data = fixture(); data.sources[2].name = name
+    assert.equal(isLiveIntelPayload(data), false)
+  }
+  const oldContract = fixture(); oldContract.sources.pop(); delete oldContract.advisories
+  assert.equal(isLiveIntelPayload(oldContract), false)
+  const missing = fixture(); missing.sources[2] = null
+  assert.equal(isLiveIntelPayload(missing), false)
+  const extra = fixture(); extra.sources.push({ ...extra.sources[2] })
+  assert.equal(isLiveIntelPayload(extra), false)
+  const oversized = fixture(); oversized.advisories = Array.from({ length: 101 }, (_, index) => ({
+    ...oversized.advisories[0], id: `${1900 + index}-Sep`, url: `https://msrc.microsoft.com/update-guide/releaseNote/${1900 + index}-Sep`,
+  })); oversized.sources[2].count = 101
+  assert.equal(isLiveIntelPayload(oversized), false)
+  const duplicate = fixture(); duplicate.advisories.push({ ...duplicate.advisories[0], id: '2026-SEP', url: 'https://msrc.microsoft.com/update-guide/releaseNote/2026-SEP' }); duplicate.sources[2].count = 2
+  assert.equal(isLiveIntelPayload(duplicate), false)
+})
+
+test('MSRC outage retains its last good records while the other feeds update independently', async () => {
+  const previous = fixture(); previous.sources[2].lastSuccessAt = '2026-09-22T11:45:00.000Z'
+  const update = fixture(); update.generatedAt = '2026-09-22T13:00:00.000Z'
+  update.advisories = []; update.sources[2] = { ...update.sources[2], status: 'error', count: 0, message: 'Microsoft source unavailable.' }
+  update.news[0].title = 'New public discussion'
+  const replies = [response(previous), response(update)]
+  const c = client(async () => replies.shift()); await c.poller.refresh()
+  const original = c.latest().data; await c.poller.refresh()
+  assert.equal(c.latest().status, 'partial')
+  assert.deepEqual(c.latest().data.advisories, original.advisories)
+  assert.equal(c.latest().data.news[0].title, 'New public discussion')
+  assert.equal(c.latest().data.sources[2].status, 'stale')
+  assert.equal(c.latest().data.sources[2].count, 1)
+  assert.equal(c.latest().data.sources[2].lastSuccessAt, previous.sources[2].lastSuccessAt)
+  assert.match(c.latest().data.sources[2].message, /previous browser snapshot/)
+  assert.equal(original.sources[2].status, 'ok'); c.poller.stop()
+})
+
+test('a Microsoft recovery replaces retained records and clears its stale source state', async () => {
+  const unavailable = fixture(); unavailable.advisories = []
+  unavailable.sources[2] = { ...unavailable.sources[2], status: 'error', count: 0 }
+  const recovered = fixture(); recovered.advisories[0].title = 'Revised September security update'
+  recovered.advisories[0].updatedAt = '2026-09-22T11:00:00.000Z'
+  const replies = [response(), response(unavailable), response(recovered)]
+  const c = client(async () => replies.shift())
+  await c.poller.refresh(); await c.poller.refresh(); await c.poller.refresh()
+  assert.equal(c.latest().status, 'live')
+  assert.equal(c.latest().data.advisories[0].title, recovered.advisories[0].title)
+  assert.equal(c.latest().data.sources[2].status, 'ok')
+  assert.equal(c.latest().data.sources[2].message, undefined); c.poller.stop()
+})
+
+test('an invalid advisory response cannot replace a previously verified snapshot', async () => {
+  const malformed = fixture(); malformed.advisories[0].url = 'https://msrc.microsoft.com/update-guide/releaseNote/2026-Aug'
+  const replies = [response(), response(malformed)]
+  const c = client(async () => replies.shift()); await c.poller.refresh()
+  const previous = c.latest().data; await c.poller.refresh()
+  assert.equal(c.latest().data, previous)
+  assert.equal(c.latest().status, 'stale')
+  assert.match(c.latest().error, /invalid data/)
+  assert.deepEqual(c.clock.delays(), [RETRY_POLL_MS]); c.poller.stop()
+})
+
+test('only retained advisory records produce stale rather than empty error status', () => {
+  const data = fixture(); data.kev = []; data.news = []
+  data.sources = data.sources.map((source, index) => ({ ...source, status: index === 2 ? 'stale' : 'error', count: index === 2 ? 1 : 0 }))
+  assert.equal(isLiveIntelPayload(data), true)
+  assert.equal(intelStatus(data), 'stale')
 })

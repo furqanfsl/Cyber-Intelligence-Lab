@@ -1,5 +1,5 @@
 import type { LiveIntelPayload } from '../../shared/live-intel.ts'
-import { CISA_NAME, NEWS_NAME } from '../../shared/live-intel.ts'
+import { CISA_NAME, MSRC_NAME, NEWS_NAME, isMsrcAdvisoryLink } from '../../shared/live-intel.ts'
 import { isAbsoluteTimestamp, isCalendarDate } from './timestamps.ts'
 
 export const DEFAULT_POLL_MS = 60_000
@@ -50,8 +50,10 @@ function isCount(value: unknown): boolean {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
-function hasUniqueIds(items: unknown[]): boolean {
-  const ids = items.map((item) => isRecord(item) ? item.id : undefined)
+function hasUniqueIds(items: unknown[], caseInsensitive = false): boolean {
+  const ids = items.map((item) => isRecord(item) && typeof item.id === 'string'
+    ? caseInsensitive ? item.id.toLowerCase() : item.id
+    : undefined)
   return ids.every((id) => typeof id === 'string') && new Set(ids).size === ids.length
 }
 
@@ -81,29 +83,35 @@ export function isLiveIntelPayload(value: unknown): value is LiveIntelPayload {
   if (!isRecord(value) || !isAbsoluteTimestamp(value.generatedAt)) return false
   if (typeof value.pollAfterMs !== 'number' || !Number.isFinite(value.pollAfterMs)) return false
   if (typeof value.cacheTtlMs !== 'number' || !Number.isFinite(value.cacheTtlMs) || value.cacheTtlMs < 0) return false
-  if (!Array.isArray(value.sources) || value.sources.length !== 2) return false
+  if (!Array.isArray(value.sources) || value.sources.length !== 3) return false
   if (!isRecord(value.sources[0]) || value.sources[0].name !== CISA_NAME ||
-    !isRecord(value.sources[1]) || value.sources[1].name !== NEWS_NAME) return false
+    !isRecord(value.sources[1]) || value.sources[1].name !== NEWS_NAME ||
+    !isRecord(value.sources[2]) || value.sources[2].name !== MSRC_NAME) return false
   if (!value.sources.every((source) => isRecord(source) && typeof source.name === 'string' &&
     ['ok', 'stale', 'error'].includes(String(source.status)) && isCount(source.count) &&
     (source.message === undefined || typeof source.message === 'string') &&
     (source.lastSuccessAt === undefined || isAbsoluteTimestamp(source.lastSuccessAt)))) return false
-  if (!Array.isArray(value.kev) || !Array.isArray(value.news)) return false
-  if (value.sources[0].count !== value.kev.length || value.sources[1].count !== value.news.length) return false
-  if (value.kev.length > 100 || value.news.length > 100) return false
-  if (!hasUniqueIds(value.kev) || !hasUniqueIds(value.news)) return false
+  if (!Array.isArray(value.kev) || !Array.isArray(value.news) || !Array.isArray(value.advisories)) return false
+  if (value.sources[0].count !== value.kev.length || value.sources[1].count !== value.news.length || value.sources[2].count !== value.advisories.length) return false
+  if (value.kev.length > 100 || value.news.length > 100 || value.advisories.length > 100) return false
+  if (!hasUniqueIds(value.kev) || !hasUniqueIds(value.news) || !hasUniqueIds(value.advisories, true)) return false
   return value.kev.every((item) => isRecord(item) &&
     hasStrings(item, ['id', 'title', 'vendor', 'product', 'dateAdded', 'dueDate', 'ransomwareUse']) &&
     isCalendarDate(item.dateAdded) && (item.dueDate === 'Unknown' || isCalendarDate(item.dueDate)) && isKevRecordLink(item.id, item.url)) &&
     value.news.every((item) => isRecord(item) &&
       hasStrings(item, ['id', 'title', 'source', 'author']) && isAbsoluteTimestamp(item.createdAt) &&
-      isCount(item.points) && isNewsRecordLink(item.id, item.url))
+      isCount(item.points) && isNewsRecordLink(item.id, item.url)) &&
+    value.advisories.every((item) => isRecord(item) &&
+      hasStrings(item, ['id', 'title', 'publishedAt', 'updatedAt']) &&
+      isAbsoluteTimestamp(item.publishedAt) && isAbsoluteTimestamp(item.updatedAt) &&
+      Date.parse(item.updatedAt as string) >= Date.parse(item.publishedAt as string) &&
+      isMsrcAdvisoryLink(item.id, item.url))
 }
 
 export function intelStatus(payload: LiveIntelPayload): LiveIntelStatus {
   if (payload.sources.every((source) => source.status === 'ok')) return 'live'
   if (payload.sources.some((source) => source.status === 'ok' || (source.status === 'error' && source.count > 0))) return 'partial'
-  return payload.kev.length || payload.news.length ? 'stale' : 'error'
+  return payload.kev.length || payload.news.length || payload.advisories.length ? 'stale' : 'error'
 }
 
 export function emptyFeedMessage(name: string, sourceStatus: 'ok' | 'stale' | 'error' | undefined, refreshing: boolean, serviceError: boolean): string {
@@ -117,11 +125,11 @@ export function emptyFeedMessage(name: string, sourceStatus: 'ok' | 'stale' | 'e
 function retainUnavailableSources(payload: LiveIntelPayload, previous: LiveIntelPayload | null): LiveIntelPayload {
   if (!previous) return payload
   const result = { ...payload, sources: payload.sources.map((source) => ({ ...source })) }
-  for (const [index, collection] of ['kev', 'news'].entries()) {
-    const key = collection as 'kev' | 'news'
+  for (const [index, key] of (['kev', 'news', 'advisories'] as const).entries()) {
     if (result.sources[index].status === 'ok' || payload[key].length || !previous[key].length) continue
     if (key === 'kev') result.kev = previous.kev
-    else result.news = previous.news
+    else if (key === 'news') result.news = previous.news
+    else result.advisories = previous.advisories
     result.sources[index] = {
       ...result.sources[index],
       status: 'stale',

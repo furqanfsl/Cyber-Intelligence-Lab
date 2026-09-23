@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { cisaCatalogSearchUrl, mergeNews, parseKev, parseNews } from '../../server/parsers.ts'
-import { kevRecord, newsRecord } from './fixtures.ts'
+import { cisaCatalogSearchUrl, mergeNews, parseAdvisories, parseKev, parseNews } from '../../server/parsers.ts'
+import { advisoryRecord, kevRecord, newsRecord } from './fixtures.ts'
 
 test('CISA rejects malformed envelopes rather than reporting a healthy empty source', () => {
   for (const value of [null, [], true, 'html', {}, { vulnerabilities: {} }]) {
@@ -164,4 +164,59 @@ test('equal-date limit boundaries stay deterministic when source order changes',
   const expectedNews = Array.from({ length: 12 }, (_, index) => String(100 + index))
   assert.deepEqual(mergeNews(groups).map((item) => item.id), expectedNews)
   assert.deepEqual(mergeNews(groups.toReversed().map((group) => group.toReversed())).map((item) => item.id), expectedNews)
+})
+
+test('MSRC rejects malformed envelopes and wholly invalid rows but accepts a genuine empty index', () => {
+  for (const data of [null, [], true, {}, { value: {} }, { value: 'not an array' }]) {
+    assert.throws(() => parseAdvisories(data), /Invalid MSRC response/)
+  }
+  assert.throws(() => parseAdvisories({ value: [null, {}, 5] }), /No valid MSRC records/)
+  assert.deepEqual(parseAdvisories({ value: [] }), [])
+})
+
+test('MSRC validates release IDs and constructs official human links instead of following upstream URLs', () => {
+  for (const ID of ['2026-Sep', '2018-FEB', '2017-May-B']) {
+    const [item] = parseAdvisories({ value: [advisoryRecord({ ID, CvrfUrl: 'https://attacker.example/internal' })] })
+    assert.equal(item.id, ID)
+    assert.equal(item.url, `https://msrc.microsoft.com/update-guide/releaseNote/${ID}`)
+  }
+  for (const ID of [undefined, 202609, '', '2026-13', '2026-January', '../2026-Sep', '2026-Sep#bad', '2026-Sep/child', '2026-S\u202eep', '2026-Se\u0000p', '2026-Sep-AA']) {
+    assert.throws(() => parseAdvisories({ value: [advisoryRecord({ ID })] }), /No valid MSRC records/)
+  }
+})
+
+test('MSRC requires valid explicit timestamps in chronological order', () => {
+  for (const value of [undefined, 'yesterday', '2026-02-30T00:00:00Z', '2026-09-20T24:00:00Z', '2026-09-20T12:00:00', '2026-09-20T12:00:00+24:00']) {
+    for (const field of ['InitialReleaseDate', 'CurrentReleaseDate']) {
+      assert.throws(() => parseAdvisories({ value: [advisoryRecord({ [field]: value })] }), /No valid MSRC records/)
+    }
+  }
+  assert.throws(() => parseAdvisories({ value: [advisoryRecord({ CurrentReleaseDate: '2026-09-01T00:00:00Z' })] }), /No valid MSRC records/)
+  const [item] = parseAdvisories({ value: [advisoryRecord({ InitialReleaseDate: '2026-09-08T08:00:00+01:00', CurrentReleaseDate: '2026-09-08T07:00:00Z' })] })
+  assert.equal(item.publishedAt, '2026-09-08T07:00:00.000Z')
+  assert.equal(item.updatedAt, item.publishedAt)
+})
+
+test('MSRC requires meaningful titles, normalizes unsafe controls, and drops only invalid rows', () => {
+  for (const DocumentTitle of [undefined, {}, '', ' \u202e\u0000 ']) {
+    assert.throws(() => parseAdvisories({ value: [advisoryRecord({ DocumentTitle })] }), /No valid MSRC records/)
+  }
+  const [item] = parseAdvisories({ value: [null, advisoryRecord({ ID: 'unsafe' }), advisoryRecord({ DocumentTitle: ' September\r\n\t\u202e2026\u202c updates\u0000 ' })] })
+  assert.equal(item.title, 'September 2026 updates')
+  assert.equal(parseAdvisories({ value: [advisoryRecord({ DocumentTitle: 'x'.repeat(1_001) })] })[0].title.length, 1_000)
+})
+
+test('MSRC sorts by revision date, deduplicates release IDs case-insensitively, and caps eight without mutating input', () => {
+  const value = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].map((month, index) => advisoryRecord({
+    ID: `2026-${month}`, InitialReleaseDate: '2026-01-01T00:00:00Z', CurrentReleaseDate: `2026-09-${String(index + 10).padStart(2, '0')}T00:00:00Z`,
+  }))
+  const original = structuredClone(value)
+  const result = parseAdvisories({ value: [...value, advisoryRecord({ ID: '2026-SEP', InitialReleaseDate: '2026-01-01T00:00:00Z', CurrentReleaseDate: '2026-09-20T00:00:00Z' })] })
+  assert.equal(result.length, 8)
+  assert.equal(result[0].id, '2026-SEP')
+  assert.equal(result[1].id, '2026-Oct')
+  assert.equal(new Set(result.map((item) => item.id.toLowerCase())).size, 8)
+  assert.deepEqual(value, original)
+  const ties = value.map((item) => ({ ...item, CurrentReleaseDate: '2026-09-22T00:00:00Z' }))
+  assert.deepEqual(parseAdvisories({ value: ties }), parseAdvisories({ value: ties.toReversed() }))
 })

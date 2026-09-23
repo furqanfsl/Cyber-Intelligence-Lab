@@ -1,0 +1,101 @@
+/* One quiet motion system. Content stays still; decoration stays in the diagram. */
+.site-shell .reveal,
+.site-shell .panel,
+.site-shell .case-row,
+.site-shell .skills-grid article {
+  opacity: 1;
+  transform: none;
+  transition: border-color 180ms ease, background-color 180ms ease;
+  transition-delay: 0s;
+}
+
+.site-shell[data-motion='on'] .lab-reveal {
+  transition: opacity 280ms ease-out, border-color 180ms ease, background-color 180ms ease;
+}
+
+.site-shell[data-motion='on'] .lab-reveal:not(.is-visible) { opacity: 0; }
+.site-shell .lab-reveal:focus-within,
+.site-shell .lab-reveal.lab-focus-visible {
+  opacity: 1;
+  transition: none;
+}
+
+.console-topline { align-items: center; gap: 12px; padding-block: 10px; }
+.console-topline > span:first-child { line-height: 1.5; }
+.motion-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-strong);
+  font: 400 11px var(--mono);
+  letter-spacing: 0;
+  cursor: pointer;
+}
+.motion-toggle:hover:not(:disabled) { background: #e0f1f00a; border-color: var(--text-muted); }
+.motion-toggle:disabled { color: var(--text-muted); cursor: default; opacity: 1; }
+.motion-toggle svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.4; }
+
+/* The instrument occupies its own empty map corner, never a text background. */
+.lab-instrument {
+  position: absolute;
+  top: 45px;
+  left: 20px;
+  width: 72px;
+  height: 54px;
+  color: #93aaa3;
+  pointer-events: none;
+  overflow: hidden;
+}
+.lab-instrument circle, .lab-instrument path { fill: none; stroke: currentColor; stroke-width: .85; }
+.instrument-frame { opacity: .45; }
+.instrument-ring { opacity: .5; stroke-dasharray: 2 4; }
+.instrument-sweep { transform-origin: 36px 27px; animation: instrument-orbit 18s linear infinite; }
+.instrument-sweep path { stroke-width: 1.2; }
+.instrument-wave { transform-origin: 36px 27px; animation: instrument-wave 6s ease-out infinite; }
+@keyframes instrument-orbit { to { transform: rotate(360deg); } }
+@keyframes instrument-wave {
+  0% { opacity: 0; transform: scale(.4); }
+  20% { opacity: .5; }
+  85%, 100% { opacity: 0; transform: scale(1.3); }
+}
+
+.site-shell .lab-content-change,
+.site-shell .forensic-content { animation: lab-content-arrive 180ms ease-out both; }
+@keyframes lab-content-arrive { from { opacity: .7; } to { opacity: 1; } }
+.site-shell .forensic-content:focus-visible { animation: none; }
+
+/* One control stops all decoration, including the existing simulated arc paths. */
+.site-shell[data-motion='off'] *,
+.site-shell[data-motion='off'] *::before,
+.site-shell[data-motion='off'] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+.site-shell[data-motion='off'] .lab-reveal { opacity: 1; }
+.site-shell[data-motion='off'] .instrument-wave { opacity: 0; }
+.site-shell[data-motion-paused='true'] *,
+.site-shell[data-motion-paused='true'] *::before,
+.site-shell[data-motion-paused='true'] *::after { animation-play-state: paused !important; }
+html[data-lab-motion='off'] { scroll-behavior: auto; }
+
+@media (max-width: 640px) {
+  .console-topline { gap: 8px; padding: 8px 12px; }
+  .motion-toggle { padding-inline: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .site-shell *, .site-shell *::before, .site-shell *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .site-shell[data-motion='on'] .lab-reveal:not(.is-visible) { opacity: 1; }
+  .instrument-wave { opacity: 0; }
+}
+@media (forced-colors: active) { .lab-instrument { display: none; } }

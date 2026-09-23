@@ -3,18 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/boot-recovery.css" />
     <link rel="preload" href="/fonts/Manrope-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <meta
       name="description"
-      content="A defensive cybersecurity learning lab with simulated incident response exercises and live public intelligence from CISA and Hacker News."
+      content="A defensive cybersecurity learning lab with simulated incident response exercises, official CISA and Microsoft MSRC intelligence, and clearly labelled Hacker News community context."
     />
     <meta name="theme-color" content="#070c0c" />
+    <meta name="color-scheme" content="dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cyber Intelligence Lab</title>
   </head>
   <body>
     <noscript>Cyber Intelligence Lab needs JavaScript to display its interactive exercises and public intelligence feed. Enable JavaScript, then reload this page.</noscript>
-    <div id="root"></div>
+    <div id="root">
+      <main class="boot-screen" id="lab-boot" data-boot-state="loading" aria-labelledby="boot-title">
+        <div class="boot-brand">Cyber Intelligence Lab</div>
+        <section class="boot-content">
+          <p class="boot-eyebrow">Workspace startup</p>
+          <h1 id="boot-title">Opening the lab</h1>
+          <p id="boot-message" class="boot-message" role="status" aria-live="polite">Loading the interface for public intelligence and simulated incident review.</p>
+          <div class="boot-actions" id="boot-actions" hidden>
+            <a class="boot-primary" id="boot-reload" href="">Reload lab</a>
+            <a id="boot-direct" href="http://127.0.0.1:5173/" hidden>Open Vite preview</a>
+          </div>
+          <p class="boot-help" id="boot-help" hidden>If reloading does not help, the site may need an update before it can open.</p>
+        </section>
+        <p class="boot-footnote">Public-source intelligence. Clearly labelled simulations.</p>
+      </main>
+    </div>
+    <script src="/boot-recovery.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

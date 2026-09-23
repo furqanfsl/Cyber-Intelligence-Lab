@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
+import { selectForPageReview } from './demo-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
@@ -33,8 +34,8 @@ test('severity filtering keeps selection and details consistent', async ({ page 
   await expect(rows).toHaveCount(5)
   await page.locator('.severity-filter').getByRole('button', { name: 'high', exact: true }).click()
   await expect(rows).toHaveCount(2)
-  await expect(rows.first()).toHaveAttribute('aria-pressed', 'true')
-  await rows.last().click()
+  await expect(page.locator('.queue-row[aria-pressed="true"]')).toHaveCount(1)
+  await selectForPageReview(page, rows.last())
   await expect(rows.last()).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('.alert-panel h3')).toHaveText((await rows.last().locator('strong').textContent())!)
   await page.locator('.severity-filter').getByRole('button', { name: 'all', exact: true }).click()
@@ -88,7 +89,7 @@ test('simulation is opt-in and can be paused', async ({ page }) => {
   const pause = page.getByRole('button', { name: 'Pause simulation', exact: true })
   await expect(pause).toHaveAttribute('aria-pressed', 'true')
   await pause.click()
-  await expect(start).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.getByRole('button', { name: 'Resume simulation', exact: true })).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('public source links use stable records and new-tab descriptions', async ({ page }) => {
@@ -120,7 +121,7 @@ test('malformed initial response is rejected without rendering unsafe links', as
 
 test('partial provider failures are not reported as current', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
-    ...intelligence, news: [], sources: [intelligence.sources[0], { ...intelligence.sources[1], status: 'error', count: 0, message: 'News source unavailable.' }],
+    ...intelligence, news: [], sources: [intelligence.sources[0], { ...intelligence.sources[1], status: 'error', count: 0, message: 'News source unavailable.' }, intelligence.sources[2]],
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Partial sync')
@@ -139,9 +140,10 @@ test('long public-source titles wrap inside cards', async ({ page }) => {
 
 test('available fresh news remains partial when no aggregate source is fully healthy', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
-    ...intelligence, kev: [], sources: [
+    ...intelligence, kev: [], advisories: [], sources: [
       { ...intelligence.sources[0], status: 'error', count: 0 },
       { ...intelligence.sources[1], status: 'error', count: 1, message: 'One search failed; showing available results.' },
+      { ...intelligence.sources[2], status: 'error', count: 0 },
     ],
   } }))
   await page.goto('/')
@@ -151,13 +153,24 @@ test('available fresh news remains partial when no aggregate source is fully hea
 
 test('a healthy empty feed is not labelled unavailable when the other source fails', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
-    ...intelligence, kev: [], news: [], sources: [
+    ...intelligence, kev: [], news: [], advisories: [], sources: [
       { ...intelligence.sources[0], status: 'error', count: 0 },
       { ...intelligence.sources[1], status: 'ok', count: 0 },
+      { ...intelligence.sources[2], status: 'error', count: 0 },
     ],
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Partial sync')
   await expect(page.getByText('No cyber news records are available.', { exact: true })).toBeVisible()
   await expect(page.getByText('CISA is unavailable. Try refreshing or wait for the next check.', { exact: true })).toBeVisible()
+})
+
+test('primary navigation has only brand and section links; feed health stays in intelligence', async ({ page }) => {
+  await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
+  await page.goto('/')
+  const header = page.locator('.nav-frame')
+  await expect(header.locator('.nav-status')).toHaveCount(0)
+  await expect(header).not.toContainText('Public feeds connected')
+  await expect(header.locator('.nav-links a')).toHaveCount(5)
+  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
 })

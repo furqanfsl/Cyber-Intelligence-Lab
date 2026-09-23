@@ -1,4 +1,4 @@
-import type { KevItem, NewsItem } from '../shared/live-intel.ts'
+import { isMsrcAdvisoryId, type AdvisoryItem, type KevItem, type NewsItem } from '../shared/live-intel.ts'
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -103,4 +103,37 @@ export function mergeNews(groups: NewsItem[][]): NewsItem[] {
       return true
     })
     .slice(0, 12)
+}
+
+/** Only release summaries from the fixed official MSRC index are accepted. */
+export function parseAdvisories(data: unknown): AdvisoryItem[] {
+  if (!record(data) || !Array.isArray(data.value)) throw new Error('Invalid MSRC response')
+  const items: AdvisoryItem[] = []
+  for (const item of data.value) {
+    if (!record(item)) continue
+    const id = typeof item.ID === 'string' ? item.ID.trim() : ''
+    const title = text(item.DocumentTitle)
+    const publishedAt = timestamp(item.InitialReleaseDate)
+    const updatedAt = timestamp(item.CurrentReleaseDate)
+    if (!isMsrcAdvisoryId(id) || !title || !publishedAt || !updatedAt || updatedAt < publishedAt) continue
+    items.push({
+      id,
+      title,
+      publishedAt,
+      updatedAt,
+      // Never follow the upstream CvrfUrl or URLs embedded in release titles.
+      url: `https://msrc.microsoft.com/update-guide/releaseNote/${id}`,
+    })
+  }
+  if (data.value.length && !items.length) throw new Error('No valid MSRC records')
+  const seen = new Set<string>()
+  return items
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id))
+    .filter((item) => {
+      const key = item.id.toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 8)
 }

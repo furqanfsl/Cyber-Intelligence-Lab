@@ -1,0 +1,217 @@
+/* A static instrument strip and three labelled feeds. No sticky panel overlap. */
+.live-intel-section .live-status-panel {
+  position: relative;
+  top: auto;
+  display: block;
+  margin-bottom: 24px;
+  padding: 24px;
+  background: #101c18;
+  border-top: 2px solid #75998b;
+}
+
+.live-intel-section .connection-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.live-intel-section .live-status-panel .panel-heading {
+  flex-direction: row;
+  align-items: center;
+  gap: 24px;
+  margin: 0;
+}
+
+.live-intel-section .live-refresh {
+  width: auto;
+  min-width: 190px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.live-intel-section .automation-list {
+  display: grid;
+  grid-template-columns: .85fr 1fr 1fr 1.1fr;
+  gap: 0;
+  margin-top: 22px;
+  border-block: 1px solid var(--line-soft);
+}
+
+.live-intel-section .automation-list > div {
+  padding: 18px 24px;
+  min-width: 0;
+  border: 0;
+  border-left: 1px solid var(--line-soft);
+}
+
+.live-intel-section .automation-list > div:first-child { padding-left: 0; border-left: 0; }
+.live-intel-section .automation-list > div:last-child { padding-right: 0; }
+.live-intel-section .automation-list dd { overflow-wrap: anywhere; margin-bottom: 0; }
+.live-intel-section .automation-list dd small { max-width: 31ch; }
+.live-intel-section .refresh-explainer { margin-top: 14px; max-width: 110ch; }
+.live-intel-section .intel-toolbar { margin-bottom: 20px; }
+
+.live-intel-section .live-intel-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 20px;
+  background: none;
+}
+
+.live-intel-section .osint-feed-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px;
+}
+
+.live-intel-section .osint-feed-panel > .panel-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  flex-shrink: 0;
+  align-items: start;
+  min-height: 116px;
+  margin-bottom: 18px;
+}
+
+.live-intel-section .feed-channel {
+  color: #9ab8ac;
+  font: 10px/1.6 var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin: 0 0 9px;
+}
+
+.live-intel-section .osint-feed-panel h3 { margin: 0; font-size: 18px; font-weight: 600; }
+.live-intel-section .osint-feed-panel .panel-heading data { font-size: 30px; color: #afc5bb; padding-top: 24px; }
+.live-intel-section .osint-list { flex: 1; display: grid; grid-auto-rows: 1fr; }
+
+.live-intel-section .osint-list > a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 22px 0;
+  min-width: 0;
+  position: relative;
+}
+
+.live-intel-section .osint-list > a:last-child { padding-bottom: 22px; }
+.live-intel-section .feed-meta { width: 100%; }
+.live-intel-section .osint-list p { margin: 0; font-size: 15px; }
+.live-intel-section .osint-list em { margin-top: auto; padding-top: 5px; }
+.live-intel-section .osint-list > a:focus-visible { outline-offset: -2px; }
+.live-intel-section .osint-list:focus-visible { outline: 2px solid var(--info); outline-offset: 4px; }
+
+/* Only an actual pending request activates the thin instrument light. */
+.live-intel-section .live-status-panel[aria-busy='true']::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: -2px 0 auto;
+  height: 2px;
+  background: #aacfc0;
+  transform-origin: left center;
+  pointer-events: none;
+  animation: source-check 1.6s ease-in-out infinite;
+}
+@keyframes source-check {
+  0%, 100% { transform: scaleX(.08); opacity: .4; }
+  50% { transform: scaleX(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-intel-section .live-status-panel[aria-busy='true']::after { animation: none; }
+}
+
+.live-intel-section .feed-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 18px;
+  margin-top: auto;
+  color: var(--text-muted);
+  font: 11px/1.6 var(--mono);
+}
+
+.live-intel-section .empty-feed { padding-block: 24px; margin: 0; }
+.live-intel-section .source-health-panel { margin-top: 20px; padding: 24px; gap: 20px 24px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.live-intel-section .source-health-heading { grid-column: 1 / -1; }
+.live-intel-section .source-health-heading p { margin-bottom: 0; }
+.live-intel-section .source-row { min-width: 0; }
+.live-intel-section .source-kind { color: var(--text); }
+.live-intel-section .community-feed .feed-channel { color: #d6c09a; }
+.live-intel-section .community-feed .panel-heading > div > small:last-child { color: #d6c09a; }
+.live-intel-section .feed-scroll-hint { color: var(--text-muted); font-size: 12px; line-height: 1.7; margin: 14px 0 0; }
+
+.source-assurance { margin-top: 24px; border-block: 1px solid var(--line); }
+.source-assurance summary { padding: 18px 0; min-height: 48px; cursor: pointer; color: var(--text-strong); font-size: 14px; font-weight: 600; }
+.source-assurance summary:focus-visible { outline: 2px solid var(--info); outline-offset: 4px; }
+.source-assurance summary:hover { color: #bceacc; }
+.source-assurance-body { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding-bottom: 24px; }
+.source-assurance-body h3 { margin: 0 0 10px; font-size: 15px; color: var(--text-strong); }
+.source-assurance-body p { margin: 0 0 8px; font-size: 13px; line-height: 1.85; color: var(--text); max-width: 70ch; }
+.source-assurance-body a { color: #bceacc; text-decoration: underline; text-underline-offset: 4px; display: inline-flex; align-items: center; min-height: 44px; }
+.source-assurance-body .source-links { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+
+/* Expanded snapshots are independently browsable rather than a very tall, uneven page. */
+@media (min-width: 1101px) {
+  .live-intel-section .is-expanded .osint-list {
+    display: block;
+    height: 580px;
+    flex: none;
+    overflow: auto;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #68897b #101c18;
+    padding-right: 14px;
+    scroll-padding-block: 12px;
+  }
+  .live-intel-section .is-expanded .osint-list > a { flex: none; }
+  .live-intel-section .is-expanded .feed-footer { margin-top: 20px; }
+}
+
+@media (max-width: 1050px) {
+  .live-intel-section .automation-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .live-intel-section .automation-list > div { padding: 18px 20px; }
+  .live-intel-section .automation-list > div:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .live-intel-section .automation-list > div:nth-child(even) { padding-right: 0; }
+  .live-intel-section .automation-list > div:nth-child(n+3) { border-top: 1px solid var(--line-soft); }
+}
+
+@media (max-width: 1100px) {
+  .live-intel-section .live-intel-grid { grid-template-columns: 1fr; }
+  .live-intel-section .osint-feed-panel > .panel-heading { min-height: 0; }
+  .live-intel-section .osint-list { display: flex; flex-direction: column; }
+  .live-intel-section .osint-list > a { flex: none; }
+  .live-intel-section .feed-scroll-hint { display: none; }
+  .live-intel-section .source-health-panel { grid-template-columns: 1fr; }
+  .source-assurance-body { grid-template-columns: 1fr; gap: 20px; }
+}
+
+@media (max-width: 760px) {
+  .live-intel-section .live-status-panel .panel-heading { gap: 12px; }
+}
+
+@media (max-width: 540px) {
+  .live-intel-section .source-row > small { grid-column: 1 / -1; }
+  .live-intel-section .live-status-panel,
+  .live-intel-section .osint-feed-panel,
+  .live-intel-section .source-health-panel { padding: 18px; }
+  .live-intel-section .connection-topline { flex-direction: column; align-items: stretch; gap: 18px; }
+  .live-intel-section .live-status-panel .panel-heading { justify-content: space-between; }
+  .live-intel-section .live-refresh { width: 100%; min-width: 0; }
+  .live-intel-section .automation-list > div { padding-block: 16px; }
+  .live-intel-section .automation-list dd { font-size: 11px; }
+  .live-intel-section .automation-list dd small { font-size: 11px; }
+  .live-intel-section .osint-feed-panel h3 { font-size: 17px; }
+  .live-intel-section .osint-feed-panel .panel-heading data { font-size: 25px; }
+  .live-intel-section .feed-meta { flex-direction: row; }
+}
+
+@media (forced-colors: active) {
+  .live-intel-section .live-status-panel { border-top-color: CanvasText; }
+}

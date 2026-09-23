@@ -13,11 +13,14 @@ The TypeScript contract is [shared/live-intel.ts](../shared/live-intel.ts).
 | `generatedAt` | Time the aggregate snapshot was assembled, **not** a guarantee that every source is current |
 | `pollAfterMs` | Suggested client interval; currently 60,000 ms |
 | `cacheTtlMs` | Server cache duration after a completed refresh; currently 60,000 ms |
-| `sources` | Source name, health, displayed count, optional last-success time and explanatory message |
+| `sources` | Source name, health, returned record count, optional last-success time and explanatory message |
 | `kev` | Up to eight validated, most recently added CISA records |
 | `news` | Up to twelve globally sorted, deduplicated Hacker News stories |
+| `advisories` | Up to eight official Microsoft MSRC release summaries, sorted by most recent revision |
 
-Source health is `ok`, `stale` (retained source results after a failed refresh), or `error`. A news source can contain available results even when some search queries fail; its message explains partial failure. Inspect health rather than assuming a nonempty array is fresh. The UI displays at most five CISA records and five news items.
+Source health is `ok`, `stale` (retained source results after a failed refresh), or `error`. A news source can contain available results even when some search queries fail; its message explains partial failure. Inspect health rather than assuming a nonempty array is fresh. The UI defaults to five records per feed and offers expansion and snapshot search.
+
+Source order in the API is CISA, Hacker News, Microsoft MSRC. The interface places the two official feeds first. `advisories` is required, including when empty; its records contain `id`, `title`, `publishedAt`, `updatedAt` and a canonical `url`. Deploy the frontend and API together: older two-source payloads fail the current client's validation rather than being mislabelled as complete.
 
 ## Failure and caching behavior
 
@@ -31,5 +34,6 @@ The client clamps successful polling hints to 30–300 seconds, times requests o
 
 - [CISA Known Exploited Vulnerabilities catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)
 - [Hacker News search API](https://hn.algolia.com/api)
+- [Microsoft Security Updates API](https://github.com/microsoft/MSRC-Microsoft-Security-Updates-API)
 
-CISA links open catalog search records; news links open Hacker News discussion records. Both open in a new tab. Titles and descriptions are untrusted text, not HTML.
+CISA links open catalog search records; Microsoft links open Security Update Guide release notes; news links open Hacker News discussion records. Links open in a new tab. Titles and descriptions are untrusted text, not HTML. Source health measures retrieval and parse success, not factual verification or cryptographic signatures on individual records.

@@ -1,14 +1,14 @@
-import type { KevItem, LiveIntelPayload, NewsItem, SourceHealth } from '../shared/live-intel.ts'
+import type { AdvisoryItem, KevItem, LiveIntelPayload, NewsItem, SourceHealth } from '../shared/live-intel.ts'
 import { createJsonLoader, type JsonLoader } from './fetch-json.ts'
-import { mergeNews, parseKev, parseNews } from './parsers.ts'
-import { CACHE_TTL_MS, CISA_NAME, CISA_URL, NEWS_NAME, NEWS_URLS, POLL_AFTER_MS } from './sources.ts'
+import { mergeNews, parseAdvisories, parseKev, parseNews } from './parsers.ts'
+import { CACHE_TTL_MS, CISA_NAME, CISA_URL, MSRC_NAME, MSRC_URL, NEWS_NAME, NEWS_URLS, POLL_AFTER_MS } from './sources.ts'
 
 type Snapshot<T> = { data: T[]; lastSuccessAt: string }
 type SourceResult<T> = { snapshot?: Snapshot<T>; failed: boolean }
 type ServiceOptions = { loadJson?: JsonLoader; now?: () => number }
 
 function freezePayload(payload: LiveIntelPayload): LiveIntelPayload {
-  for (const collection of [payload.sources, payload.kev, payload.news]) {
+  for (const collection of [payload.sources, payload.kev, payload.news, payload.advisories]) {
     for (const item of collection) Object.freeze(item)
     Object.freeze(collection)
   }
@@ -22,6 +22,7 @@ export function createLiveIntelService({ loadJson = createJsonLoader(), now = Da
   let expiresAt = 0
   let inFlight: Promise<LiveIntelPayload> | undefined
   let cisa: Snapshot<KevItem> | undefined
+  let msrc: Snapshot<AdvisoryItem> | undefined
   const news = new Map<string, Snapshot<NewsItem>>()
   let newsLastSuccessAt: string | undefined
 
@@ -35,16 +36,19 @@ export function createLiveIntelService({ loadJson = createJsonLoader(), now = Da
   }
 
   async function refresh(): Promise<LiveIntelPayload> {
-    const [cisaResult, newsResults] = await Promise.all([
+    const [cisaResult, newsResults, msrcResult] = await Promise.all([
       read(CISA_URL, parseKev, cisa),
       Promise.all(NEWS_URLS.map((url) => read(url, parseNews, news.get(url)))),
+      read(MSRC_URL, parseAdvisories, msrc),
     ])
     cisa = cisaResult.snapshot
+    msrc = msrcResult.snapshot
     newsResults.forEach((result, index) => {
       if (result.snapshot) news.set(NEWS_URLS[index], result.snapshot)
     })
     const generatedAt = new Date(now()).toISOString()
     const kev = cisa?.data ?? []
+    const advisories = msrc?.data ?? []
     // A fresh query wins over a retained copy of the same story (including points/title updates).
     const newsItems = mergeNews([
       ...newsResults.filter((result) => !result.failed),
@@ -70,7 +74,14 @@ export function createLiveIntelService({ loadJson = createJsonLoader(), now = Da
         message: `${failedNews.length} of ${NEWS_URLS.length} news searches unavailable. ${staleNews ? 'Keeping their last successful results alongside available updates.' : 'Showing available results and retrying automatically.'}`,
       } : {}),
     }
-    return { generatedAt, pollAfterMs: POLL_AFTER_MS, cacheTtlMs: CACHE_TTL_MS, sources: [cisaHealth, newsHealth], kev, news: newsItems }
+    const msrcHealth: SourceHealth = {
+      name: MSRC_NAME,
+      status: msrcResult.failed ? (msrc ? 'stale' : 'error') : 'ok',
+      count: advisories.length,
+      ...(msrc ? { lastSuccessAt: msrc.lastSuccessAt } : {}),
+      ...(msrcResult.failed ? { message: msrc ? 'Source unavailable. Showing the last successful Microsoft refresh.' : 'Microsoft security updates are temporarily unavailable. Retrying automatically.' } : {}),
+    }
+    return { generatedAt, pollAfterMs: POLL_AFTER_MS, cacheTtlMs: CACHE_TTL_MS, sources: [cisaHealth, newsHealth, msrcHealth], kev, news: newsItems, advisories }
   }
 
   return {

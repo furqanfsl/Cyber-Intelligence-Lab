@@ -25,7 +25,7 @@ test('going offline retains records, pauses checks, and disables manual refresh'
   await expect(page.locator('#intel-announcement')).toContainText('Saved intelligence records may be out of date')
   await expect(page.getByRole('link', { name: /Open CISA record/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Open discussion record/ })).toBeVisible()
-  await expect(page.locator('.source-row > span')).toHaveText(['unverified', 'unverified'])
+  await expect(page.locator('.source-row > span')).toHaveText(['unverified', 'unverified', 'unverified'])
 
   await page.clock.fastForward(180_000)
   expect(requests).toBe(1)
@@ -117,6 +117,8 @@ test('a successful check advances its timestamp even when the shared snapshot is
 
 test('the countdown leads to an automatic source update without another click', async ({ page }) => {
   await page.clock.install()
+  // Avoid wall-clock drift between assertions on a busy test runner.
+  await page.clock.pauseAt(new Date(Date.now() + 60_000))
   let requests = 0
   const updated = {
     ...intelligence,

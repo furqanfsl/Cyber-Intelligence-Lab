@@ -19,7 +19,7 @@ test('failed refresh offers recovery without announcing arbitrary upstream conte
 })
 
 test('offline announcements take precedence over previously successful or refreshing state', () => {
-  const saved = { ...initialIntelState, isOnline: false, status: 'live', isRefreshing: true, data: { sources: [], kev: [], news: [] } }
+  const saved = { ...initialIntelState, isOnline: false, status: 'live', isRefreshing: true, data: { sources: [], kev: [], news: [], advisories: [] } }
   assert.equal(intelAnnouncement(saved), 'You are offline. Saved intelligence records may be out of date.')
   assert.equal(intelAnnouncement({ ...initialIntelState, isOnline: false }), 'You are offline. Reconnect to load public intelligence.')
 })

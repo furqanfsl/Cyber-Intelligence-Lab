@@ -10,10 +10,11 @@ response checklists elsewhere in the dashboard are simulations.
 | Source | Request and selection | What a record means |
 | --- | --- | --- |
 | CISA KEV | Read the official JSON catalog; validate, sort by date added, deduplicate CVE IDs, return up to eight records | A catalog entry for a known exploited vulnerability, not evidence of exploitation in this application's environment |
+| Microsoft MSRC | Read the official Updates JSON index; validate release IDs and timestamps, deduplicate, sort by revision date, return up to eight records | Official vendor security-update release summaries, not proof of active exploitation; older releases can appear when Microsoft revises them |
 | Hacker News search | Three Algolia `search_by_date` story searches: `cybersecurity`, `ransomware`, and `vulnerability`; up to six results each, merged into at most twelve unique stories | A matching public community discussion, not a verified incident or comprehensive news coverage |
 
 The interface shows a subset of the API records. CISA links open an official
-catalog search for the CVE; news links open the Hacker News discussion, not the
+catalog search for the CVE; Microsoft links open official release notes; news links open the Hacker News discussion, not the
 third-party article. Source sites can change availability, delete records or
 rate-limit requests independently of this app.
 
@@ -21,6 +22,32 @@ CISA explains that catalog updates typically occur during US Eastern weekday
 business hours when entries change. Polling more frequently does not make CISA
 publish more frequently. See the [official KEV data repository](https://github.com/cisagov/kev-data#update-schedule)
 and [Hacker News search API](https://hn.algolia.com/api).
+
+Microsoft documents its source in the [official Security Updates API repository](https://github.com/microsoft/MSRC-Microsoft-Security-Updates-API).
+Its [Get-MsrcSecurityUpdate documentation](https://github.com/microsoft/MSRC-Microsoft-Security-Updates-API/blob/main/src/MsrcSecurityUpdates/Public/Get-MsrcSecurityUpdate.ps1)
+states that an API key is no longer required. The app fetches the fixed
+`https://api.msrc.microsoft.com/cvrf/v3.0/updates` index and applies its own sort and
+limit; it does not download every CVRF document or follow upstream-supplied URLs.
+
+## Authentication and verification boundaries
+
+- The server uses fixed, allowlisted HTTPS endpoints with standard TLS certificate
+  validation. All redirects are rejected. Do not disable certificate validation
+  in deployment or set `NODE_TLS_REJECT_UNAUTHORIZED=0`.
+- These are public, unauthenticated APIs: no user account, API-key subscription or
+  authenticated sensor is connected. TLS authenticates the connection's hostname
+  using Node's configured trusted certificate authorities; it is not a signature
+  on each report.
+- The app validates JSON structure, record IDs, dates and canonical destination
+  links, strips control characters, deduplicates and bounds records. Validation
+  does not independently establish the truth or completeness of every claim.
+- CISA and Microsoft are official publishers. Hacker News is a community search
+  index, not a verified advisory source. Its keyword search may include tangential
+  or irrelevant results. Votes, recency and a successful refresh are not evidence
+  that a community claim is true.
+- Source availability is not security posture. This application does not inspect
+  internet-wide traffic, your endpoints or your network. No simulation event is
+  promoted into an official feed or presented as an observed attack.
 
 ## Time labels are deliberately different
 
@@ -34,6 +61,9 @@ and [Hacker News search API](https://hn.algolia.com/api).
   old or be absent during partial results.
 - **Added / published:** CISA's catalog-addition date or the story's submission
   time. An older record can remain the newest matching source result.
+- **Updated / first released:** Microsoft's latest revision and original release
+  timestamps. The feed is ordered by revision; a revised older release is not a
+  newly discovered vulnerability.
 - **Next check:** the browser's scheduled attempt, not a promise that new source
   content will exist then. Browser scheduling, suspension and network conditions
   can delay it.
@@ -57,7 +87,7 @@ upstream publication/indexing delays are included. A hidden/offline tab or
 source outage can extend the delay indefinitely. This is periodically checked
 public intelligence, not second-by-second monitoring.
 
-The backend starts its four upstream requests in parallel. Each has a
+The backend starts its five upstream requests in parallel. Each has a
 9-second abort deadline and a 5 MiB response limit. The browser has a 20-second
 request timeout and schedules a 90-second retry after transport, HTTP or
 validation failures. Timers are protective limits, not real-time scheduling
@@ -82,7 +112,7 @@ middleware. A static-only deployment does not run the API. Follow the
 [deployment guide](deployment.md) and [API contract](api.md); use the production
 server behind an appropriate HTTPS ingress for public hosting.
 
-## Dated verification sample
+## Earlier verification sample (before MSRC integration)
 
 At **2026-09-22 03:32 UTC**, a real-source smoke check observed:
 
@@ -105,3 +135,17 @@ availability monitor.
 
 The audit's 88 backend and production-runtime tests also passed without using
 external feeds. No backend behavior change was needed for this review.
+
+## Three-source verification sample
+
+At **2026-09-22 15:45 UTC**, the real source service returned eight CISA records,
+twelve Hacker News records and eight Microsoft MSRC records, all with successful
+source health. The latest MSRC entry was September 2026 Security Updates, first
+released September 8 and revised September 22 at 01:01:57 UTC. A second request
+within the cache window reused the snapshot. Its canonical Microsoft release-note
+URL returned HTTP 200; the destination is a client-rendered site, so HTTP success
+alone is not proof that every historical release-note view renders correctly.
+
+These observations are a dated smoke test, not an uptime or correctness guarantee.
+Automated tests use deterministic fixtures and separately cover failures,
+malformed input, source retention, refresh timing and source-authority labels.

@@ -1,0 +1,73 @@
+/* Independent of the application bundle; no remote fonts or startup animations. */
+html { color-scheme: dark; background: #070c0c; }
+body { margin: 0; background: #070c0c; }
+body > noscript {
+  display: block;
+  padding: 20px;
+  color: #eff7f6;
+  background: #28241a;
+  font: 16px/1.6 system-ui, sans-serif;
+}
+.boot-screen {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 48px;
+  padding: clamp(24px, 5vw, 64px);
+  color: #eff7f6;
+  background: #070c0c;
+  font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.boot-screen *, .boot-screen *::before, .boot-screen *::after { box-sizing: border-box; }
+.boot-screen [hidden] { display: none !important; }
+.boot-brand { font-size: 16px; font-weight: 650; letter-spacing: .02em; }
+.boot-content { max-width: 680px; padding: 24px 0; }
+.boot-screen .boot-eyebrow {
+  margin: 0 0 16px;
+  color: #bed2c8;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .07em;
+}
+.boot-screen h1 {
+  margin: 0 0 20px;
+  color: #eff7f6;
+  font-family: inherit;
+  font-size: clamp(32px, 4.5vw, 52px);
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -.035em;
+}
+.boot-message { max-width: 56ch; margin: 0; color: #c2d1cc; font-size: 17px; line-height: 1.65; }
+.boot-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.boot-actions a, .boot-actions button {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: 1px solid #71847b;
+  border-radius: 0;
+  color: #e4efea;
+  background: #101b16;
+  font: 600 15px/1.4 system-ui, sans-serif;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.boot-actions .boot-primary { border-color: #bce9cc; color: #0b1c12; background: #bce9cc; }
+.boot-actions a:hover, .boot-actions button:hover { border-color: #eff7f6; }
+.boot-actions a:focus-visible, .boot-actions button:focus-visible { outline: 3px solid #bce9cc; outline-offset: 4px; }
+.boot-help, .boot-footnote { max-width: 60ch; color: #a6b9b0; font-size: 14px; line-height: 1.6; }
+.boot-help { margin: 20px 0 0; }
+.boot-footnote { margin: 0; }
+@media (max-width: 480px) {
+  .boot-screen { gap: 32px; }
+  .boot-actions { flex-direction: column; align-items: stretch; }
+}
+@media (forced-colors: active) {
+  .boot-actions a, .boot-actions button { border: 1px solid ButtonText; }
+}
