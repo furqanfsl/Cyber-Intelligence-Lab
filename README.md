@@ -1,32 +1,34 @@
 # Cyber Intelligence Lab
 
-A defensive cybersecurity learning portfolio built with React, TypeScript, and Vite. Explore simulated incident workflows alongside a real public-source intelligence feed.
+A defensive security lab built with React, TypeScript, and Vite. Browse public security advisories and investigate simulated incidents in one analyst workspace.
 
 ## What is real, and what is simulated?
 
-| Area | Data and capability |
-| --- | --- |
-| Live intelligence | Official CISA Known Exploited Vulnerabilities records and Microsoft MSRC security updates, alongside clearly labelled, unverified Hacker News community context. Source health and stale records are labelled. |
-| Operations console | Randomized synthetic incidents, an illustrative map, and queue summaries. Activity and queue rows open evidence and response together; replay is opt-in. |
-| Incident response | Five linked learning scenarios: selecting an incident updates its risk, timeline, indicators, actions and forensic artifacts. Copy a clearly labelled exercise brief. No AI model, endpoint action, or containment service is connected. |
-| Case studies | Practice scenarios and example outcomes, not claims of real security operations. |
+- **Public intelligence:** CISA Known Exploited Vulnerabilities records and Microsoft MSRC updates, plus separately labelled, unverified Hacker News community context. Source health and stale records are visible.
+- **Simulated operations:** randomized synthetic incidents, an illustrative map, and an opt-in replay. Activity and queue rows open the corresponding investigation.
+- **Incident investigation:** linked risk scores, timelines, indicators, response checklists, and forensic artifacts. Copy a clearly labelled exercise brief.
+- **Case studies:** practice scenarios and example outcomes, not records of real security operations.
 
-The app does not scan systems, inspect private traffic, detect real attacks, or execute exploits. Public-source records can be incomplete or outdated; verify them at their linked source before using them.
+The app does not scan systems, monitor private traffic, detect attacks on your devices, or execute exploits. No AI model or containment service is connected. Public advisories are not evidence of an attack on your systems; check the original sources before acting on them.
 
 ## Run locally
 
 Use **Node.js 24 or later** and npm. The runtime and unit tests use Node's native TypeScript support.
 
 ```sh
+git clone https://github.com/furqanfsl/Cyber-Intelligence-Lab.git
+cd Cyber-Intelligence-Lab
 npm ci
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173/**. Keep the terminal running while checking the app.
+Open the local address printed by Vite in your browser. This runs the app on
+your own computer, not a public demo. Keep the terminal open while using it.
 Windows users can double-click **`start.bat`** instead: it installs dependencies
 if needed, starts Vite and opens the browser automatically. After pulling dependency
 changes, run `npm ci` again. If this project's preview is already running, the
-launcher reopens it instead of starting a duplicate server.
+launcher reopens it instead of starting a duplicate server. Only reuse a preview
+from this checkout; stop an older copy in its own terminal first.
 
 ### VS Code: Go Live
 
@@ -36,14 +38,15 @@ folder directly cannot start the app correctly.
 
 1. Start the app with `npm run dev` (or **Ctrl+Shift+B** to run the included
    **Start Cyber Intelligence Lab** task after installing dependencies).
-2. Click **Go Live**. The workspace settings forward Live Server on
-   **http://127.0.0.1:5500/** to Vite on **http://127.0.0.1:5173/**, including
+2. Click **Go Live**. The workspace settings forward Live Server (port `5500`)
+   to Vite (port `5173`), including
    JavaScript, styles, fonts and `/api/live-intel`.
 3. If Live Server was already running when these settings changed, click
    **Port: 5500** to stop it, then **Go Live** again. Refresh the browser tab.
 
-Both servers must stay running when using port 5500. For the simplest preview,
-use `start.bat` or open port 5173 directly; Live Server is not required.
+Both servers must stay running when using Go Live. It does not start Vite for you.
+For the simplest preview, use `start.bat` or the address printed by `npm run dev`;
+Live Server is optional.
 Vite uses a fixed port and reports an error instead of silently switching to a
 different port. Stop a duplicate preview before starting another.
 
@@ -68,7 +71,11 @@ npm run build
 npm start
 ```
 
-The production server defaults to `http://127.0.0.1:3000`, serves `dist/`, and provides `/api/live-intel`. See [deployment](docs/deployment.md) for environment settings and hosting requirements. Uploading `dist/` alone to a static host will not provide the API. `npm run preview` is only a local build preview.
+Open the local address printed by the production server (default port `3000`).
+It serves `dist/` and provides `/api/live-intel`; this command does not publish
+the app. See [deployment](docs/deployment.md) for hosting requirements. A
+static-only upload does not provide the live API. `npm run preview` is for local
+build checks, not production hosting.
 
 ## Verify changes
 
@@ -79,6 +86,12 @@ npm run test:e2e
 ```
 
 `check` runs lint, strict type checking, unit/integration tests, and a production build. Browser checks run at desktop and mobile sizes with mocked public-source responses; they do not depend on external services. See the [testing guide](docs/testing.md) for individual commands and local Edge support.
+
+**Local verification (2026-10-08):** installation, `npm run check` (202 tests),
+and 216 desktop/mobile browser checks passed. The documented development command
+rendered the app at 1440, 390, and 320px; all three public sources responded at
+the time of checking. Interactive `start.bat` and the Live Server extension were
+not retested. These are local checks, not a public deployment.
 
 ## How live intelligence works
 
