@@ -1,16 +1,20 @@
 # Real incident analysis: scope and implementation path
 
-Cyber Intelligence Lab now supports browser-local authorized log imports,
+Cyber Intelligence Lab supports browser-local authorized log imports,
 deterministic candidate rules, evidence timelines and redacted reports, plus an
-optional offline Python/SQLite workflow. See the [implemented log workflow](log-investigation.md)
-for supported inputs, rules and limits. It has no connected AI model, endpoint
-sensor or SIEM integration. Public vulnerability records do not establish that
-an attack occurred against a particular system.
+optional offline Python/SQLite workflow. The separate
+[local endpoint monitor](endpoint-monitor.md) adds explicit, read-only collection
+from the Windows computer running the app, using existing Defender and supported
+Windows event records. It requires the local server and does not silently
+monitor visitors to a public website. No paid AI model, remote endpoint sensor,
+SIEM connector or containment integration is connected. Public vulnerability
+records do not establish that an attack occurred against a particular system.
 
 The phases below describe the design boundary and future integrations; they
-do not promise continuous collection, attacker identification or automated
-response. Local import and rule-based triage are implemented; AI and connectors
-remain optional future work requiring separate approval.
+do not promise complete attack coverage, attacker identification or automated
+response. Local import, rule-based triage and opt-in local Windows collection
+are implemented. AI, remote connectors and enterprise fleet management remain
+optional future work requiring separate approval.
 
 ## What evidence can establish
 
@@ -77,6 +81,13 @@ After validating local triage, a separately approved SIEM/EDR connector could
 use least-privilege access, bounded queries, protected credentials and an agreed
 retention policy. Keep private telemetry separate from public feeds and demo
 scenarios.
+
+The implemented local monitor is narrower: it reads existing sources on one
+authorized Windows computer after an explicit Start action. Collection runs
+only while the local app server remains running, and stops through the monitor
+control or server shutdown. It does not enroll remote devices or establish
+tamper-resistant enterprise telemetry. Source failures and missing permissions
+must remain visible instead of turning into a misleading clean-device result.
 
 ## Operational boundary
 

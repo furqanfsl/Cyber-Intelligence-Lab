@@ -116,9 +116,37 @@ batches do not replace the selected dossier. Focusing the activity or queue paus
 replay so moving rows cannot steal keyboard focus. Queue coverage and network
 evidence now follow these real in-memory fixtures instead of unrelated fixed stats.
 
+## Real endpoint workspace
+
+The primary hero action and **PC** navigation open real own-PC monitoring before
+imported logs, public advisories and practice scenarios. It contains no sample
+data. Solid dark surfaces and restrained colour keep actual state and controls
+readable. Collection starts only after authorization and an explicit Start.
+Stop clears bounded server history; closing a browser tab does not stop it.
+
+Source coverage and the last successful collector check precede the finding
+queue. Counts distinguish Defender reports, deterministic candidate patterns
+and current protection-setting concerns, never a "safe PC" score. Unavailable,
+stale or unverified states remain explicit. A failed reconnect does not claim
+that collection stopped and offers a local-terminal fallback.
+
+Desktop groups a paginated review queue and chronological evidence; mobile
+stacks them in reading order. Filters, search, manual review and status labels
+use text and semantic state in addition to colour. Private event fields and
+command lines require explicit disclosure. No process text is executed.
+Action guidance directs the analyst to their existing Windows Security tools;
+no destructive cleanup is performed by this app. Generic tab notifications
+require a separate user gesture and never expose private identifiers.
+
+Before/after desktop/mobile, source gaps, Defender/candidate evidence, failed
+connection, resolution guidance and doubled-text views were captured and
+inspected against layout, typography, colour, materials, writing and keyboard
+accessibility. These checks are not an accessibility certification or an EDR
+readiness claim. See [endpoint monitoring](endpoint-monitor.md) for exact limits.
+
 ## Imported log investigations
 
-The primary action now opens a separate **Logs** workspace before public feeds.
+The secondary **Investigate local logs** action opens an import workspace before public feeds.
 It uses the existing solid dark surfaces, self-hosted typography and restrained
 semantic colours. An empty state offers explicitly synthetic suspicious and
 benign examples; imported exports carry an unverified user-provided label.

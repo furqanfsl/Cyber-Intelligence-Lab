@@ -6,9 +6,11 @@ import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createLiveIntelService } from '../server/live-intel.ts'
 import { createLiveIntelMiddleware } from '../server/middleware.ts'
+import { createEndpointMonitor } from '../server/endpoint-monitor.ts'
+import { createEndpointMiddleware } from '../server/endpoint-middleware.ts'
 
 type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => void | Promise<void>
-type ServerOptions = { distDir?: string; liveIntelMiddleware?: Middleware }
+type ServerOptions = { distDir?: string; liveIntelMiddleware?: Middleware; endpointEnabled?: boolean; endpointMiddleware?: Middleware }
 const DEFAULT_DIST = fileURLToPath(new URL('../dist/', import.meta.url))
 // This policy belongs to the production runtime, not Vite's development/HMR server.
 const CONTENT_SECURITY_POLICY = [
@@ -76,6 +78,9 @@ export function createAppServer(options: ServerOptions = {}) {
   }
   const service = createLiveIntelService()
   const liveIntel = options.liveIntelMiddleware ?? createLiveIntelMiddleware(() => service.get())
+  // Embedded/test servers are disabled unless their owner deliberately opts in.
+  const endpointMonitor = createEndpointMonitor()
+  const endpoint = options.endpointMiddleware ?? createEndpointMiddleware(endpointMonitor, { enabled: options.endpointEnabled ?? false })
 
   async function handle(request: IncomingMessage, response: ServerResponse) {
     response.setHeader('x-content-type-options', 'nosniff')
@@ -109,6 +114,10 @@ export function createAppServer(options: ServerOptions = {}) {
       sendError(request, response, 404, 'Health route not found')
       return
     }
+    if (pathname === '/api/endpoint' || pathname.startsWith('/api/endpoint/')) {
+      await endpoint(request, response, () => sendError(request, response, 404, 'API route not found'))
+      return
+    }
     if (api && pathname !== '/api/live-intel') {
       sendError(request, response, 404, 'API route not found')
       return
@@ -119,7 +128,7 @@ export function createAppServer(options: ServerOptions = {}) {
       return
     }
     if (Number(request.headers['content-length'] ?? 0) > 0 || request.headers['transfer-encoding'] !== undefined) {
-      // No route consumes a request body. Close instead of retaining unread bytes
+      // No public route consumes a request body. Close instead of retaining unread bytes
       // on a persistent connection or starting unnecessary upstream work.
       response.setHeader('connection', 'close')
       sendError(request, response, 400, 'Request bodies are not supported')
@@ -193,9 +202,11 @@ export function createAppServer(options: ServerOptions = {}) {
     stream.pipe(response)
   }
 
-  return createServer({ requestTimeout: 30_000, headersTimeout: 10_000, keepAliveTimeout: 5_000 }, (request, response) => {
+  const server = createServer({ requestTimeout: 30_000, headersTimeout: 10_000, keepAliveTimeout: 5_000 }, (request, response) => {
     void handle(request, response).catch(() => sendError(request, response, 500, 'Unable to serve request'))
   })
+  server.once('close', () => endpointMonitor.dispose())
+  return server
 }
 
 export function readListenOptions(env: NodeJS.ProcessEnv = process.env) {
@@ -234,7 +245,7 @@ export function installShutdownHandlers(server: Server) {
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const { host, port } = readListenOptions()
-    const server = createAppServer()
+    const server = createAppServer({ endpointEnabled: ['127.0.0.1', '::1', 'localhost'].includes(host) })
     server.once('error', () => {
       console.error('Unable to start the server. Check HOST, PORT and whether the port is already in use.')
       process.exitCode = 1

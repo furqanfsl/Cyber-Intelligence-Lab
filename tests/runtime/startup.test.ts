@@ -16,6 +16,9 @@ async function deployment(t: TestContext) {
   for (const directory of ['runtime', 'server', 'shared']) {
     await cp(fileURLToPath(new URL(`../../${directory}/`, import.meta.url)), join(root, directory), { recursive: true })
   }
+  await mkdir(join(root, 'src', 'lib'), { recursive: true })
+  await cp(fileURLToPath(new URL('../../src/lib/log-analysis.ts', import.meta.url)), join(root, 'src', 'lib', 'log-analysis.ts'))
+  await cp(fileURLToPath(new URL('../../scripts/', import.meta.url)), join(root, 'scripts'), { recursive: true })
   await writeFile(join(root, 'package.json'), JSON.stringify({ type: 'module' }))
   await mkdir(join(root, 'dist'))
   await writeFile(join(root, 'dist', 'index.html'), '<title>Isolated deployment fixture</title>')

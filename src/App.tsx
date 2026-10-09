@@ -14,6 +14,7 @@ import { LiveIntelSection } from './components/LiveIntelSection'
 import { SimulationConsole } from './components/SimulationConsole'
 import { IncidentWorkspace } from './components/IncidentWorkspace'
 import { LogInvestigation } from './components/LogInvestigation'
+import { EndpointMonitor } from './components/EndpointMonitor'
 import './App.css'
 import './lab-motion.css'
 
@@ -158,7 +159,7 @@ function App() {
       scenario.summary,
       'Proposed exercise steps:',
       ...scenario.actions.map((action, index) => `${index + 1}. ${action.label} (${action.priority})`),
-      'No real systems were monitored or changed by this dashboard.',
+      'No real systems were monitored or changed by this simulation.',
     ].join('\n')
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable')
@@ -175,6 +176,7 @@ function App() {
       <Navigation />
       <main id="main-content" tabIndex={-1}>
         <Hero snapshot={snapshot} state={intel} motion={motion} />
+        <EndpointMonitor />
         <LogInvestigation />
         <LiveIntelSection liveIntel={intel.data} state={intel} onRefresh={intel.refresh} />
         <ThreatOperations
@@ -220,7 +222,7 @@ function Navigation() {
     <header className="nav-frame" aria-label="Primary navigation">
       <a className="brand" href="#top" aria-label="Cyber Intelligence Lab home"><span className="brand-mark">CIL<span className="brand-period">.</span></span><span>Cyber Intelligence Lab</span></a>
       <nav className="nav-links" aria-label="Primary navigation">
-        {[['investigation', 'Logs'], ['live-intel', 'Live intel'], ['operations', 'Operations'], ['response', 'Response'], ['cases', 'Cases']].map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? 'location' : undefined}>{label}</a>)}
+        {[['endpoint', 'PC'], ['live-intel', 'Live intel'], ['operations', 'Operations'], ['response', 'Response'], ['cases', 'Cases']].map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? 'location' : undefined}>{label}</a>)}
       </nav>
     </header>
   )
@@ -235,22 +237,22 @@ function Hero({ snapshot, state, motion }: { snapshot: SimulationSnapshot; state
       <div className="hero-copy reveal">
         <p className="kicker">Independent security engineering</p>
         <h1><span>Cyber</span>{' '}<span>Intelligence</span>{' '}<span>Lab</span></h1>
-        <p className="hero-subtitle">Read the signals.{' '}<br /><strong>Understand the response.</strong></p>
-        <p className="hero-description">Investigate authorized log exports with transparent detection rules. Keep public security advisories and simulated practice scenarios clearly separate.</p>
+        <p className="hero-subtitle">Real signals.{' '}<br /><strong>Clear next steps.</strong></p>
+        <p className="hero-description">Connect this Windows PC to read actual Defender detections and available security logs. Review the evidence, understand what needs attention and follow safe next steps. No paid AI required.</p>
         <div className="hero-actions" role="group" aria-label="Primary actions">
-          <a className="button button-primary" href="#investigation"><span>Investigate local logs</span><span className="button-glyph" aria-hidden="true">↗</span></a>
-          <a className="button button-secondary" href="#live-intel"><span>Explore live intelligence</span><span className="button-glyph" aria-hidden="true">↗</span></a>
+          <a className="button button-primary" href="#endpoint"><span>Monitor this PC</span><span className="button-glyph" aria-hidden="true">↗</span></a>
+          <a className="button button-secondary" href="#investigation"><span>Investigate local logs</span><span className="button-glyph" aria-hidden="true">↗</span></a>
         </div>
         <dl className="signal-strip" aria-label="Workspace overview">
           <div><dt>{available ?? '—'}<span>/3</span></dt><dd>Connected public feeds</dd></div>
           <div><dt>{count ?? '—'}</dt><dd>{state.status === 'live' && state.isOnline ? 'Retrieved records' : 'Saved records'}</dd></div>
           <div><dt>05</dt><dd>Scenario families</dd></div>
         </dl>
-        <p className="hero-disclosure">Local log analysis. Read-only public intelligence. Labelled simulations. No continuous monitoring, paid AI or security actions.</p>
+        <p className="hero-disclosure">PC monitoring starts only when you choose Start monitoring. It uses real local telemetry, not the training illustration. No automatic file deletion or security-setting changes.</p>
       </div>
       <div className="hero-console reveal delay-1" role="group" aria-label="Illustrative topology and public-source preview">
         <div className="console-topline">
-          <span><i aria-hidden="true" /> ANALYST WORKSPACE</span>
+          <span><i aria-hidden="true" /> TRAINING ILLUSTRATION / PUBLIC CONTEXT</span>
           <button className="motion-toggle" type="button" aria-pressed={motion.enabled} disabled={motion.reduced} onClick={motion.toggle} title={motion.reduced ? 'Motion is off to respect your system reduced-motion setting.' : 'Turn decorative motion on or off. Simulation controls are separate.'}>
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d={motion.enabled ? 'M5.5 3v10M10.5 3v10' : 'M5 3l7 5-7 5z'} /></svg>
             Motion {motion.enabled ? 'on' : 'off'}
@@ -718,7 +720,7 @@ function Footer() {
     <footer className="footer">
       <div>
         <strong>Cyber Intelligence Lab</strong>
-        <span>Local evidence analysis. Public-source context. Clearly labelled exercises.</span>
+          <span>Local PC evidence. Public-source context. Separate training exercises.</span>
       </div>
       <a className="button button-primary" href="#top">
         <span>Back to top</span>

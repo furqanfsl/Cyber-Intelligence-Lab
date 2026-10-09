@@ -45,8 +45,10 @@ limit; it does not download every CVRF document or follow upstream-supplied URLs
   index, not a verified advisory source. Its keyword search may include tangential
   or irrelevant results. Votes, recency and a successful refresh are not evidence
   that a community claim is true.
-- Source availability is not security posture. This application does not inspect
-  internet-wide traffic, your endpoints or your network. No simulation event is
+- Source availability is not security posture. The public-feed feature does not
+  inspect internet-wide traffic, your endpoints or your network. The separate
+  [opt-in local Windows monitor](endpoint-monitor.md) reads bounded records on
+  the PC running the server, not global traffic. No simulation event is
   promoted into an official feed or presented as an observed attack.
 
 ## Time labels are deliberately different

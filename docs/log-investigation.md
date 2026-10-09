@@ -170,7 +170,9 @@ exporter reads named XML EventData fields, not version-dependent positional
 indexes. It rejects a result over the selected count (maximum 10,000) or 5 MiB
 rather than silently exporting an incomplete set. It does not run during app
 startup or tests. This implementation was tested with mocked synthetic records;
-no private Windows logs were collected for project verification.
+the manual exporter was not used to collect private Windows logs for its
+verification. The separate opt-in endpoint collector has its own documented
+local checks; it is not this file-export workflow.
 
 ## Privacy and report handling
 

@@ -66,7 +66,7 @@ test('all artifact tabs expose distinct panels and one tab stop', async ({ page 
     contents.add((await panel.textContent())!)
   }
   expect(contents.size).toBe(4)
-  await expect(page.getByRole('checkbox')).toHaveCount(0)
+  await expect(page.locator('.forensic-panel').getByRole('checkbox')).toHaveCount(0)
 })
 
 test('response opens the selected investigation and back-to-top still navigates', async ({ page }) => {

@@ -1,25 +1,64 @@
 # Cyber Intelligence Lab
 
-A defensive security lab built with React, TypeScript, and Vite. Investigate authorized log exports, browse public security advisories and practise with clearly labelled simulated incidents. Core log analysis uses deterministic rules, not a paid AI API.
+A local-first security analyst workspace built with React, TypeScript, and Vite. Monitor real Microsoft Defender detections and available Windows security logs on your own PC, investigate authorized exports, and review the evidence before responding. No paid AI API or tokens are required.
 
 ## What is real, and what is simulated?
 
 - **Public intelligence:** CISA Known Exploited Vulnerabilities records and Microsoft MSRC updates, plus separately labelled, unverified Hacker News community context. Source health and stale records are visible.
+- **Own-PC monitoring:** after explicit consent and Start, a read-only Windows collector checks real Defender status and recent detection/action records, plus accessible Security logon events and optional existing Sysmon process events. Findings distinguish Defender-reported detections from deterministic rule matches. Missing permissions, stale data and query limits remain visible.
 - **Local evidence:** import JSON, NDJSON, CSV or Windows event XML in the browser, normalize supported records, review rule-linked timelines and export redacted reports. User-provided exports are not independently authenticated. The optional Python/SQLite tool saves a private local investigation.
 - **Simulated operations:** randomized synthetic incidents, an illustrative map, and an opt-in replay. Activity and queue rows open the corresponding investigation.
 - **Incident investigation:** linked risk scores, timelines, indicators, response checklists, and forensic artifacts. Copy a clearly labelled exercise brief.
 - **Case studies:** practice scenarios and example outcomes, not records of real security operations.
 
-The app does not automatically collect device logs, scan systems, monitor private traffic, confirm attacks or execute commands. No AI model or containment service is connected. Rule matches are candidates for review, not proof of compromise. Public advisories are not evidence of an attack on your systems; check the original sources before acting on them.
+Opening the page does not start collection. The monitor runs only after Start, while this app's local server runs on the Windows PC being monitored. It invokes one fixed read-only PowerShell helper; it cannot accept arbitrary commands, scan, quarantine, delete files, change settings or inspect visitors to a public website. No AI model or containment service is connected. Rule matches are candidates for review, not proof of compromise. Public advisories are not evidence of an attack on your systems.
 
-For investigation, start with an authorized export—not public advisories alone.
+For investigation, start with actual local records or an authorized export—not public advisories alone.
+See [endpoint monitoring](docs/endpoint-monitor.md) for collection, permissions,
+notifications, privacy and coverage limits.
 See the [local log workflow](docs/log-investigation.md) for supported formats,
 Windows export instructions, private SQLite storage and read-only SQL queries.
 The [real-incident boundaries](docs/real-incident-workflow.md) explain optional
 future integrations and attribution limits. A VPN exit address is an observed
 connection address, not proof of a person's identity or original IP.
 
-## Try a local investigation
+## Monitor your Windows PC
+
+1. Start the app below on the Windows PC you own or are authorized to monitor.
+   Use the existing Windows PowerShell and Microsoft Defender installation;
+   readable, enabled event channels are needed for their respective coverage.
+2. Choose **Monitor this PC** (or **PC** in navigation), read the notice and tick
+   the authorization checkbox. Choose **Start monitoring this PC**.
+3. Check the protection status, last successful check and source coverage. The
+   collector checks every **30 seconds** after the previous check finishes.
+   Security-log permissions vary; optional Sysmon must already be installed.
+   Nothing requests elevation, installs a service or changes audit settings.
+4. Select a finding for its chronological evidence, explanation, possible benign
+   alternatives and next steps. Defender reports its own detections; the app's
+   three transparent rules flag supported log patterns for review.
+5. Resolve genuine Defender findings through **Windows Security → Virus & threat
+   protection → Protection history**, following the recorded recommendation and
+   your organization's policy. The app offers guidance, not automatic cleanup.
+   A recorded action or your manual review does not prove a threat is resolved.
+6. Optionally enable generic tab notifications. Keep the tab open for them;
+   notifications are not an always-on Windows alert service.
+7. Choose **Stop and clear monitoring** when finished. Closing the browser alone
+   does **not** stop collection. Stopping this project's server with **Ctrl+C**
+   also stops it. No background service is installed.
+
+Each check queries the latest **15 minutes**, not all historical or currently
+active threats. In-memory history is capped at **one hour**, **2,000 supported
+events**, **200 Defender events**, **200 findings** and **2 MiB** of retained record
+data. Query truncation and unreadable sources create gaps. Zero findings does
+**not** prove a clean PC. This single-device analyst tool complements antivirus;
+it is not an enterprise EDR, a fleet service or a new antivirus engine.
+
+Private records stay in the local server and browser memory; they are not sent
+to GitHub, public feeds or an AI provider. Stop clears the server history, not
+the original Windows logs. Defender's own cloud settings are independent of
+this app. A remotely hosted copy cannot access your PC without a local companion.
+
+## Investigate an exported log
 
 1. Start the app using the instructions below and choose **Investigate local logs**.
 2. Choose **Load suspicious sample** to review three deterministic candidate
@@ -138,7 +177,7 @@ npm start
 
 After the server starts, open the local address printed in the terminal (default
 port `3000`). This command does not publish the app.
-It serves `dist/` and provides `/api/live-intel`. See [deployment](docs/deployment.md) for environment settings and hosting requirements. Uploading `dist/` alone to a static host will not provide the API. `npm run preview` is only a local build preview.
+It serves `dist/`, provides `/api/live-intel`, and enables guarded `/api/endpoint/*` routes only for a local Windows instance. A deliberate non-loopback bind disables PC collection. See [deployment](docs/deployment.md) for environment settings and hosting requirements. Uploading `dist/` alone to a static host will not provide either backend. `npm run preview` is only a local build preview.
 
 ## Verify changes
 
@@ -148,7 +187,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`check` runs lint, strict type checking, unit/integration tests, and a production build. Browser checks run at desktop and mobile sizes with mocked public-source responses; they do not depend on external services. See the [testing guide](docs/testing.md) for individual commands and local Edge support.
+`check` runs lint, strict type checking, unit/integration tests, and a production build. Browser checks use mocked public-source and endpoint responses at desktop and mobile sizes; they neither depend on external services nor collect the test machine's private logs. See the [testing guide](docs/testing.md) for individual commands, collector mocks and local Edge support.
 
 ### Keep the launch instructions working
 
@@ -173,7 +212,43 @@ server or replace the browser tests. Check Go Live both with Vite stopped
 this README aligned with the code, and update the dated record below with the
 actual results. Do not mark unchecked paths as passing.
 
-**Latest launch verification — 2026-10-09 (local log investigation release):**
+**Latest launch verification — 2026-10-09 (real endpoint monitoring):**
+
+- **Passed:** documented `npm run dev` reused this checkout correctly. After
+  stopping only the verified project-owned launcher for the stopped-server test,
+  the same command restarted port 5173. `npm run verify:local` and
+  `npm run verify:local -- --go-live` passed; all three public sources were
+  healthy at the check, not an availability guarantee.
+- **Actual Windows check:** the browser explicitly started the collector,
+  retrieved real Defender status, observed another successful automatic poll,
+  and stopped/cleared the retained history. The current process could not read
+  the Security log; that gap was displayed accurately. No malware was planted
+  and no real threat-trigger or remediation test was performed. Zero returned
+  findings is not a clean-PC guarantee. Real records and screenshots were not
+  published.
+- **Passed:** `npm run check` (352 unit/integration tests, strict lint/types,
+  coverage gates and build), 348 desktop/mobile production-path Edge browser
+  checks, and 49 Python/SQLite checks. Browser tests mock private collection;
+  PowerShell helper tests use synthetic cmdlets. Full and production-only npm
+  audits reported zero vulnerabilities. No dependency was added or changed.
+- **Actual Go Live:** the installed extension served its independent startup
+  page. With Vite stopped, instructions rendered; after documented startup, the
+  same page handed off to the real React app with its section link preserved.
+  Saved desktop/mobile captures at 1440, 390 and 320px showed no page errors or
+  document overflow. No substitute server or routed fixture was used for this
+  check. Extension restart was not retested; its settings were not changed.
+- **Inspected:** before/after hero and endpoint controls, coverage gaps,
+  Defender/candidate evidence, private disclosures, failed connection, response
+  guidance and doubled-text views. Layout, typography, colour, materials,
+  writing and keyboard/accessibility checks found no blocking issue in these
+  tested views; this is not an accessibility certification.
+- **Not exercised:** genuine malware detection, native OS notification delivery,
+  elevated Security-log access, Sysmon installation, native Linux/macOS desktop
+  operation, interactive `start.bat` or VS Code automatic-task approval.
+  No scan, containment, Windows service, paid AI integration or public hosting
+  was added. Hosted results are recorded separately in GitHub Actions.
+
+**Previous local log investigation release verification — 2026-10-09:**
 
 - **Passed:** documented `npm run dev` refused to reuse a preview with changed
   locked dependencies. After stopping only this checkout's server, it installed
@@ -248,11 +323,11 @@ The client validates responses, prevents overlapping refreshes, and retries fail
 ## Project layout
 
 ```text
-src/                  React dashboard, local log rules/reports, polling hook
-shared/               API types
-server/               Public-source transport, parsing, cache, HTTP middleware
+src/                  Endpoint workspace, log rules/reports, public feeds and demos
+shared/               Public intelligence and private endpoint contracts
+server/               Source transport, endpoint collector, guarded HTTP middleware
 runtime/              Production static and API server
-scripts/              Development launcher and local smoke checks
+scripts/              Launcher, smoke checks, fixed read-only Windows helpers
 tools/loglab/         Optional offline Python/SQLite investigation CLI and tests
 preview/              Dependency-free Go Live startup page
 tests/                Unit, integration, and browser regressions
@@ -280,7 +355,8 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for focused changes and review checks, a
 
 Select a queue or Latest demo activity row to open evidence and response side by side. Close investigation (or Escape) returns to your previous position. Reviewing pauses replay; Resume simulation continues it. New scenario set, Reset demo or reload creates fresh, internally consistent teaching scenarios. Public intelligence feeds remain separate and unchanged.
 
-The **Logs** navigation item opens a separate local-evidence workflow. Its sample
+The **PC** navigation item opens real own-PC monitoring; **Investigate local logs**
+opens the separate export-based workflow. The latter's sample
 records, imported events, analyst review and reports never change the simulation
 queue or public-source snapshot. Three fixed rules do not replace a SIEM/EDR or
 establish that an unmatched system is safe.

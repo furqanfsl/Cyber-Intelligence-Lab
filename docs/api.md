@@ -4,6 +4,10 @@
 
 The same middleware is used by Vite development, local preview, and the production Node server.
 
+This page describes the public feed only. The separate private
+[`/api/endpoint/*` monitor](endpoint-monitor.md#private-data-and-the-local-api)
+has loopback, session and explicit Start/Stop boundaries.
+
 ## Response
 
 The TypeScript contract is [shared/live-intel.ts](../shared/live-intel.ts).

@@ -22,8 +22,11 @@ server refuses to start without a built `dist/index.html`; rebuild after changin
 the frontend. `npm run dev` is for development and `npm run preview` is for local
 build checks, not the production entry point.
 
-The deployable tree must contain `dist/`, `runtime/`, `server/`, `shared/`, and
-`package.json`. Keep the directory structure intact. The runtime and source
+The deployable tree must contain `dist/`, `runtime/`, `server/`, `shared/`,
+`src/lib/log-analysis.ts`, `scripts/`, and `package.json`. Keep the directory
+structure intact. The shared local detection engine remains source TypeScript;
+the optional Windows collector resolves its fixed script relative to its module,
+not the current working directory. The runtime and source
 adapters use Node built-ins and do not require Vite or a separate framework to
 serve requests. Dependency installation and TypeScript are still needed in the
 build environment.
@@ -51,8 +54,10 @@ npm start
 
 Binding to `0.0.0.0` makes the service reachable on every IPv4 interface allowed
 by the machine's firewall. Do not use it for routine private local development.
-No account, private telemetry, or authentication service is provided by this
-portfolio app.
+The private PC-monitoring API is disabled for a deliberately non-loopback bind;
+public deployment does not inspect a visitor's computer. Do not proxy private
+`/api/endpoint/*` routes onto a public host. This local workflow is not a fleet
+authentication, multi-tenant telemetry or enterprise endpoint service.
 
 Invalid `HOST` or `PORT` values stop startup with exit code `1` and an explanatory
 message. Check the hosting service's environment settings rather than retrying
@@ -114,8 +119,10 @@ and [Permissions Policy](https://w3c.github.io/webappsec-permissions-policy/).
 
 ## Route and security checks
 
-Only `GET` and `HEAD` are supported. Unknown API paths return JSON `404`; other
-methods return `405`. Static files are resolved within the real build directory,
+Public-source and static routes support only `GET` and `HEAD`. The separate
+guarded local endpoint API accepts `GET` session/status and bounded JSON `POST`
+Start/Stop requests; see [endpoint monitoring](endpoint-monitor.md). Unknown API
+paths return JSON `404`; unsupported methods return `405`. Static files are resolved within the real build directory,
 including symlink checks. Malformed encodings, traversal and hidden file requests
 are rejected. Missing assets stay `404`; only extensionless requests accepting
 HTML can fall back to the SPA page.
@@ -128,7 +135,8 @@ quality value; `text/html;q=0` and wildcard-only requests keep their `404`.
 Directory requests are not listed or automatically mapped to nested index files;
 only `/` maps directly to the application's `index.html`.
 Read requests with nonempty bodies or transfer encodings receive `400` and close
-the connection. No endpoint accepts an upload or uses a request body.
+the connection. Public routes do not accept uploads or request bodies. Private
+Start/Stop bodies contain only fixed control options, never uploaded log data.
 
 Static responses include a weak, file-metadata `ETag`. Browsers can revalidate
 with `If-None-Match`; matching `GET` and `HEAD` requests return a bodyless `304`.

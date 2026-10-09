@@ -32,6 +32,15 @@ For visible changes, inspect desktop and narrow mobile views, keyboard focus, re
 - Keep imported user evidence separate from both. Parse locally, validate
   atomically, bound input size/count, treat all fields as untrusted text, and
   never send records to feeds or a model. Redacted exports must use an allowlist.
+- Keep real endpoint collection explicit and read-only. Opening a page must not
+  start it. Preserve same-origin loopback guards, no-CORS/no-store responses,
+  fixed helper arguments, time/byte/count limits and Stop/shutdown cleanup.
+  Use synthetic provider and PowerShell mocks in automated tests, never genuine
+  private Windows logs. Actual local collection needs authorization and must
+  not publish source records or personal screenshots.
+- Changes to `shared/endpoint.ts` require matching collector, monitor, strict
+  client validation and tests. Keep Defender findings distinct from candidate
+  rules; missing coverage and failed reads must not become a clean-PC result.
 - Run the optional offline CLI tests with Python 3.12+ after changing
   `tools/loglab`. Keep its event/rule semantics consistent with browser rules.
 - Use reserved documentation IP addresses and `.example` domains for fixtures.

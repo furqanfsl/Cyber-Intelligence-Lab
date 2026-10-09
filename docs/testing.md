@@ -74,6 +74,33 @@ settings changes. Check its entry page with Vite stopped, then start Vite and
 confirm the browser opens the dashboard. A substitute static server or routed
 browser fixture does not verify the actual extension.
 
+## Own-PC collector tests
+
+`tests/server/endpoint-provider.test.ts` checks the fixed executable/script,
+allowlisted arguments, cancellation/deadlines, UTF-8 and response limits,
+strict normalization and source-count consistency. The PowerShell tests inject
+synthetic `Get-MpComputerStatus` and `Get-WinEvent` functions; they never query
+the machine's private logs. Monitor tests use a clock and mocked provider for
+polling, source failures, deduplication, Defender action correlation, candidate
+rules, bounded retention and Stop/shutdown clearing.
+
+Private HTTP tests cover exact loopback Host/port, same-origin controls, session
+tokens, no CORS, methods, malformed/duplicate JSON, body limits, total request
+deadlines, disabled public binding and integration before public-route guards.
+`tests/e2e/endpoint-monitor.spec.ts` mocks both public intelligence and private
+endpoint responses. It checks consent-only Start, source gaps, stale/error
+recovery, escaped private details, manual review and generic notification
+behavior at desktop/mobile sizes. It does not request genuine OS notification
+permission or prove detection of malware on the test computer.
+
+For an **authorized actual Windows smoke test**, use the documented local
+launcher and browser. Start explicitly, inspect last successful check and
+coverage, wait for the next collector timestamp, then Stop and confirm the
+private view cleared. Report denied/missing sources accurately. Do not plant
+malware, change security settings, install sensors, elevate or publish personal
+logs as part of routine testing. A successful collector read does not prove
+that every threat would be detected. See [monitoring limits](endpoint-monitor.md).
+
 ## Local log investigation
 
 `tests/client/log-analysis.test.mjs` exercises bounded atomic JSON/NDJSON/CSV
