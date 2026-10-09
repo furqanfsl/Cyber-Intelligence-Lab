@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const preferenceKey = 'cil-motion'
-const revealSelector = '.reveal, .panel, .case-row, .skills-grid article'
+const revealSelector = '.reveal, .panel'
 
 function readPreference() {
   try {

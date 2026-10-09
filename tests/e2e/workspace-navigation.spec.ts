@@ -9,7 +9,6 @@ const routes = [
   ['investigation', '#investigation', 'Log investigation'],
   ['live-intel', '#live-intel', 'Live intelligence'],
   ['training', '#operations', 'Training'],
-  ['cases', '#cases', 'Practice cases'],
 ] as const
 
 const fixtureToken = 'a'.repeat(64) // A browser fixture, never an actual private session token.
@@ -68,7 +67,7 @@ test('overview is a compact task launcher, not a stack of every feature', async 
   await expect(page.locator('#endpoint, #investigation, #live-intel, #operations, #response, #cases')).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Monitor this PC', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Investigate local logs', exact: true })).toBeVisible()
-  await expect(page.locator('.nav-links a')).toHaveText(['Overview', 'PC', 'Logs', 'Live intel', 'Training', 'Cases'])
+  await expect(page.locator('.nav-links a')).toHaveText(['Overview', 'PC', 'Logs', 'Live intel', 'Training'])
   await expect(page.locator('.nav-links a[aria-current="page"]')).toHaveText('Overview')
   expect(privateRequests).toEqual([])
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -89,11 +88,55 @@ for (const [workspace, hash, heading] of routes) {
   })
 }
 
+test('retired Cases content and invented outcome metrics cannot return through any workspace or old bookmark', async ({ page }) => {
+  await page.goto('/#cases')
+  await expect(page.locator('.workspace-view:visible')).toHaveAttribute('data-workspace', 'training')
+  for (const [workspace] of routes) {
+    await navigateWorkspace(page, workspace)
+    await expect(page.locator('#cases, .case-section, .case-table, .case-row, .workspace-view[data-workspace="cases"]')).toHaveCount(0)
+    await expect(page.locator('a[href="#cases"]')).toHaveCount(0)
+    for (const label of ['Practice cases', 'Practice scenarios. Example outcomes.', 'Illustrative target', '> 99%', '> 92%', '> 70', 'threat contained', 'traffic reduction target', 'example risk findings', '1,200 sample endpoints', '17 example domains']) {
+      await expect(page.getByText(label, { exact: true })).toHaveCount(0)
+    }
+  }
+  await expect(page.locator('.workspace-view')).toHaveCount(5)
+  await navigateWorkspace(page, 'training')
+  await expect(page.locator('.queue-row')).toHaveCount(5)
+  await expect(page.getByRole('button', { name: 'Start simulation', exact: true })).toBeVisible()
+})
+
+test('overview has one compact footer at the desktop bottom, without repeated branding or a large top CTA', async ({ page }) => {
+  for (const width of [1440, 1853]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto('/#overview')
+    await page.evaluate(() => document.fonts.ready)
+    const footer = page.getByRole('contentinfo')
+    await expect(footer).toHaveCount(1)
+    await expect(footer).toHaveAttribute('data-workspace', 'overview')
+    await expect(footer.locator('.workspace-footer-note')).toHaveCount(1)
+    await expect(page.locator('.workspace-overview-note')).toHaveCount(0)
+    await expect(footer.getByRole('link')).toHaveCount(0)
+    await expect(footer.locator('.button, .brand, strong')).toHaveCount(0)
+    await expect(footer).not.toContainText('Cyber Intelligence Lab')
+    const scope = await footer.locator('.workspace-footer-note').innerText()
+    expect(scope).toContain('Monitoring is opt-in')
+    expect(scope).toContain('Logs stay in this tab')
+    expect(scope).toContain('Public feeds and fictional training are not PC detections')
+    expect((await page.locator('body').innerText()).split(scope)).toHaveLength(2)
+    const bounds = await footer.boundingBox()
+    expect(bounds).not.toBeNull()
+    expect(bounds!.y + bounds!.height).toBeGreaterThanOrEqual(999)
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(1001)
+    expect(bounds!.height).toBeLessThanOrEqual(110)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  }
+})
+
 test('Back and Forward restore focused views without a full-page reset', async ({ page }) => {
   await page.goto('/#overview')
   await navigateWorkspace(page, 'investigation')
   await navigateWorkspace(page, 'live-intel')
-  await navigateWorkspace(page, 'cases')
+  await navigateWorkspace(page, 'training')
   await page.goBack()
   await expect(page.locator('.workspace-view:visible')).toHaveAttribute('data-workspace', 'live-intel')
   await expect(page.locator('.nav-links a[href="#live-intel"]')).toHaveAttribute('aria-current', 'page')
@@ -117,6 +160,9 @@ test('legacy top and response links select the correct view and subsection', asy
   await expect(page.locator('.workspace-view:visible')).toHaveAttribute('data-workspace', 'training')
   await page.goto('/#live-intelligence')
   await expect(page.locator('.workspace-view:visible')).toHaveAttribute('data-workspace', 'live-intel')
+  await page.goto('/#cases')
+  await expect(page.locator('.workspace-view:visible')).toHaveAttribute('data-workspace', 'training')
+  await expect(page.locator('.nav-links a[href="#operations"]')).toHaveAttribute('aria-current', 'page')
 })
 
 test('unknown and malformed routes offer recovery without initializing private monitoring', async ({ page }) => {
@@ -127,6 +173,7 @@ test('unknown and malformed routes offer recovery without initializing private m
     await expect(page.getByRole('heading', { name: 'Workspace not found', exact: true })).toBeVisible()
     await expect(page.locator('.workspace-view:visible')).toHaveCount(1)
     await expect(page.locator('.nav-links a[aria-current]')).toHaveCount(0)
+    await expect(page.getByRole('contentinfo')).toHaveCount(0)
     await page.getByRole('link', { name: 'Open overview', exact: true }).click()
     await expect(page.locator('.workspace-view:visible')).toHaveAttribute('data-workspace', 'overview')
   }
@@ -145,7 +192,7 @@ test('imported evidence, search and analyst review survive workspace changes onl
   await logs.locator('.investigation-alert-row').click()
   await logs.getByLabel('Analyst review', { exact: true }).selectOption('needs-follow-up')
   await logs.getByLabel('Search imported logs', { exact: true }).fill(privateMarker)
-  await navigateWorkspace(page, 'cases')
+  await navigateWorkspace(page, 'live-intel')
   const hidden = page.locator('.workspace-view[data-workspace="investigation"]')
   await expect(hidden).toBeHidden()
   await expect(hidden).toHaveAttribute('hidden', '')
@@ -178,7 +225,7 @@ test('PC consent is retained and navigation never stops an explicitly started mo
   await pc.getByRole('button', { name: 'Start monitoring this PC', exact: true }).click()
   await expect(pc.getByText('Monitoring this PC', { exact: true })).toBeVisible()
   const checks = calls.filter((call) => call.path === 'status').length
-  await navigateWorkspace(page, 'cases')
+  await navigateWorkspace(page, 'live-intel')
   await page.clock.fastForward(5100)
   await expect.poll(() => calls.filter((call) => call.path === 'status').length).toBeGreaterThan(checks)
   expect(calls.filter((call) => call.path === 'stop')).toEqual([])
@@ -213,9 +260,9 @@ test('a browser route change closes the training modal and releases background s
   await page.locator('.queue-row').first().click()
   await expect(page.locator('dialog.incident-workspace')).toBeVisible()
   await expect(page.locator('body')).toHaveCSS('overflow', 'hidden')
-  await page.evaluate(() => { window.location.hash = '#cases' })
+  await page.evaluate(() => { window.location.hash = '#live-intel' })
   await expect(page.locator('dialog.incident-workspace')).toBeHidden()
-  await expect(page.locator('.workspace-view:visible')).toHaveAttribute('data-workspace', 'cases')
+  await expect(page.locator('.workspace-view:visible')).toHaveAttribute('data-workspace', 'live-intel')
   expect(await page.locator('body').evaluate((element) => element.style.overflow)).toBe('')
   await navigateWorkspace(page, 'training')
   await expect(page.locator('dialog.incident-workspace')).toBeHidden()
@@ -232,6 +279,24 @@ test('skip and footer links focus the current workspace rather than opening anot
   await expect(page).toHaveURL(/#live-intel$/)
   await expect(page.locator('#workspace-heading-live-intel')).toBeFocused()
   await expect(page.locator('#workspace-heading-live-intel')).toBeInViewport()
+  for (const [workspace, hash] of routes.filter(([workspace]) => workspace !== 'overview')) {
+    await navigateWorkspace(page, workspace)
+    const footer = page.getByRole('contentinfo')
+    await expect(footer).toHaveAttribute('data-workspace', workspace)
+    await expect(footer.locator('.workspace-footer-note')).toHaveCount(1)
+    const top = footer.getByRole('link', { name: /Back to top/ })
+    await expect(top).toHaveAttribute('href', hash)
+    await expect(top).toHaveClass('workspace-back-top')
+    await expect(footer.locator('.button, .brand, strong')).toHaveCount(0)
+    await expect(top).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    const bounds = await top.boundingBox()
+    expect(bounds!.height).toBeGreaterThanOrEqual(44)
+    expect(bounds!.width).toBeLessThanOrEqual(200)
+    await top.click()
+    await expect(page).toHaveURL(new RegExp(`${hash}$`))
+    await expect(page.locator(`#workspace-heading-${workspace}`)).toBeFocused()
+    await expect(page.locator(`#workspace-heading-${workspace}`)).toBeInViewport()
+  }
 })
 
 test('PC and Logs use the same page frame without the reported stepped section widths', async ({ page }) => {
@@ -247,11 +312,11 @@ test('PC and Logs use the same page frame without the reported stepped section w
   await expect(page.locator('.workspace-view:visible')).toHaveCount(1)
 })
 
-test('six navigation targets remain readable and usable at 320px and twice the text size', async ({ page }) => {
+test('five navigation targets remain readable and usable at 320px and twice the text size', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 1000 })
   await page.goto('/#overview')
   const navigation = page.getByRole('navigation', { name: 'Primary navigation', exact: true })
-  await expect(navigation.getByRole('link')).toHaveCount(6)
+  await expect(navigation.getByRole('link')).toHaveCount(5)
   const initialSize = await navigation.getByRole('link').first().evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
   await page.evaluate(() => {
     const sizes = Array.from(document.querySelectorAll<HTMLElement>('.nav-frame *, .workspace-overview, .workspace-overview *'))

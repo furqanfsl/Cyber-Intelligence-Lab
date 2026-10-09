@@ -18,7 +18,7 @@ test('renders without errors or horizontal overflow', async ({ page }) => {
   expect(errors).toEqual([])
   const missingAnchors = await page.locator('a[href^="#"]').evaluateAll((links) => links
     .map((link) => link.getAttribute('href')!)
-    .filter((href) => href.length > 1 && !['#overview', '#endpoint', '#investigation', '#live-intel', '#operations', '#cases'].includes(href) && !document.getElementById(href.slice(1))))
+    .filter((href) => href.length > 1 && !['#overview', '#endpoint', '#investigation', '#live-intel', '#operations'].includes(href) && !document.getElementById(href.slice(1))))
   expect(missingAnchors).toEqual([])
 })
 
@@ -180,7 +180,7 @@ test('primary navigation has only brand and section links; feed health stays in 
   const header = page.locator('.nav-frame')
   await expect(header.locator('.nav-status')).toHaveCount(0)
   await expect(header).not.toContainText('Public feeds connected')
-  await expect(header.locator('.nav-links a')).toHaveCount(6)
+  await expect(header.locator('.nav-links a')).toHaveCount(5)
   await expect(header.locator('a[href="#skills"]')).toHaveCount(0)
   await expect(page.locator('#skills, .skills-grid')).toHaveCount(0)
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')

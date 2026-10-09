@@ -134,7 +134,7 @@ test('changing source, searching and disclosing diagnostics never issues another
 test('the dashboard ends without the removed skills section or a dead skills navigation target', async ({ page }) => {
   await page.goto('/#live-intel')
   await expect(page.locator('#skills, .skills-grid')).toHaveCount(0)
-  await expect(page.locator('.nav-links a')).toHaveCount(6)
+  await expect(page.locator('.nav-links a')).toHaveCount(5)
   await expect(page.locator('a[href="#skills"]')).toHaveCount(0)
   await expect(page.getByRole('link', { name: /Back to top/ })).toHaveAttribute('href', '#live-intel')
   await page.getByRole('link', { name: /Back to top/ }).click()

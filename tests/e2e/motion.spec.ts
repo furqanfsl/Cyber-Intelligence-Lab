@@ -8,8 +8,7 @@ test('normal motion reveals scrolled sections and their interactive panels', asy
   await page.goto('/#operations')
   for (const [workspace, selectors] of [
     ['training', ['.map-panel', '.queue-panel', '.forensic-panel']],
-    ['live-intel', ['.live-status-panel']],
-    ['cases', ['.case-row']],
+    ['live-intel', ['.live-status-panel', '.osint-feed-panel:visible']],
   ] as const) {
     await navigateWorkspace(page, workspace)
     for (const selector of selectors) {

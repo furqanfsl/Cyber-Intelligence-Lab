@@ -2,13 +2,19 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { resolveWorkspaceHash, workspaceHash, workspaces } from '../../src/lib/workspace-navigation.ts'
 
-test('six canonical workspaces resolve to distinct views', () => {
-  assert.equal(workspaces.length, 6)
-  assert.equal(new Set(workspaces.map(({ id }) => id)).size, 6)
+test('five canonical workspaces resolve to distinct views', () => {
+  assert.equal(workspaces.length, 5)
+  assert.equal(new Set(workspaces.map(({ id }) => id)).size, 5)
   for (const workspace of workspaces) {
     assert.equal(resolveWorkspaceHash(workspace.hash).workspace, workspace.id)
     assert.equal(workspaceHash(workspace.id), workspace.hash)
   }
+})
+
+test('the retired Cases bookmark opens Training without a separate cases destination', () => {
+  assert.deepEqual(resolveWorkspaceHash('#cases'), { workspace: 'training', anchor: 'cases', skipLink: false })
+  assert.equal(workspaces.some(({ id, hash }) => id === 'cases' || hash === '#cases'), false)
+  assert.equal(workspaceHash(resolveWorkspaceHash('#cases').workspace), '#operations')
 })
 
 test('the default and legacy home addresses open the compact overview', () => {

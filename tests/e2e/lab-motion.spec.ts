@@ -39,8 +39,9 @@ test('system reduced motion always wins and responds to preference changes', asy
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await expect(control).toBeDisabled()
   await expect(page.locator('.map-panel .instrument-sweep')).toHaveCSS('animation-name', 'none')
-  await navigateWorkspace(page, 'cases')
-  await expect(page.locator('.case-table')).toHaveCSS('opacity', '1')
+  await navigateWorkspace(page, 'live-intel')
+  await expect(page.locator('.live-status-panel')).toHaveCSS('opacity', '1')
+  await expect(page.locator('.osint-feed-panel:visible')).toHaveCSS('opacity', '1')
 })
 
 test('motion control still works when local storage is unavailable', async ({ page }) => {
@@ -108,11 +109,11 @@ test('tall sections are never gated by nested reveals in a short viewport', asyn
     await panel.scrollIntoViewIfNeeded()
     await expect(panel).toHaveCSS('opacity', '1')
   }
-  await navigateWorkspace(page, 'cases')
-  await expect(page.locator('.case-table')).toHaveCSS('opacity', '1')
-  await expect(page.locator('.case-table')).toHaveCSS('transform', 'none')
-  await page.locator('.case-row').first().scrollIntoViewIfNeeded()
-  await expect(page.locator('.case-row').first()).toHaveCSS('opacity', '1')
+  await navigateWorkspace(page, 'live-intel')
+  await expect(page.locator('.live-intel-grid')).toHaveCSS('opacity', '1')
+  await expect(page.locator('.live-intel-grid')).toHaveCSS('transform', 'none')
+  await page.locator('.osint-feed-panel:visible').scrollIntoViewIfNeeded()
+  await expect(page.locator('.osint-feed-panel:visible')).toHaveCSS('opacity', '1')
 })
 
 test('map regions, totals and priorities stay readable without decoration collisions or doubled-text overlap', async ({ page }) => {
@@ -164,13 +165,31 @@ test('map regions, totals and priorities stay readable without decoration collis
       expect(bounds.y).toBeGreaterThanOrEqual(geometry.frame.y - 1)
       expect(bounds.bottom).toBeLessThanOrEqual(geometry.frame.bottom + 1)
     }
-    for (const value of await page.locator('.map-panel .map-readout data, .actions-list strong').all()) {
+    for (const value of await page.locator('.map-panel .map-readout data, .actions-list strong, .checklist-state').all()) {
       expect(await value.evaluate((element) => {
         const range = document.createRange()
         range.selectNodeContents(element)
         return range.getClientRects().length
       })).toBe(1)
     }
+    const detailHeadings = await page.locator('.detail-list dt, .forensic-list dt').evaluateAll((headings) => headings.map((heading) => {
+      const panel = heading.closest('.panel')!.getBoundingClientRect()
+      const bounds = heading.getBoundingClientRect()
+      const words: { text: string; lines: number; outside: boolean }[] = []
+      const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT)
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        for (const match of (node.textContent ?? '').matchAll(/\S+/g)) {
+          const range = document.createRange()
+          range.setStart(node, match.index!)
+          range.setEnd(node, match.index! + match[0].length)
+          const rects = [...range.getClientRects()]
+          words.push({ text: match[0], lines: rects.length, outside: rects.some((rect) => rect.left < panel.left - 1 || rect.right > panel.right + 1) })
+        }
+      }
+      return { text: heading.textContent, width: bounds.width, outside: bounds.left < panel.left - 1 || bounds.right > panel.right + 1, words }
+    }))
+    expect(detailHeadings.length).toBeGreaterThan(0)
+    expect(detailHeadings.filter((heading) => heading.outside || heading.width <= 0 || heading.words.some((word) => word.outside || word.lines !== 1))).toEqual([])
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
 })

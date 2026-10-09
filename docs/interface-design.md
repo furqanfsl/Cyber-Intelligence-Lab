@@ -29,14 +29,20 @@ surveillance or unsupported monitoring claims.
 
 ### Focused navigation
 
-The former single scrolling dashboard is split into six bookmarkable views:
-Overview, PC, Logs, Live intel, Training and Cases. Hash navigation needs no
+The former single scrolling dashboard is split into five bookmarkable views:
+Overview, PC, Logs, Live intel and Training. Hash navigation needs no
 new router dependency or server-side path rewriting. Existing section links
 remain valid, including `#response` inside Training. Browser history, reload,
 keyboard navigation and a helpful unknown-destination state are part of the
-navigation contract.
+navigation contract. The redundant static Cases view and invented outcome
+metrics were removed; an old `#cases` bookmark opens interactive Training.
 
 Overview is a compact task chooser, not a map or a wall of demo statistics.
+Its primary actions open PC and Logs; two secondary links open Live intel and
+Training. One concise footer note preserves local/opt-in/privacy boundaries
+without a repeated brand block or prominent Back-to-top button. Short pages
+keep this footer at the window's bottom; long pages use ordinary flow. Other
+views retain a quiet current-view Back-to-top link and relevant scope note.
 Each view shares one content-width and gutter system. In particular, PC and
 Logs no longer use different 1800/1600px outer frames or create stair-stepped
 borders. Main headings, content and footer edges align across views.
@@ -53,7 +59,7 @@ the simultaneous three-column feed layout. CISA opens by default; Microsoft and
 Community remain available through labelled tabs with record counts. Left/Right,
 Home and End move focus and selection; the active tab alone is in the Tab order.
 Community records retain their unverified label rather than blending with official
-advisories. Practice cases have a separate view. Each view has a concise footer,
+advisories. Static practice-case summaries have been removed. Each view has a concise footer,
 not a learning/skills matrix.
 
 Search still covers every source. Tabs show matching counts, and an empty active
@@ -182,7 +188,7 @@ Desktop uses a candidate list and evidence pane. On narrow screens they stack
 in reading order. Candidate lists and event tables are paginated rather than
 mounting thousands of controls. The table has its own keyboard-focusable scroll
 region and a visible sideways-scroll hint on mobile, never page-wide overflow.
-All six navigation destinations remain available on narrow screens without shrinking the
+All five navigation destinations remain available on narrow screens without shrinking the
 existing labels. Selection and severity use text plus pressed state, not colour
 alone. Analyst review is explicitly manual, not an automated verdict.
 

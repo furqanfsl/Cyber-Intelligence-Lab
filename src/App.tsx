@@ -28,45 +28,6 @@ function freshDemoSeed(previous?: number) {
   return seed === previous ? (seed + 1) >>> 0 : seed
 }
 
-const caseStudies = [
-  {
-    label: 'Incident response / enterprise',
-    title: 'Ransomware containment',
-    summary:
-      'A fictional ransomware exercise showing how analysts might isolate lateral movement and plan service recovery across a sample estate.',
-    impact: '> 99%',
-    metric: 'threat contained',
-    extra: '1,200 sample endpoints',
-    tools: ['CrowdStrike', 'Splunk', 'Velociraptor', 'Wireshark'],
-    timeline: '36 hours',
-    category: 'Ransomware',
-  },
-  {
-    label: 'Threat hunting / email security',
-    title: 'Phishing takedown',
-    summary:
-      'A fictional email-security exercise covering indicator grouping, evidence review, and a proposed phishing response. No domains were taken down.',
-    impact: '> 92%',
-    metric: 'traffic reduction target',
-    extra: '17 example domains',
-    tools: ['MISP', 'Maltego', 'Proofpoint', 'Python'],
-    timeline: '2 weeks',
-    category: 'Phishing',
-  },
-  {
-    label: 'Cloud security / attack surface',
-    title: 'Cloud misconfiguration hunt',
-    summary:
-      'A fictional cloud-security exercise exploring public exposure and over-permissive access. No real cloud environments were scanned or remediated.',
-    impact: '> 70',
-    metric: 'example risk findings',
-    extra: 'Sample target only',
-    tools: ['AWS CLI', 'ScoutSuite', 'Prowler', 'Terraform'],
-    timeline: '3 weeks',
-    category: 'Misconfiguration',
-  },
-]
-
 function severityLabel(severity: Severity) {
   return severity.toUpperCase()
 }
@@ -258,7 +219,6 @@ function App() {
           />
           <IncidentResponse selectedAlert={selectedAlert} />
         </div>}
-        {navigation.visited.has('cases') && <div className="workspace-view" data-workspace="cases" hidden={navigation.route.workspace !== 'cases'} inert={navigation.route.workspace !== 'cases'}><WorkspaceHeader workspace="cases" /><CaseStudies /></div>}
         {navigation.route.workspace === null && <div className="workspace-view" data-workspace="missing"><header className="workspace-page-header"><div className="workspace-page-heading"><h1 id="workspace-heading-missing" tabIndex={-1}>Workspace not found</h1><p className="workspace-description">This link does not match a workspace. Choose a section from the navigation or return to the overview.</p></div></header><a className="button button-primary" href="#overview">Open overview</a></div>}
       </main>
       <Footer workspace={navigation.route.workspace} />
@@ -299,20 +259,18 @@ function Overview() {
   const tasks = [
     { hash: '#live-intel', title: 'Live intelligence', description: 'Read official vulnerability and security updates, with public community context.' },
     { hash: '#operations', title: 'Training', description: 'Practice reviewing fictional alerts, their evidence and proposed responses.' },
-    { hash: '#cases', title: 'Practice cases', description: 'Explore example investigations and illustrative outcomes.' },
   ]
   return <section className="workspace-overview" id="overview" aria-labelledby="workspace-heading-overview">
     <div className="workspace-overview-intro">
       <p className="kicker">Cyber Intelligence Lab</p>
       <h1 id="workspace-heading-overview" tabIndex={-1}>Your security workspace.</h1>
-      <p className="workspace-overview-description">Monitor this PC, investigate your logs or explore public security updates. One focused workspace at a time.</p>
+      <p className="workspace-overview-description">Monitor this PC, investigate your logs or review public security updates.</p>
       <div className="workspace-primary-actions" role="group" aria-label="Primary actions">
         <a className="button button-primary" href="#endpoint"><span>Monitor this PC</span><span className="button-glyph" aria-hidden="true">↗</span></a>
         <a className="button button-secondary" href="#investigation"><span>Investigate local logs</span><span className="button-glyph" aria-hidden="true">↗</span></a>
       </div>
     </div>
     <div className="workspace-task-list">{tasks.map((task) => <article key={task.hash}><a className="workspace-task-link" href={task.hash}><div><h2>{task.title}</h2><p>{task.description}</p></div><span aria-hidden="true">↗</span></a></article>)}</div>
-    <p className="workspace-overview-note">PC monitoring is opt-in and needs this app running locally on Windows. Imported logs stay in this tab. Public feeds and fictional training are not detections on your PC. No paid AI is required.</p>
   </section>
 }
 function ThreatOperations({
@@ -709,63 +667,19 @@ function IncidentResponse({ selectedAlert }: { selectedAlert: Alert }) {
   )
 }
 
-function CaseStudies() {
-  return (
-    <section className="case-section" id="cases">
-      <div className="case-header reveal">
-        <span>04.</span>
-        <p className="kicker">Illustrative case studies</p>
-        <h2>Practice scenarios. Example outcomes.</h2>
-      </div>
-
-      <div className="case-table reveal delay-1">
-        {caseStudies.map((study, index) => (
-          <article className="case-row" key={study.title}>
-            <div className="case-number">{String(index + 1).padStart(2, '0')}</div>
-            <div>
-              <p>{study.label}</p>
-              <h3>{study.title}</h3>
-              <span>{study.summary}</span>
-            </div>
-            <div>
-              <p>Illustrative target</p>
-              <strong>{study.impact}</strong>
-              <span>{study.metric}</span>
-              <span>{study.extra}</span>
-            </div>
-            <div>
-              <p>Relevant tools</p>
-              {study.tools.map((tool) => (
-                <span key={tool}>{tool}</span>
-              ))}
-            </div>
-            <div>
-              <p>Example duration</p>
-              <strong>{study.timeline}</strong>
-            </div>
-            <div>
-              <p>Threat category</p>
-              <strong className="red-text">{study.category}</strong>
-            </div>
-            <div className="success-box">
-              <span></span>
-              Illustrative scenario
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 function Footer({ workspace }: { workspace: WorkspaceId | null }) {
+  if (workspace === null) return null
+  const scope: Record<WorkspaceId, string> = {
+    overview: 'Monitoring is opt-in and requires the local Windows app. Logs stay in this tab. Public feeds and fictional training are not PC detections. No paid AI.',
+    endpoint: 'Closing this tab does not stop a started collector.',
+    investigation: 'Reload or clear the dataset to discard this tab’s imported records.',
+    'live-intel': 'Public records provide context, not evidence of a threat on this PC.',
+    training: 'Training is fictional and does not change real systems.',
+  }
   return (
-    <footer className="footer">
-      <div>
-        <strong>Cyber Intelligence Lab</strong>
-          <span>Local PC evidence. Public-source context. Separate training exercises.</span>
-      </div>
-      <a className="button button-primary" href={workspaceHash(workspace)} onClick={(event) => {
+    <footer className="footer workspace-footer" data-workspace={workspace}>
+      <p className="workspace-footer-note">{scope[workspace]}</p>
+      {workspace !== 'overview' && <a className="workspace-back-top" href={workspaceHash(workspace)} onClick={(event) => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
         event.preventDefault()
         const hash = workspaceHash(workspace)
@@ -774,10 +688,10 @@ function Footer({ workspace }: { workspace: WorkspaceId | null }) {
         document.getElementById(`workspace-heading-${workspace ?? 'missing'}`)?.focus({ preventScroll: true })
       }}>
         <span>Back to top</span>
-        <span className="button-glyph" aria-hidden="true">
+        <span aria-hidden="true">
           ↑
         </span>
-      </a>
+      </a>}
     </footer>
   )
 }

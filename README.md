@@ -9,7 +9,6 @@ A local-first security analyst workspace built with React, TypeScript, and Vite.
 - **Local evidence:** import JSON, NDJSON, CSV or Windows event XML in the browser, normalize supported records, review rule-linked timelines and export redacted reports. User-provided exports are not independently authenticated. The optional Python/SQLite tool saves a private local investigation.
 - **Simulated operations:** randomized synthetic incidents, an illustrative map, and an opt-in replay. Activity and queue rows open the corresponding investigation.
 - **Incident investigation:** linked risk scores, timelines, indicators, response checklists, and forensic artifacts. Copy a clearly labelled exercise brief.
-- **Case studies:** practice scenarios and example outcomes, not records of real security operations.
 
 Opening the page does not start collection. The monitor runs only after Start, while this app's local server runs on the Windows PC being monitored. It invokes one fixed read-only PowerShell helper; it cannot accept arbitrary commands, scan, quarantine, delete files, change settings or inspect visitors to a public website. No AI model or containment service is connected. Rule matches are candidates for review, not proof of compromise. Public advisories are not evidence of an attack on your systems.
 
@@ -24,17 +23,18 @@ connection address, not proof of a person's identity or original IP.
 
 ## Choose a workspace
 
-The app has six focused views instead of one long dashboard:
+The app has five focused views instead of one long dashboard:
 
 - **Overview** (`#overview`): choose the task you want to do.
 - **PC** (`#endpoint`): real, opt-in monitoring of the local Windows computer.
 - **Logs** (`#investigation`): import, analyze and report on an authorized export.
 - **Live intel** (`#live-intel`): public advisories and separately labelled community context.
 - **Training** (`#operations`): synthetic incidents, replay, evidence and response practice.
-- **Cases** (`#cases`): fictional case studies and example outcomes.
 
 Only the selected workspace is visible. Browser Back/Forward and bookmarks work;
 older section fragments, including `#response`, still open the relevant view.
+The redundant static Cases section has been removed; an old `#cases` bookmark
+opens the interactive Training workspace instead.
 The local server must remain running—these fragments do not start or publish it.
 
 Switching workspaces keeps this tab's imported investigation and visited views
@@ -174,6 +174,10 @@ server or another checkout of the lab on port 5173 must be stopped in its own
 terminal before starting this project. If locked dependencies changed while the
 preview was running, stop it with **Ctrl+C** and run the launcher again.
 
+If the previous interface remains after updating the source, reload the browser
+tab. If it still looks outdated, stop this project's preview in its own terminal
+with **Ctrl+C**, run `npm run dev` again, and reopen the printed address.
+
 If setup was interrupted and the launcher reports a **startup lock**, close this
 project's startup terminals first. Remove only the exact temporary lock file
 named in that message, then retry. The launcher does not automatically delete a
@@ -234,7 +238,33 @@ server or replace the browser tests. Check Go Live both with Vite stopped
 this README aligned with the code, and update the dated record below with the
 actual results. Do not mark unchecked paths as passing.
 
-**Latest launch verification — 2026-10-09 (focused workspace navigation):**
+**Latest launch verification — 2026-10-09 (Cases removal and footer cleanup):**
+
+- **Passed:** documented `npm run dev` reused this checkout. When its preview
+  retained an outdated module, stopping only this project's terminal and running
+  the same command restarted port 5173 with the updated interface.
+  `npm run verify:local` and `npm run verify:local -- --go-live` passed.
+- **Passed:** Edge rendered all five views at desktop and 390/320px mobile
+  sizes without page errors or page-wide overflow. The actual Live Server page
+  on port 5500 showed stopped-server guidance at 1440/390px, then handed off to
+  the running app; an old `#cases` bookmark correctly opened Training.
+  All three public sources were healthy when checked.
+- **Passed:** `npm run check` with **359 unit/integration checks**, lint, strict
+  types, coverage gates and a production build; **384 production desktop/mobile
+  browser checks**; and **49 Python/SQLite checks** with existing Python 3.12.13.
+  Endpoint browser fixtures are mocked and never read real PC logs.
+- **Inspected:** before/after desktop/mobile, error and doubled-text screenshots.
+  Removed static Cases content and its invented metrics, simplified Overview,
+  aligned the compact footer, and fixed enlarged Training status/detail labels.
+  Imported-state retention, opt-in monitoring boundaries, history, focus and
+  quiet current-view return links passed their regressions.
+- **Not retested:** genuine Windows collection, Sysmon, native notifications,
+  interactive `start.bat`, extension restart, VS Code task approval or native
+  Linux/macOS desktop operation. Actual collection stayed off. No backend,
+  dependency, startup, port or workspace-setting implementation changed, and
+  no public app deployment was made. Hosted checks are recorded in GitHub Actions.
+
+**Previous focused workspace navigation verification — 2026-10-09:**
 
 - **Passed:** documented `npm run dev` reused this checkout on port 5173.
   `npm run verify:local` and `npm run verify:local -- --go-live` passed.
@@ -388,7 +418,10 @@ until selected. Search covers the whole snapshot and each tab shows its matching
 count. Source status, timing and validation details are available on demand.
 Expanded records scroll within the active panel on larger screens and use natural
 page scrolling on mobile. The former learning/skills section has been removed;
-case studies now have their own view, and each workspace has a concise footer.
+static case studies and their invented outcome metrics have also been removed.
+Each workspace ends with a concise scope note. Short views keep this footer at
+the bottom of the window; longer views use normal page flow. **Back to top** is a
+quiet text link on the tool views, not a primary action on Overview.
 Training's **Motion on/off** control manages the decorative scanner and fades;
 device reduced-motion settings always take priority. See the [interface design
 notes](docs/interface-design.md) for inspiration, interaction details and limits.

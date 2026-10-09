@@ -484,12 +484,12 @@ for (const width of [320, 390, 1440]) {
   })
 }
 
-test('all six navigation labels and touch targets remain visible at the narrowest supported width', async ({ page }) => {
+test('all five navigation labels and touch targets remain visible at the narrowest supported width', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 })
   await openWorkspace(page)
   const navigation = page.getByRole('navigation', { name: 'Primary navigation', exact: true })
   const links = navigation.getByRole('link')
-  await expect(links).toHaveCount(6)
+  await expect(links).toHaveCount(5)
   const navigationBox = await navigation.boundingBox()
   expect(navigationBox).not.toBeNull()
   for (const link of await links.all()) {

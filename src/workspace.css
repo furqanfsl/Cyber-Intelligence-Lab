@@ -3,7 +3,11 @@
 .site-shell {
   --workspace-max: 1600px;
   --workspace-gutter: clamp(20px, 3vw, 48px);
+  display: flex;
+  flex-direction: column;
 }
+.site-shell > #main-content { flex: 1 0 auto; min-width: 0; }
+.site-shell > .nav-frame { flex-shrink: 0; }
 
 .site-shell .nav-frame {
   grid-template-columns: minmax(0, 1fr) auto;
@@ -57,7 +61,7 @@
   overflow-wrap: anywhere;
 }
 .workspace-view[hidden] { display: none !important; }
-.workspace-view > :is(.endpoint-section, .investigation-section, .live-intel-section, .operations-section, .response-section, .case-section) {
+.workspace-view > :is(.endpoint-section, .investigation-section, .live-intel-section, .operations-section, .response-section) {
   width: 100%;
   max-width: none;
   min-width: 0;
@@ -99,8 +103,7 @@
    semantic heading and scope for assistive navigation without another hero. */
 .workspace-view :is(.endpoint-heading, .investigation-heading) > div,
 .workspace-view > :is(.live-intel-section, .operations-section) > .section-header > :is(span, div),
-.workspace-view > :is(.live-intel-section, .operations-section) > .section-header .quote,
-.workspace-view > .case-section > .case-header {
+.workspace-view > :is(.live-intel-section, .operations-section) > .section-header .quote {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -140,6 +143,7 @@
 .workspace-view > .response-section > .section-header h2 { font-size: 24px; }
 .workspace-view .actions-list > div { grid-template-columns: 34px minmax(0, 1fr) max-content; }
 .workspace-view .actions-list strong { white-space: nowrap; }
+.workspace-view .checklist-state { flex: 0 0 7ch; min-inline-size: max-content; white-space: nowrap; }
 
 /* The overview is a task launcher, not another copy of every dashboard. */
 .workspace-overview-intro { max-width: 76ch; }
@@ -155,7 +159,7 @@
 .workspace-overview-description { margin: 16px 0 0; max-width: 64ch; font: 16px/1.8 var(--sans); }
 .workspace-primary-actions { display: flex; align-items: stretch; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
 .workspace-primary-actions .button { font-size: 14px; line-height: 1.5; }
-.workspace-task-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; max-width: 1120px; margin-top: 36px; }
+.workspace-task-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; max-width: 920px; margin-top: 32px; }
 .workspace-task-list article { min-width: 0; }
 .workspace-task-link {
   display: flex;
@@ -163,32 +167,36 @@
   justify-content: space-between;
   gap: 20px;
   height: 100%;
-  padding: 22px 0;
-  border-top: 1px solid #52675b;
+  padding: 18px 0;
+  border-top: 1px solid #3f5549;
   color: var(--text);
   text-decoration: none;
   transition: border-color 150ms ease, color 150ms ease;
 }
 .workspace-task-link > div { min-width: 0; }
-.workspace-task-link h2 { margin: 0; color: var(--text-strong); font: 600 20px/1.5 var(--sans); letter-spacing: -.02em; text-transform: none; }
-.workspace-task-link p { margin: 10px 0 0; max-width: 32ch; font: 14px/1.8 var(--sans); }
+.workspace-task-link h2 { margin: 0; color: var(--text-strong); font: 600 19px/1.5 var(--sans); letter-spacing: -.02em; text-transform: none; }
+.workspace-task-link p { margin: 8px 0 0; max-width: 42ch; font: 14px/1.8 var(--sans); }
 .workspace-task-link > span { flex-shrink: 0; color: #c9e9d8; font: 22px/1.5 var(--sans); }
 .workspace-task-link:hover { color: var(--text-strong); border-color: #b4d8c2; }
-.workspace-overview-note { margin: 30px 0 0; max-width: 90ch; padding-top: 20px; border-top: 1px solid var(--line-soft); font: 13px/1.85 var(--sans); color: var(--text-muted); }
-.workspace-overview-note strong { color: var(--text); font-weight: 600; }
-
 .site-shell .footer {
+  position: relative;
+  flex-shrink: 0;
   width: 100%;
   max-width: var(--workspace-max);
   margin-inline: auto;
-  padding: 24px var(--workspace-gutter);
-  border-inline: 0;
-  border-top: 1px solid var(--line-soft);
+  padding: 12px var(--workspace-gutter);
+  border: 0;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  gap: 24px;
+  gap: 8px 24px;
 }
-.site-shell .footer > div > span { font-size: 12px; max-width: 70ch; }
-.site-shell .footer > a { display: flex; align-items: center; min-height: 44px; }
+.site-shell .footer::before { position: absolute; top: 0; left: var(--workspace-gutter); right: var(--workspace-gutter); height: 1px; background: var(--line-soft); content: ''; }
+.workspace-footer-note { flex: 1 1 180px; min-width: 0; margin: 0; max-width: 100ch; color: var(--text-muted); font: 400 13px/1.8 var(--sans); }
+.workspace-footer[data-workspace='overview'] .workspace-footer-note { max-width: none; }
+.workspace-back-top { display: inline-flex; flex-shrink: 0; align-items: center; gap: 9px; min-height: 44px; color: var(--text); font: 500 13px/1.5 var(--sans); text-decoration: none; }
+.workspace-back-top:hover { color: var(--text-strong); text-decoration: underline; text-underline-offset: 4px; }
 
 @media (max-width: 1100px) {
   .site-shell .nav-frame { grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: 6px; }
@@ -209,12 +217,13 @@
 @media (max-width: 640px) {
   /* A wrapped navigation bar must not cover half a phone or enlarged text. */
   .site-shell .nav-frame { position: relative; gap: 0 12px; padding-block: 8px; }
-  .site-shell .nav-links { gap: 8px; }
-  .site-shell .nav-links a { flex: 1 0 calc((100% - 16px) / 3); min-inline-size: max-content; padding-inline: 8px; }
+  .site-shell .nav-links { gap: 8px; justify-content: center; }
+  .site-shell .nav-links a { flex: 0 0 calc((100% - 16px) / 3); min-inline-size: max-content; padding-inline: 8px; }
   .workspace-primary-actions { flex-direction: column; }
   .workspace-primary-actions .button { width: 100%; }
-  .workspace-view > :is(.endpoint-section, .investigation-section, .live-intel-section, .operations-section, .response-section, .case-section) { scroll-margin-top: 20px; }
+  .workspace-view > :is(.endpoint-section, .investigation-section, .live-intel-section, .operations-section, .response-section) { scroll-margin-top: 20px; }
   .site-shell .footer { align-items: flex-start; }
+  .workspace-view .detail-list > div { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   /* Spatial labels cannot reflow when text is enlarged. On a phone the same
      simulated region counts become a readable grid, with no competing arcs. */
   .workspace-view .map-panel .threat-map.compact { min-height: 0; background: #0b1511; }

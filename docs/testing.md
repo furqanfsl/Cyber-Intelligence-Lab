@@ -83,6 +83,12 @@ and never trigger Start/Stop collection. Leaving Training must pause replay
 and close a practice dialog without focusing its hidden opener. UI fixtures
 use synthetic imported records and mocked endpoint responses, not real PC logs.
 
+Checks also require the retired Cases navigation/view/static outcome metrics
+to be absent. Its old fragment opens Training without restoring the static
+fictional summaries. Overview has one scope note and no oversized Back-to-top action;
+short-page footers align with the content and reach the viewport bottom without
+overlaying it. Long views retain their current-view return link.
+
 Visual review compares consistent heading/content/footer gutters, desktop and
 320/390px mobile navigation, error states and doubled text. Hidden component
 CSS must not override the wrapper's `hidden` state or extend page height.

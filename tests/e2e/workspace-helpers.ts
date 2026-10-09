@@ -1,10 +1,10 @@
 import { expect, type Page } from '@playwright/test'
 
-export type Workspace = 'overview' | 'endpoint' | 'investigation' | 'live-intel' | 'training' | 'cases'
+export type Workspace = 'overview' | 'endpoint' | 'investigation' | 'live-intel' | 'training'
 
 const hashes: Record<Workspace, string> = {
   overview: '#overview', endpoint: '#endpoint', investigation: '#investigation',
-  'live-intel': '#live-intel', training: '#operations', cases: '#cases',
+  'live-intel': '#live-intel', training: '#operations',
 }
 
 /** Change the focused workspace through the real navigation, without remounting React. */

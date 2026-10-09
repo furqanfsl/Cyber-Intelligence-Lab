@@ -1,4 +1,4 @@
-export type WorkspaceId = 'overview' | 'endpoint' | 'investigation' | 'live-intel' | 'training' | 'cases'
+export type WorkspaceId = 'overview' | 'endpoint' | 'investigation' | 'live-intel' | 'training'
 
 export const workspaces: ReadonlyArray<{ id: WorkspaceId; hash: string; label: string; title: string; description: string }> = [
   { id: 'overview', hash: '#overview', label: 'Overview', title: 'Overview', description: 'Choose a task. Real local evidence, public context and training stay separate.' },
@@ -6,7 +6,6 @@ export const workspaces: ReadonlyArray<{ id: WorkspaceId; hash: string; label: s
   { id: 'investigation', hash: '#investigation', label: 'Logs', title: 'Log investigation', description: 'Investigate an authorized log export in this browser. No log upload or paid AI is required.' },
   { id: 'live-intel', hash: '#live-intel', label: 'Live intel', title: 'Live intelligence', description: 'Browse official CISA and Microsoft updates, plus unverified community context. Public records are not evidence of a threat on this PC.' },
   { id: 'training', hash: '#operations', label: 'Training', title: 'Training', description: 'Practice investigation and response with fictional incidents. No real systems are changed.' },
-  { id: 'cases', hash: '#cases', label: 'Cases', title: 'Practice cases', description: 'Explore fictional investigations and illustrative outcomes, not completed security engagements.' },
 ]
 
 export type WorkspaceRoute = {
@@ -21,7 +20,8 @@ const anchorWorkspaces: Readonly<Record<string, WorkspaceId>> = {
   investigation: 'investigation',
   'live-intel': 'live-intel', 'live-intelligence': 'live-intel', 'source-diagnostics': 'live-intel',
   operations: 'training', training: 'training', response: 'training', 'selected-demo-alert': 'training',
-  cases: 'cases',
+  // Keep published bookmarks useful after retiring the static case-study view.
+  cases: 'training',
 }
 
 /** Hash routes work on local launchers and static hosts without a server fallback. */
