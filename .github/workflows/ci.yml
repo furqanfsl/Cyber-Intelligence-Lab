@@ -27,6 +27,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - name: Check optional offline Python and SQLite workflow
+        run: |
+          python3 --version
+          python3 -c "import sys; assert sys.version_info >= (3, 12), 'Python 3.12+ is required'"
+          python3 -m unittest tools.loglab.test_loglab -v
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - name: Preserve failed browser checks

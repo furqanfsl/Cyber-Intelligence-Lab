@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
 import { selectForPageReview } from './demo-helpers.ts'
+import { openSourceDetails, selectFeed } from './feed-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
@@ -48,7 +49,7 @@ test('forensic tabs support arrow, Home and End keys', async ({ page }) => {
   await file.click()
   await page.keyboard.press('ArrowRight')
   await expect(page.getByRole('tab', { name: 'Network', exact: true })).toBeFocused()
-  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'artifact-tab-network')
+  await expect(page.locator('.forensic-panel').getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'artifact-tab-network')
   await page.keyboard.press('End')
   await expect(page.getByRole('tab', { name: 'Registry', exact: true })).toHaveAttribute('aria-selected', 'true')
   await page.keyboard.press('Home')
@@ -98,6 +99,7 @@ test('public source links use stable records and new-tab descriptions', async ({
   await expect(cisa).toHaveAttribute('href', intelligence.kev[0].url)
   await expect(cisa).toHaveAttribute('target', '_blank')
   await expect(cisa).toHaveAttribute('rel', 'noreferrer')
+  await selectFeed(page, 'news')
   await expect(page.getByRole('link', { name: /Open discussion record/ })).toHaveAttribute('href', intelligence.news[0].url)
 })
 
@@ -126,6 +128,7 @@ test('partial provider failures are not reported as current', async ({ page }) =
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Partial sync')
   await expect(page.locator('.feed-notice')).toContainText('Some sources could not refresh')
+  await openSourceDetails(page)
   await expect(page.getByText('News source unavailable.', { exact: true })).toBeVisible()
 })
 
@@ -135,6 +138,8 @@ test('long public-source titles wrap inside cards', async ({ page }) => {
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await selectFeed(page, 'news')
+  await expect(page.locator('#news-records')).toContainText('UnbrokenExternalTitle'.repeat(35))
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
@@ -148,6 +153,7 @@ test('available fresh news remains partial when no aggregate source is fully hea
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Partial sync')
+  await selectFeed(page, 'news')
   await expect(page.getByRole('link', { name: /Open discussion record/ })).toBeVisible()
 })
 
@@ -161,7 +167,9 @@ test('a healthy empty feed is not labelled unavailable when the other source fai
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Partial sync')
+  await selectFeed(page, 'news')
   await expect(page.getByText('No cyber news records are available.', { exact: true })).toBeVisible()
+  await selectFeed(page, 'kev')
   await expect(page.getByText('CISA is unavailable. Try refreshing or wait for the next check.', { exact: true })).toBeVisible()
 })
 
@@ -172,5 +180,7 @@ test('primary navigation has only brand and section links; feed health stays in 
   await expect(header.locator('.nav-status')).toHaveCount(0)
   await expect(header).not.toContainText('Public feeds connected')
   await expect(header.locator('.nav-links a')).toHaveCount(5)
+  await expect(header.locator('a[href="#skills"]')).toHaveCount(0)
+  await expect(page.locator('#skills, .skills-grid')).toHaveCount(0)
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
 })

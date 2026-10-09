@@ -96,7 +96,7 @@ test('tall sections are never gated by nested reveals in a short viewport', asyn
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.setViewportSize({ width: 390, height: 360 })
   await page.goto('/')
-  for (const selector of ['.ops-grid', '.response-grid', '.case-table', '.skills-grid']) {
+  for (const selector of ['.ops-grid', '.response-grid', '.case-table']) {
     await expect(page.locator(selector)).toHaveCSS('opacity', '1')
     await expect(page.locator(selector)).toHaveCSS('transform', 'none')
   }
@@ -131,7 +131,7 @@ test('artifact transitions stay brief and motion-off content remains keyboard vi
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('/')
   await page.getByRole('tab', { name: 'Network', exact: true }).click()
-  const panel = page.getByRole('tabpanel')
+  const panel = page.locator('.forensic-panel').getByRole('tabpanel')
   await expect(panel).toHaveCSS('animation-name', 'lab-content-arrive')
   await expect(panel).toHaveCSS('animation-duration', '0.18s')
   await page.getByRole('button', { name: 'Motion on', exact: true }).click()

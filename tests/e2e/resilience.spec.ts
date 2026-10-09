@@ -1,5 +1,6 @@
 import { test, expect, type Route } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
+import { feedSources, openSourceDetails, selectFeed } from './feed-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
@@ -53,8 +54,12 @@ test('an initial total upstream outage does not invent records', async ({ page }
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Source error')
-  await expect(page.locator('.osint-list a')).toHaveCount(0)
-  await expect(page.locator('.empty-feed')).toHaveCount(3)
+  for (const source of feedSources) {
+    await selectFeed(page, source.key)
+    await expect(page.locator('.osint-list a')).toHaveCount(0)
+    await expect(page.locator('.osint-list .empty-feed')).toHaveCount(1)
+    await expect(page.locator('.osint-list .empty-feed')).toContainText('unavailable')
+  }
   await expect(page.locator('#intel-announcement')).toContainText('unavailable')
   await expect(page.getByRole('button', { name: 'Refresh sources' })).toBeEnabled()
 })
@@ -67,6 +72,9 @@ test('healthy empty sources remain current without an outage notice', async ({ p
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await expect(page.locator('.feed-notice')).toHaveCount(0)
   await expect(page.getByText('No CISA records are available.', { exact: true })).toBeVisible()
+  await selectFeed(page, 'advisory')
+  await expect(page.getByText('No Microsoft records are available.', { exact: true })).toBeVisible()
+  await selectFeed(page, 'news')
   await expect(page.getByText('No cyber news records are available.', { exact: true })).toBeVisible()
 })
 
@@ -79,7 +87,11 @@ test('an empty failed server snapshot cannot erase cached browser records', asyn
   await page.getByRole('button', { name: 'Refresh sources' }).click()
   await expect(page.locator('.live-status-badge')).toHaveText('Stale data')
   await expect(page.getByRole('link', { name: /Open CISA record/ })).toBeVisible()
+  await selectFeed(page, 'news')
   await expect(page.getByRole('link', { name: /Open discussion record/ })).toBeVisible()
+  await selectFeed(page, 'advisory')
+  await expect(page.getByRole('link', { name: /Open Microsoft advisory/ })).toBeVisible()
+  await openSourceDetails(page)
   await expect(page.locator('.source-health-panel')).toContainText('previous browser snapshot')
 })
 

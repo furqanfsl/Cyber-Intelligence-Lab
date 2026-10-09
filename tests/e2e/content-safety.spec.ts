@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
+import { selectFeed } from './feed-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
@@ -12,7 +13,9 @@ test('source titles containing markup cannot create active elements', async ({ p
   } }))
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await selectFeed(page, 'news')
   await expect(page.locator('#news-records').getByText(title, { exact: true })).toBeVisible()
+  await selectFeed(page, 'advisory')
   await expect(page.locator('#advisory-records').getByText(title, { exact: true })).toBeVisible()
   await expect(page.locator('.hero-brief').getByText(title, { exact: true })).toBeVisible()
   await expect(page.locator('.osint-list img, .hero-brief img')).toHaveCount(0)

@@ -1,0 +1,52 @@
+[
+  {
+    "timestamp": "2026-10-09T10:00:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4625,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T10:00:30.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4625,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T10:01:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4624,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T10:03:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4624,
+    "user": "synthetic-user",
+    "sourceIp": "198.51.100.18",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T10:04:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Sysmon",
+    "eventId": 1,
+    "user": "synthetic-user",
+    "sourceIp": "",
+    "process": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+    "commandLine": "pwsh.exe -NoProfile -File synthetic-maintenance.ps1"
+  }
+]

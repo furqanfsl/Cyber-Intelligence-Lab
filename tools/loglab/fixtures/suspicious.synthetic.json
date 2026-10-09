@@ -1,0 +1,102 @@
+[
+  {
+    "timestamp": "2026-10-09T09:00:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4625,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T09:00:30.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4625,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T09:01:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4625,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T09:01:30.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4625,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T09:02:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4625,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T09:02:30.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4625,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T09:04:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4624,
+    "user": "synthetic-user",
+    "sourceIp": "192.0.2.42",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T09:05:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Sysmon",
+    "eventId": 1,
+    "user": "synthetic-user",
+    "sourceIp": "",
+    "process": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "commandLine": "powershell.exe -NoProfile -EncodedCommand UwBZAE4AVABIAEUAVABJAEMALQBEAEUATQBPAE8A"
+  },
+  {
+    "timestamp": "2026-10-09T09:06:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Security",
+    "eventId": 4624,
+    "user": "synthetic-user",
+    "sourceIp": "198.51.100.18",
+    "process": "",
+    "commandLine": ""
+  },
+  {
+    "timestamp": "2026-10-09T09:07:00.000Z",
+    "host": "SYNTHETIC-LAB-01",
+    "channel": "Sysmon",
+    "eventId": 1,
+    "user": "synthetic-user",
+    "sourceIp": "",
+    "process": "C:\\Windows\\System32\\notepad.exe",
+    "commandLine": "notepad.exe synthetic-notes.txt"
+  }
+]

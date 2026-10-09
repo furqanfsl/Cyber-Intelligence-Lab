@@ -11,6 +11,8 @@
 | `npm run build` | Production type check and Vite bundle |
 | `npm run check` | Lint, type checking, coverage-gated tests, and production build |
 | `npm run test:e2e` | Playwright desktop and mobile browser checks |
+| `npm run verify:local` | Running development page, checkout marker, transformed module, fonts and API contract |
+| `npm run verify:local -- --go-live` | The same smoke check plus the actual Live Server startup page and assets on port 5500 |
 
 Tests use Node.js 24+ with native TypeScript stripping. Type stripping does **not** replace type checking; run both `typecheck` and `test`.
 
@@ -64,6 +66,50 @@ for the native runner's limitations.
 - Feed tools cover snapshot search, no-match recovery, expanded records, self-hosted fonts, active navigation and coherent simulation totals.
 
 Mocked tests do not prove upstream availability. For a live smoke check, start the app and inspect `/api/live-intel` plus the source-health panel. Do not turn external-service availability into a flaky CI requirement.
+
+Start `npm run dev` before `verify:local`; the verifier does not launch servers or
+prove React rendered. Open the development address printed by the launcher in a
+browser too. For `--go-live`, restart the VS Code Live Server extension after
+settings changes. Check its entry page with Vite stopped, then start Vite and
+confirm the browser opens the dashboard. A substitute static server or routed
+browser fixture does not verify the actual extension.
+
+## Local log investigation
+
+`tests/client/log-analysis.test.mjs` exercises bounded atomic JSON/NDJSON/CSV
+parsing, deduplication, timestamps, rule thresholds, exact identity correlation
+and benign cases. Native XML parsing is browser-only and is exercised by
+`tests/e2e/log-investigation.spec.ts`, including malformed XML and DTD rejection.
+Redaction tests verify allowlisted outputs omit arbitrary source identifiers,
+paths, commands, free text and filenames while retaining evidence references.
+
+Browser regressions cover imports without network uploads, candidate/evidence
+selection, false-positive guidance, search, severity filtering, pagination,
+analyst review, actual downloaded reports, explicit synthetic provenance,
+clear/reload behavior and narrow-screen layout. Imported files are never genuine
+personal logs in automated tests; fixtures are explicitly synthetic.
+
+For the optional Python/SQLite tool, run from the repository root with Python
+3.12 or later:
+
+```sh
+python -m unittest tools.loglab.test_loglab -v
+```
+
+On Windows, `py -3.12` can replace `python` when the Python launcher is installed.
+The tests use temporary SQLite databases and include cross-engine comparison
+with the TypeScript rules using Node 24+. They do not read Windows event channels,
+install Sysmon or change audit settings. The PowerShell exporter is a manual,
+authorized action; syntax/fixture validation alone does not prove permission or
+availability of a user's actual Security or Sysmon channel.
+
+Launcher tests inject installs and browser opening rather than running `npm ci`
+or opening real windows. They cover workspace identity, dependency fingerprints,
+bounded HTTP inspection, conflicts, failure paths and lock ownership. The Go
+Live suite covers stopped/ready guidance, bounded retry, nonlocal-origin refusal,
+no-JavaScript instructions and restored-page lifecycle cancellation. Synthetic
+`pagehide`/`pageshow` tests check handler behavior, not a guarantee that every
+browser will place the page in its back-forward cache.
 
 Failure screenshots and traces are written to `test-results/`. CI retains failed browser artifacts for seven days. These generated files are ignored by Git.
 

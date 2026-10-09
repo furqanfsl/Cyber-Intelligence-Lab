@@ -48,7 +48,7 @@ export async function expectCompleteDossier(page: Page, incident: DemoIncident) 
   for (const tab of Object.keys(scenario.artifacts) as ArtifactTab[]) {
     const artifact = scenario.artifacts[tab]
     await page.getByRole('tab', { name: artifact.label, exact: true }).click()
-    const panel = page.getByRole('tabpanel')
+    const panel = page.locator('.forensic-panel').getByRole('tabpanel')
     await expect(panel).toHaveAttribute('aria-labelledby', `artifact-tab-${tab}`)
     await expect(panel.locator('dt')).toHaveText(artifact.fields.map(([label]) => label))
     await expect(panel.locator('dd')).toHaveText(artifact.fields.map(([, value]) => value))

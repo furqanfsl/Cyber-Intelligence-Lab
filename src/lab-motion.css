@@ -1,8 +1,7 @@
 /* One quiet motion system. Content stays still; decoration stays in the diagram. */
 .site-shell .reveal,
 .site-shell .panel,
-.site-shell .case-row,
-.site-shell .skills-grid article {
+.site-shell .case-row {
   opacity: 1;
   transform: none;
   transition: border-color 180ms ease, background-color 180ms ease;

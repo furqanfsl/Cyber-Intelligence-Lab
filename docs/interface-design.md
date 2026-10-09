@@ -15,25 +15,44 @@ were copied into the application. The app reads official CISA and Microsoft MSRC
 records alongside unverified Hacker News community context. Its incident scenarios
 and topology remain explicitly illustrative.
 
+### Additional reference: God's Eye View
+
+[God's Eye View](https://github.com/bilawalsidhu/gods-eye-view) was reviewed as an
+additional reference for layered public-data exploration and explicit distinctions
+between observed, simulated and estimated data. Its keyless starting path is a
+useful direction for this lab's no-paid-AI workflow. No code, media, globe, voice
+service or provider credentials were imported from that project. This lab keeps
+its focus on local log evidence and reviewable candidate rules, not global
+surveillance or unsupported monitoring claims.
+
 ## Layout
 
-The connection and refresh controls occupy a static, full-width instrument strip.
-They deliberately do not stick to the viewport. The three source panels have equal
-widths, aligned headings, equal record rows in the default five-record view, and
-aligned footer edges. Source health sits outside the feed grid, so no
-sticky control can travel underneath it.
+The connection and refresh controls occupy a compact, static full-width strip.
+They deliberately do not stick to the viewport. One active source panel replaces
+the simultaneous three-column feed layout. CISA opens by default; Microsoft and
+Community remain available through labelled tabs with record counts. Left/Right,
+Home and End move focus and selection; the active tab alone is in the Tab order.
+Community records retain their unverified label rather than blending with official
+advisories. The interface ends with practice cases and a concise footer, not a
+learning/skills matrix.
 
-Above 1100px, **Show all records** gives each feed a keyboard-focusable
-scroll region. This avoids an uneven page when the official feeds return eight
-records and news returns twelve. At 1100px and below, panels stack with normal page scrolling. Search
-results always use natural content height; an empty search is not a blank scroll
-box. All record text remains available rather than being line-clamped.
+Search still covers every source. Tabs show matching counts, and an empty active
+source explains when matches exist in another tab. Switching sources neither
+fetches data nor starts the simulated replay. Each feed remembers its own expanded
+state. Above 1100px, **Show all records** gives the active feed a keyboard-focusable
+scroll region. At 1100px and below, records use normal page scrolling. Search results
+always use natural content height; an empty search is not a blank scroll box.
+All record text remains available rather than being line-clamped.
 
 Official publisher labels and the community feed's explicit unverified label
 distinguish authority without relying on colour. Microsoft records show both
 first publication and latest revision dates: an older release can be revised today.
-Source health follows the same display order. A keyboard-operable source-validation
-disclosure explains HTTPS, field validation and the limits of these checks.
+**Source status & timing** folds verbose refresh timing, cache explanations and
+source health out of the default view. Offline, stale and failure notices remain
+visible even when it is closed. Source health follows the tab order. A nested,
+keyboard-operable source-validation disclosure explains HTTPS, field validation
+and the limits of these checks; a short read-only/no-device-monitoring boundary
+remains visible outside the disclosure.
 
 ## Motion
 
@@ -96,3 +115,31 @@ entry (if needed) are retained in the queue, so it never grows past nine rows. N
 batches do not replace the selected dossier. Focusing the activity or queue pauses
 replay so moving rows cannot steal keyboard focus. Queue coverage and network
 evidence now follow these real in-memory fixtures instead of unrelated fixed stats.
+
+## Imported log investigations
+
+The primary action now opens a separate **Logs** workspace before public feeds.
+It uses the existing solid dark surfaces, self-hosted typography and restrained
+semantic colours. An empty state offers explicitly synthetic suspicious and
+benign examples; imported exports carry an unverified user-provided label.
+Source feeds and replay controls never operate on the imported records.
+
+File format/size guidance, local-only handling and visible error recovery sit
+beside the file input. Imports validate atomically and replacement resets filters,
+selection and manual review. A failed import leaves the previous dataset intact.
+All event strings are rendered as untrusted text; command lines require an
+explicit disclosure and are never decoded or executed.
+
+Desktop uses a candidate list and evidence pane. On narrow screens they stack
+in reading order. Candidate lists and event tables are paginated rather than
+mounting thousands of controls. The table has its own keyboard-focusable scroll
+region and a visible sideways-scroll hint on mobile, never page-wide overflow.
+All five navigation destinations remain visible at320px without shrinking the
+existing labels. Selection and severity use text plus pressed state, not colour
+alone. Analyst review is explicitly manual, not an automated verdict.
+
+Redacted Markdown/JSON exports use an allowlist: aliases replace hosts, accounts
+and addresses; command lines, process paths, source IDs and filenames are omitted.
+Exact UTC timestamps remain and the UI asks the user to review before sharing.
+Rules, false-positive explanations, data-quality notices and the optional
+Python/SQLite path are available progressively without obscuring the core task.

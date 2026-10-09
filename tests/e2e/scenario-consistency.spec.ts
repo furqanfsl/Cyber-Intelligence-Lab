@@ -29,10 +29,10 @@ test('switching from ransomware to cloud policy never leaves ransomware evidence
   const cloud = session.initialIncidents.find((item) => item.templateId === 'E09-7742')!
   await selectForPageReview(page, page.locator(`.queue-row[data-incident-id="${ransomware.id}"]`))
   await page.getByRole('tab', { name: 'Registry', exact: true }).click()
-  await expect(page.getByRole('tabpanel')).toContainText('DemoUpdater')
+  await expect(page.locator('.forensic-panel').getByRole('tabpanel')).toContainText('DemoUpdater')
   await selectForPageReview(page, page.locator(`.queue-row[data-incident-id="${cloud.id}"]`))
   await expect(page.getByRole('tab', { name: 'Registry', exact: true })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('tabpanel')).toContainText('Not applicable: managed cloud storage')
+  await expect(page.locator('.forensic-panel').getByRole('tabpanel')).toContainText('Not applicable: managed cloud storage')
   for (const tab of ['File', 'Network', 'Process', 'Registry']) {
     await page.getByRole('tab', { name: tab, exact: true }).click()
     await expect(page.locator('#response')).not.toContainText(/WINWORD|DemoUpdater|Lateral movement|Confidence high/)

@@ -13,6 +13,7 @@ import type { ArtifactTab } from './data/scenarios'
 import { LiveIntelSection } from './components/LiveIntelSection'
 import { SimulationConsole } from './components/SimulationConsole'
 import { IncidentWorkspace } from './components/IncidentWorkspace'
+import { LogInvestigation } from './components/LogInvestigation'
 import './App.css'
 import './lab-motion.css'
 
@@ -174,6 +175,7 @@ function App() {
       <Navigation />
       <main id="main-content" tabIndex={-1}>
         <Hero snapshot={snapshot} state={intel} motion={motion} />
+        <LogInvestigation />
         <LiveIntelSection liveIntel={intel.data} state={intel} onRefresh={intel.refresh} />
         <ThreatOperations
           snapshot={snapshot}
@@ -198,7 +200,6 @@ function App() {
         />
         <IncidentResponse selectedAlert={selectedAlert} />
         <CaseStudies />
-        <SkillMatrix />
       </main>
       <Footer />
       <IncidentWorkspace incident={workspaceOpen ? selectedAlert : null} onClose={() => setWorkspaceOpen(false)} motionEnabled={motion.enabled} />
@@ -219,7 +220,7 @@ function Navigation() {
     <header className="nav-frame" aria-label="Primary navigation">
       <a className="brand" href="#top" aria-label="Cyber Intelligence Lab home"><span className="brand-mark">CIL<span className="brand-period">.</span></span><span>Cyber Intelligence Lab</span></a>
       <nav className="nav-links" aria-label="Primary navigation">
-        {[['live-intel', 'Live intel'], ['operations', 'Operations'], ['response', 'Response'], ['cases', 'Cases'], ['skills', 'Skills']].map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? 'location' : undefined}>{label}</a>)}
+        {[['investigation', 'Logs'], ['live-intel', 'Live intel'], ['operations', 'Operations'], ['response', 'Response'], ['cases', 'Cases']].map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? 'location' : undefined}>{label}</a>)}
       </nav>
     </header>
   )
@@ -235,17 +236,17 @@ function Hero({ snapshot, state, motion }: { snapshot: SimulationSnapshot; state
         <p className="kicker">Independent security engineering</p>
         <h1><span>Cyber</span>{' '}<span>Intelligence</span>{' '}<span>Lab</span></h1>
         <p className="hero-subtitle">Read the signals.{' '}<br /><strong>Understand the response.</strong></p>
-        <p className="hero-description">A hands-on workspace connecting real public advisories with randomized, explorable incident scenarios. Built for curious minds, not just security teams.</p>
+        <p className="hero-description">Investigate authorized log exports with transparent detection rules. Keep public security advisories and simulated practice scenarios clearly separate.</p>
         <div className="hero-actions" role="group" aria-label="Primary actions">
-          <a className="button button-primary" href="#live-intel"><span>Explore live intelligence</span><span className="button-glyph" aria-hidden="true">↗</span></a>
-          <a className="button button-secondary" href="#operations"><span>Launch console</span><span className="button-glyph" aria-hidden="true">↗</span></a>
+          <a className="button button-primary" href="#investigation"><span>Investigate local logs</span><span className="button-glyph" aria-hidden="true">↗</span></a>
+          <a className="button button-secondary" href="#live-intel"><span>Explore live intelligence</span><span className="button-glyph" aria-hidden="true">↗</span></a>
         </div>
         <dl className="signal-strip" aria-label="Workspace overview">
           <div><dt>{available ?? '—'}<span>/3</span></dt><dd>Connected public feeds</dd></div>
           <div><dt>{count ?? '—'}</dt><dd>{state.status === 'live' && state.isOnline ? 'Retrieved records' : 'Saved records'}</dd></div>
           <div><dt>05</dt><dd>Scenario families</dd></div>
         </dl>
-        <p className="hero-disclosure">Read-only public intelligence. Simulated incident response. No network monitoring or security actions.</p>
+        <p className="hero-disclosure">Local log analysis. Read-only public intelligence. Labelled simulations. No continuous monitoring, paid AI or security actions.</p>
       </div>
       <div className="hero-console reveal delay-1" role="group" aria-label="Illustrative topology and public-source preview">
         <div className="console-topline">
@@ -712,41 +713,12 @@ function CaseStudies() {
   )
 }
 
-function SkillMatrix() {
-  return (
-    <section className="skills-section" id="skills">
-      <div className="skills-copy reveal">
-        <p className="kicker">Learning areas</p>
-        <h2>Security workflows, explained through examples.</h2>
-        <p>
-          The React interface demonstrates filtering, source refresh, and accessible navigation. Security scenarios are illustrative, not evidence of completed operations or tool integrations.
-        </p>
-      </div>
-      <div className="skills-grid reveal delay-1">
-        {[
-          ['Threat intelligence', 'Example indicators, actor context, and simulated map views'],
-          ['Incident response', 'Containment plans, timeline reconstruction, prioritized actions'],
-          ['MITRE mapping', 'Tactics and techniques attached to every alert workflow'],
-          ['Forensic analysis', 'Artifacts, hashes, process chain, and evidence summaries'],
-          ['Cloud security', 'Illustrative exposure findings and remediation planning'],
-          ['Frontend engineering', 'React, TypeScript, responsive UI, accessible interactions'],
-        ].map(([title, copy]) => (
-          <article key={title}>
-            <h3>{title}</h3>
-            <p>{copy}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 function Footer() {
   return (
     <footer className="footer">
       <div>
         <strong>Cyber Intelligence Lab</strong>
-        <span>Defensive simulation with separate public-source intelligence.</span>
+        <span>Local evidence analysis. Public-source context. Clearly labelled exercises.</span>
       </div>
       <a className="button button-primary" href="#top">
         <span>Back to top</span>

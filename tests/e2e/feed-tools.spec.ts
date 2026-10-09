@@ -1,24 +1,34 @@
 import { test, expect } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
+import { feedSources, openSourceDetails, selectFeed } from './feed-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
 })
 
-test('snapshot search filters records without hiding source health and clears cleanly', async ({ page }) => {
+test('snapshot search filters every source without changing health or the selected feed', async ({ page }) => {
   await page.goto('/')
   const search = page.getByRole('searchbox', { name: 'Search this snapshot' })
   await search.fill('  cve-2026-12345  ')
   await expect(page.locator('#kev-records a')).toHaveCount(1)
-  await expect(page.locator('#news-records a')).toHaveCount(0)
-  await expect(page.locator('.intel-results')).toHaveText('1 matching records')
+  await expect(page.locator('#news-records')).toHaveCount(0)
+  await expect(page.locator('.intel-results')).toHaveText('1 matching record across all sources')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await search.fill('not-in-the-snapshot')
   await expect(page.locator('#kev-records')).toHaveText('No vulnerabilities match this search.')
+  await selectFeed(page, 'news')
   await expect(page.locator('#news-records')).toHaveText('No discussions match this search.')
+  await selectFeed(page, 'advisory')
+  await expect(page.locator('#advisory-records')).toHaveText('No advisories match this search.')
   await page.getByRole('button', { name: 'Clear search' }).click()
   await expect(search).toHaveValue('')
-  await expect(page.locator('.osint-list a')).toHaveCount(3)
+  await expect(page.locator('.osint-list a')).toHaveCount(1)
+  await openSourceDetails(page)
+  await expect(page.locator('.source-row > span')).toHaveText(['Available', 'Available', 'Available'])
+  for (const source of feedSources) {
+    await selectFeed(page, source.key)
+    await expect(page.locator(`#${source.records} a`)).toHaveCount(1)
+  }
 })
 
 test('expanded feed reveals all available records and restores compact mode', async ({ page }) => {
@@ -34,7 +44,7 @@ test('expanded feed reveals all available records and restores compact mode', as
   const expand = page.getByRole('button', { name: 'Show all records', exact: true })
   await expand.click()
   await expect(page.locator('#kev-records a')).toHaveCount(8)
-  const collapse = page.getByRole('button', { name: 'Show latest 5 per feed', exact: true })
+  const collapse = page.getByRole('button', { name: 'Show latest 5', exact: true })
   await expect(collapse).toHaveAttribute('aria-expanded', 'true')
   await collapse.click()
   await expect(page.locator('#kev-records a')).toHaveCount(5)

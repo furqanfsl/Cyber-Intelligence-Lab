@@ -21,6 +21,20 @@ coverage/
 playwright-report/
 test-results/
 
+# Private investigation inputs, local SQLite stores and Python cache
+private-logs/
+data/loglab/
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+__pycache__/
+*.pyc
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

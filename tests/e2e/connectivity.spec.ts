@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
+import { openSourceDetails, selectFeed } from './feed-helpers.ts'
 
 function refreshField(page: Page, label: string) {
   return page.locator('.automation-list > div').filter({
@@ -16,6 +17,7 @@ test('going offline retains records, pauses checks, and disables manual refresh'
   })
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await openSourceDetails(page)
   const lastChecked = await refreshField(page, 'Last checked').textContent()
 
   await context.setOffline(true)
@@ -24,6 +26,7 @@ test('going offline retains records, pauses checks, and disables manual refresh'
   await expect(refreshField(page, 'Next check')).toHaveText('Paused while offline')
   await expect(page.locator('#intel-announcement')).toContainText('Saved intelligence records may be out of date')
   await expect(page.getByRole('link', { name: /Open CISA record/ })).toBeVisible()
+  await selectFeed(page, 'news')
   await expect(page.getByRole('link', { name: /Open discussion record/ })).toBeVisible()
   await expect(page.locator('.source-row > span')).toHaveText(['unverified', 'unverified', 'unverified'])
 
@@ -43,6 +46,7 @@ test('an initially offline browser waits for connectivity before its first sourc
   })
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Offline')
+  await openSourceDetails(page)
   await expect(refreshField(page, 'Last checked')).toHaveText('Waiting for first check')
   await expect(refreshField(page, 'Next check')).toHaveText('Paused while offline')
   await expect(page.locator('.osint-list a')).toHaveCount(0)
@@ -74,6 +78,7 @@ test('reconnecting makes one immediate check and keeps saved records visible unt
   await context.setOffline(false)
   await expect.poll(() => Boolean(pending)).toBe(true)
   await expect(page.locator('.live-status-badge')).toHaveText('Refreshing')
+  await openSourceDetails(page)
   await expect(page.locator('.live-refresh')).toBeDisabled()
   await expect(page.locator('.live-intel-grid')).toHaveAttribute('aria-busy', 'true')
   await expect(refreshField(page, 'Next check')).toHaveText('Checking sources now')
@@ -101,6 +106,7 @@ test('a successful check advances its timestamp even when the shared snapshot is
   })
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await openSourceDetails(page)
   const lastChecked = await refreshField(page, 'Last checked').textContent()
   const snapshot = await refreshField(page, 'Snapshot generated').textContent()
 
@@ -111,6 +117,7 @@ test('a successful check advances its timestamp even when the shared snapshot is
   await expect(refreshField(page, 'Last checked')).not.toHaveText(lastChecked!)
   await expect(refreshField(page, 'Last checked')).toContainText(/GMT/)
   await expect(refreshField(page, 'Snapshot generated')).toHaveText(snapshot!)
+  await selectFeed(page, 'news')
   await expect(page.locator('#news-records')).toContainText(intelligence.news[0].title)
   expect(requests).toBe(2)
 })
@@ -131,6 +138,8 @@ test('the countdown leads to an automatic source update without another click', 
   })
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await openSourceDetails(page)
+  await selectFeed(page, 'news')
   const firstCheck = await refreshField(page, 'Last checked').textContent()
   const firstSnapshot = await refreshField(page, 'Snapshot generated').textContent()
   await expect(page.locator('#news-records')).toContainText(intelligence.news[0].title)
@@ -139,6 +148,7 @@ test('the countdown leads to an automatic source update without another click', 
   await expect(refreshField(page, 'Next check')).toContainText(/In (29|30|31)s/)
   expect(requests).toBe(1)
   await page.clock.fastForward(30_100)
+  await expect(page.locator('#news-feed-tab')).toHaveAttribute('aria-selected', 'true')
   await expect(page.locator('#news-records')).toContainText(updated.news[0].title)
   await expect(page.locator('#news-records')).not.toContainText(intelligence.news[0].title)
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')

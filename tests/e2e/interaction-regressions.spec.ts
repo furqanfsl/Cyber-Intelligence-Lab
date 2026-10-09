@@ -60,8 +60,8 @@ test('all artifact tabs expose distinct panels and one tab stop', async ({ page 
   for (const name of ['File', 'Network', 'Process', 'Registry']) {
     await page.getByRole('tab', { name, exact: true }).click()
     await expect(page.getByRole('tab', { name, exact: true })).toHaveAttribute('aria-selected', 'true')
-    await expect(page.locator('[role="tab"][tabindex="0"]')).toHaveCount(1)
-    const panel = page.getByRole('tabpanel')
+    await expect(page.locator('.forensic-panel [role="tab"][tabindex="0"]')).toHaveCount(1)
+    const panel = page.locator('.forensic-panel').getByRole('tabpanel')
     await expect(panel).toHaveAttribute('aria-labelledby', 'artifact-tab-' + name.toLowerCase())
     contents.add((await panel.textContent())!)
   }

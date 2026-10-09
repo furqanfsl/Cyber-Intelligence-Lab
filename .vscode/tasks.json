@@ -31,6 +31,7 @@
         }
       },
       "runOptions": {
+        "runOn": "folderOpen",
         "instanceLimit": 1
       }
     }

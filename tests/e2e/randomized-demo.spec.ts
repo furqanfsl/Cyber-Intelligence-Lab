@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
 import { createDemoIncident } from '../../src/lib/demo-scenarios.ts'
 import { expectCompleteDossier, readDemoSession, selectForPageReview } from './demo-helpers.ts'
+import { readAllFeedRecords } from './feed-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.clock.install()
@@ -194,7 +195,7 @@ test('selecting generated incidents and regenerating demos never changes or refe
   })
   await page.goto('/')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
-  const records = await page.locator('.osint-list').allTextContents()
+  const records = await readAllFeedRecords(page)
   const sourceCount = requests
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await selectForPageReview(page, page.locator('.simulation-event-list li button').first())
@@ -202,7 +203,7 @@ test('selecting generated incidents and regenerating demos never changes or refe
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await page.clock.fastForward(2600)
   await selectForPageReview(page, page.locator('.simulation-event-list li button').first())
-  expect(await page.locator('.osint-list').allTextContents()).toEqual(records)
+  expect(await readAllFeedRecords(page)).toEqual(records)
   expect(requests).toBe(sourceCount)
   await expect(page.locator('.signal-strip dt').nth(1)).toHaveText('3')
 })

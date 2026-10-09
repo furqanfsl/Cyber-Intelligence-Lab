@@ -1,8 +1,10 @@
 {
   "liveServer.settings.host": "127.0.0.1",
   "liveServer.settings.port": 5500,
+  "liveServer.settings.root": "/preview",
+  "liveServer.settings.file": "index.html",
   "liveServer.settings.proxy": {
-    "enable": true,
+    "enable": false,
     "baseUri": "/",
     "proxyUri": "http://127.0.0.1:5173"
   }

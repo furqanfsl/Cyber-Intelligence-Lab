@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
+import { readAllFeedRecords } from './feed-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.clock.install()
@@ -26,7 +27,7 @@ test('Start immediately confirms a running demo, adds events and preserves real 
   await expect(page.locator('.simulation-event-list li')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Reset demo', exact: true })).toBeDisabled()
   const selected = await page.locator('.queue-row[aria-pressed="true"]').getAttribute('aria-label')
-  const records = await page.locator('.osint-list').allTextContents()
+  const records = await readAllFeedRecords(page)
 
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await expect(console).toHaveAttribute('data-state', 'running')
@@ -38,7 +39,7 @@ test('Start immediately confirms a running demo, adds events and preserves real 
   await expect(page.locator('.simulation-event-list li')).toHaveCount(1)
   await expect(page.locator('.simulation-event-list li').first()).toHaveAttribute('data-batch', '1')
   await expect(page.locator('.map-panel')).toContainText(/no (?:real )?traffic|not live traffic/i)
-  expect(await page.locator('.osint-list').allTextContents()).toEqual(records)
+  expect(await readAllFeedRecords(page)).toEqual(records)
   await expect(page.locator('.queue-row[aria-pressed="true"]')).toHaveAttribute('aria-label', selected!)
 })
 

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="noindex" />
+    <title>Open Cyber Intelligence Lab</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/launch.css" />
+    <script src="/launch.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header>Cyber Intelligence Lab</header>
+      <section aria-labelledby="launch-title">
+        <p class="eyebrow">Local preview</p>
+        <h1 id="launch-title">Open Cyber Intelligence Lab</h1>
+        <p id="launch-status" role="status">Checking the local preview…</p>
+        <ol>
+          <li>Double-click <strong>start.bat</strong> in the project folder.<br />In VS Code, you can press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd> instead.</li>
+          <li>Keep the server terminal open. This page opens the lab when it is ready.</li>
+        </ol>
+        <p class="alternative">Prefer the terminal? Run <code>npm run dev</code> in the project folder.</p>
+        <div class="actions">
+          <button type="button" id="retry">Retry connection</button>
+          <a id="open-preview" href="http://127.0.0.1:5173/">Open preview</a>
+        </div>
+        <noscript>Automatic opening needs JavaScript. Start the server, then choose Open preview.</noscript>
+        <p class="help">Go Live opens this launcher; it cannot start Node.js itself. You can allow VS Code’s automatic startup task when opening this project.</p>
+      </section>
+      <footer>This preview runs on your computer. It is not a publicly hosted website.</footer>
+    </main>
+  </body>
+</html>
