@@ -26,14 +26,12 @@ connection address, not proof of a person's identity or original IP.
 
 The app has six focused views instead of one long dashboard:
 
-| Navigation | Purpose | Bookmark fragment |
-| --- | --- | --- |
-| Overview | A compact chooser for the task you want to do | `#overview` |
-| PC | Real, opt-in monitoring of the local Windows computer | `#endpoint` |
-| Logs | Import, analyze and report on an authorized export | `#investigation` |
-| Live intel | Public advisories and separately labelled community context | `#live-intel` |
-| Training | Synthetic incidents, replay, evidence and response practice | `#operations` |
-| Cases | Fictional case studies and example outcomes | `#cases` |
+- **Overview** (`#overview`): choose the task you want to do.
+- **PC** (`#endpoint`): real, opt-in monitoring of the local Windows computer.
+- **Logs** (`#investigation`): import, analyze and report on an authorized export.
+- **Live intel** (`#live-intel`): public advisories and separately labelled community context.
+- **Training** (`#operations`): synthetic incidents, replay, evidence and response practice.
+- **Cases** (`#cases`): fictional case studies and example outcomes.
 
 Only the selected workspace is visible. Browser Back/Forward and bookmarks work;
 older section fragments, including `#response`, still open the relevant view.
