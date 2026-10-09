@@ -39,7 +39,7 @@ async function expectWorkspaceDossier(page: Page, incident: DemoIncident) {
 }
 
 test('queue investigations show matching complete evidence and response without carrying over a previous case', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const session = await readDemoSession(page)
   const ransomware = session.initialIncidents.find((incident) => incident.templateId === 'A78-4319')!
   const cloud = session.initialIncidents.find((incident) => incident.templateId === 'E09-7742')!
@@ -58,7 +58,7 @@ test('queue investigations show matching complete evidence and response without 
 })
 
 test('generated activity opens its own randomized dossier inside the investigation', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const session = await readDemoSession(page)
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await page.clock.fastForward(2600)
@@ -70,7 +70,7 @@ test('generated activity opens its own randomized dossier inside the investigati
 })
 
 test('investigation traps keyboard focus, blocks background focus and restores its opener on Escape', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const row = page.locator('.queue-row').first()
   await row.focus()
   await page.keyboard.press('Enter')
@@ -95,7 +95,7 @@ test('investigation traps keyboard focus, blocks background focus and restores i
 })
 
 test('investigation artifact tabs support arrows and Home/End without affecting the background viewer', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('tab', { name: 'Network', exact: true }).click()
   await page.locator('.queue-row').first().click()
   const workspace = page.locator('dialog.incident-workspace')
@@ -116,7 +116,7 @@ test('investigation artifact tabs support arrows and Home/End without affecting 
 })
 
 test('review pauses generation and closing the investigation never silently resumes it', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await page.locator('.simulation-event-list li button').first().click()
   await expect(page.locator('.simulation-console')).toHaveAttribute('data-state', 'paused')
@@ -132,7 +132,7 @@ test('review pauses generation and closing the investigation never silently resu
 })
 
 test('evidence and response align side by side on desktop and stack without clipping at 320px', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.locator('.queue-row').first().click()
   const workspace = page.locator('dialog.incident-workspace')
   for (const width of [1440, 320]) {
@@ -161,7 +161,7 @@ test('evidence and response align side by side on desktop and stack without clip
 
 test('reduced-motion investigation opens without animation and backdrop dismissal restores focus', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/')
+  await page.goto('/#operations')
   const row = page.locator('.queue-row').first()
   await row.click()
   const workspace = page.locator('dialog.incident-workspace')
@@ -175,7 +175,7 @@ test('reduced-motion investigation opens without animation and backdrop dismissa
 
 test('mobile investigation section controls jump directly between evidence and response without losing Close', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 })
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.locator('.queue-row').first().click()
   const workspace = page.locator('dialog.incident-workspace')
   for (const [name, paneName] of [['Response plan', 'response'], ['Evidence', 'evidence']] as const) {
@@ -198,7 +198,7 @@ test('normal motion uses brief modal fades and closing restores focus after the 
   // Freeze before navigation; the browser's controlled clock may run ahead of wall time.
   await page.clock.pauseAt(new Date(Date.now() + 60_000))
   await page.emulateMedia({ reducedMotion: 'no-preference' })
-  await page.goto('/')
+  await page.goto('/#operations')
   const row = page.locator('.queue-row').first()
   await row.click()
   const workspace = page.locator('dialog.incident-workspace')

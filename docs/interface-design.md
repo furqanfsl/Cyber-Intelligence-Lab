@@ -27,14 +27,34 @@ surveillance or unsupported monitoring claims.
 
 ## Layout
 
+### Focused navigation
+
+The former single scrolling dashboard is split into six bookmarkable views:
+Overview, PC, Logs, Live intel, Training and Cases. Hash navigation needs no
+new router dependency or server-side path rewriting. Existing section links
+remain valid, including `#response` inside Training. Browser history, reload,
+keyboard navigation and a helpful unknown-destination state are part of the
+navigation contract.
+
+Overview is a compact task chooser, not a map or a wall of demo statistics.
+Each view shares one content-width and gutter system. In particular, PC and
+Logs no longer use different 1800/1600px outer frames or create stair-stepped
+borders. Main headings, content and footer edges align across views.
+
+Views mount when first visited. Previously visited views remain mounted but
+hidden and inert, preserving imported tab-memory investigations without placing
+their controls in the focus order. Navigating away never starts or stops the
+local collector. Leaving Training pauses replay and closes an open practice
+dialog; focus must not return to an opener in a hidden view.
+
 The connection and refresh controls occupy a compact, static full-width strip.
 They deliberately do not stick to the viewport. One active source panel replaces
 the simultaneous three-column feed layout. CISA opens by default; Microsoft and
 Community remain available through labelled tabs with record counts. Left/Right,
 Home and End move focus and selection; the active tab alone is in the Tab order.
 Community records retain their unverified label rather than blending with official
-advisories. The interface ends with practice cases and a concise footer, not a
-learning/skills matrix.
+advisories. Practice cases have a separate view. Each view has a concise footer,
+not a learning/skills matrix.
 
 Search still covers every source. Tabs show matching counts, and an empty active
 source explains when matches exist in another tab. Switching sources neither
@@ -56,7 +76,7 @@ remains visible outside the disclosure.
 
 ## Motion
 
-- The hero's **Motion on/off** control changes decorative motion, not the separate
+- Training's **Motion on/off** control changes decorative motion, not the separate
   incident simulation. The browser stores the preference locally as `cil-motion`.
   If storage is unavailable, the control still works for the current session.
 - The operating system's reduced-motion preference takes priority over a saved
@@ -118,8 +138,8 @@ evidence now follow these real in-memory fixtures instead of unrelated fixed sta
 
 ## Real endpoint workspace
 
-The primary hero action and **PC** navigation open real own-PC monitoring before
-imported logs, public advisories and practice scenarios. It contains no sample
+The Overview action and **PC** navigation open a dedicated real own-PC view,
+separate from imported logs, public advisories and practice scenarios. It contains no sample
 data. Solid dark surfaces and restrained colour keep actual state and controls
 readable. Collection starts only after authorization and an explicit Start.
 Stop clears bounded server history; closing a browser tab does not stop it.
@@ -146,7 +166,7 @@ readiness claim. See [endpoint monitoring](endpoint-monitor.md) for exact limits
 
 ## Imported log investigations
 
-The secondary **Investigate local logs** action opens an import workspace before public feeds.
+**Logs** and **Investigate local logs** open a dedicated import workspace.
 It uses the existing solid dark surfaces, self-hosted typography and restrained
 semantic colours. An empty state offers explicitly synthetic suspicious and
 benign examples; imported exports carry an unverified user-provided label.
@@ -162,7 +182,7 @@ Desktop uses a candidate list and evidence pane. On narrow screens they stack
 in reading order. Candidate lists and event tables are paginated rather than
 mounting thousands of controls. The table has its own keyboard-focusable scroll
 region and a visible sideways-scroll hint on mobile, never page-wide overflow.
-All five navigation destinations remain visible at320px without shrinking the
+All six navigation destinations remain available on narrow screens without shrinking the
 existing labels. Selection and severity use text plus pressed state, not colour
 alone. Analyst review is explicitly manual, not an automated verdict.
 

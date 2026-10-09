@@ -22,6 +22,30 @@ The [real-incident boundaries](docs/real-incident-workflow.md) explain optional
 future integrations and attribution limits. A VPN exit address is an observed
 connection address, not proof of a person's identity or original IP.
 
+## Choose a workspace
+
+The app has six focused views instead of one long dashboard:
+
+| Navigation | Purpose | Bookmark fragment |
+| --- | --- | --- |
+| Overview | A compact chooser for the task you want to do | `#overview` |
+| PC | Real, opt-in monitoring of the local Windows computer | `#endpoint` |
+| Logs | Import, analyze and report on an authorized export | `#investigation` |
+| Live intel | Public advisories and separately labelled community context | `#live-intel` |
+| Training | Synthetic incidents, replay, evidence and response practice | `#operations` |
+| Cases | Fictional case studies and example outcomes | `#cases` |
+
+Only the selected workspace is visible. Browser Back/Forward and bookmarks work;
+older section fragments, including `#response`, still open the relevant view.
+The local server must remain running—these fragments do not start or publish it.
+
+Switching workspaces keeps this tab's imported investigation and visited views
+in memory. It does not upload or save private records. Reload or **Clear local dataset**
+discards imported records. Leaving Training pauses its replay. Leaving PC does
+**not** stop an explicitly started collector; return to PC and choose **Stop and
+clear monitoring**, or stop the local server. Notification settings remain
+tab-only, and the usual open-tab delivery limitations still apply.
+
 ## Monitor your Windows PC
 
 1. Start the app below on the Windows PC you own or are authorized to monitor.
@@ -212,7 +236,31 @@ server or replace the browser tests. Check Go Live both with Vite stopped
 this README aligned with the code, and update the dated record below with the
 actual results. Do not mark unchecked paths as passing.
 
-**Latest launch verification — 2026-10-09 (real endpoint monitoring):**
+**Latest launch verification — 2026-10-09 (focused workspace navigation):**
+
+- **Passed:** documented `npm run dev` reused this checkout on port 5173.
+  `npm run verify:local` and `npm run verify:local -- --go-live` passed.
+  Edge rendered all six views at 1853/1440px and 390/320px without page errors
+  or page-wide overflow. All three public sources were healthy when checked.
+  The actual Live Server page on port 5500 handed off to the running React app
+  and retained the Logs bookmark fragment.
+- **Passed:** `npm run check` with **358 unit/integration checks**, lint, strict
+  types, coverage gates and a production build; **382 production desktop/mobile
+  browser checks**; and **49 Python/SQLite checks** with existing Python 3.12.13.
+  Browser fixtures mock endpoint requests and never collect real PC logs.
+- **Inspected:** saved before/after desktop/mobile, error and doubled-text
+  screenshots. Unified the mismatched page frames, removed repeated introductions,
+  and fixed enlarged-text map collisions and split priority labels. History,
+  deep links, keyboard focus, retained imported records and Training pause
+  were checked; navigation neither starts nor stops monitoring.
+- **Not retested:** genuine Windows collection, native notifications,
+  stopped-server Go Live guidance, extension restart, interactive `start.bat`,
+  VS Code task approval or native Linux/macOS desktop operation. No startup,
+  port, dependency or workspace-setting changes were made in this UI update.
+  The collector remained stopped during actual browser checks. No public app
+  deployment was made; hosted checks are recorded separately in GitHub Actions.
+
+**Previous real endpoint monitoring release verification — 2026-10-09:**
 
 - **Passed:** documented `npm run dev` reused this checkout correctly. After
   stopping only the verified project-owned launcher for the stopped-server test,
@@ -342,8 +390,8 @@ until selected. Search covers the whole snapshot and each tab shows its matching
 count. Source status, timing and validation details are available on demand.
 Expanded records scroll within the active panel on larger screens and use natural
 page scrolling on mobile. The former learning/skills section has been removed;
-the workspace ends with its case studies and a concise footer.
-The hero's **Motion on/off** control manages the decorative scanner and fades;
+case studies now have their own view, and each workspace has a concise footer.
+Training's **Motion on/off** control manages the decorative scanner and fades;
 device reduced-motion settings always take priority. See the [interface design
 notes](docs/interface-design.md) for inspiration, interaction details and limits.
 
@@ -355,8 +403,8 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for focused changes and review checks, a
 
 Select a queue or Latest demo activity row to open evidence and response side by side. Close investigation (or Escape) returns to your previous position. Reviewing pauses replay; Resume simulation continues it. New scenario set, Reset demo or reload creates fresh, internally consistent teaching scenarios. Public intelligence feeds remain separate and unchanged.
 
-The **PC** navigation item opens real own-PC monitoring; **Investigate local logs**
-opens the separate export-based workflow. The latter's sample
+The **PC** navigation item opens real own-PC monitoring; **Logs** or **Investigate
+local logs** opens the separate export-based view. The latter's sample
 records, imported events, analyst review and reports never change the simulation
 queue or public-source snapshot. Three fixed rules do not replace a SIEM/EDR or
 establish that an unmatched system is safe.

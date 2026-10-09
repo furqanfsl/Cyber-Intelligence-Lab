@@ -11,20 +11,19 @@ test('source titles containing markup cannot create active elements', async ({ p
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
     ...intelligence, news: [{ ...intelligence.news[0], title }], advisories: [{ ...intelligence.advisories[0], title }],
   } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await selectFeed(page, 'news')
   await expect(page.locator('#news-records').getByText(title, { exact: true })).toBeVisible()
   await selectFeed(page, 'advisory')
   await expect(page.locator('#advisory-records').getByText(title, { exact: true })).toBeVisible()
-  await expect(page.locator('.hero-brief').getByText(title, { exact: true })).toBeVisible()
-  await expect(page.locator('.osint-list img, .hero-brief img')).toHaveCount(0)
+  await expect(page.locator('#live-intel img')).toHaveCount(0)
   expect(await page.locator('body').getAttribute('data-injected')).toBeNull()
 })
 
 test('remote error documents do not leak into dashboard notices', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ status: 502, contentType: 'text/html', body: '<h1>private-provider-token-123</h1>' }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Source error')
   await expect(page.locator('.feed-notice')).toContainText('service is unavailable')
   await expect(page.locator('body')).not.toContainText('private-provider-token-123')
@@ -32,7 +31,7 @@ test('remote error documents do not leak into dashboard notices', async ({ page 
 })
 
 test('production policy blocks injected inline script execution', async ({ page }) => {
-  const response = await page.goto('/')
+  const response = await page.goto('/#live-intel')
   expect(response?.headers()['content-security-policy']).toContain("script-src 'self'")
   await page.evaluate(() => {
     document.addEventListener('securitypolicyviolation', (event) => {

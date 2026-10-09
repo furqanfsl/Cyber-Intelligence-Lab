@@ -11,13 +11,14 @@ test('renders without errors or horizontal overflow', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Cyber Intelligence Lab')
-  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await expect(page.locator('.workspace-view[data-workspace="overview"]')).toBeVisible()
+  await expect(page.locator('.workspace-view:visible')).toHaveCount(1)
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   expect(errors).toEqual([])
   const missingAnchors = await page.locator('a[href^="#"]').evaluateAll((links) => links
     .map((link) => link.getAttribute('href')!)
-    .filter((href) => href.length > 1 && !document.getElementById(href.slice(1))))
+    .filter((href) => href.length > 1 && !['#overview', '#endpoint', '#investigation', '#live-intel', '#operations', '#cases'].includes(href) && !document.getElementById(href.slice(1))))
   expect(missingAnchors).toEqual([])
 })
 
@@ -30,7 +31,7 @@ test('skip link moves keyboard focus to main content', async ({ page }) => {
 })
 
 test('severity filtering keeps selection and details consistent', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const rows = page.locator('.queue-row')
   await expect(rows).toHaveCount(5)
   await page.locator('.severity-filter').getByRole('button', { name: 'high', exact: true }).click()
@@ -44,7 +45,7 @@ test('severity filtering keeps selection and details consistent', async ({ page 
 })
 
 test('forensic tabs support arrow, Home and End keys', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const file = page.getByRole('tab', { name: 'File', exact: true })
   await file.click()
   await page.keyboard.press('ArrowRight')
@@ -64,7 +65,7 @@ test('copy brief reports success only after clipboard write', async ({ page }) =
       writeText: async (text: string) => { document.documentElement.dataset.copiedBrief = text },
     } })
   })
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Copy brief', exact: true }).click()
   await expect(page.locator('.copy-feedback')).toHaveText('Demo brief copied to clipboard.')
   expect(await page.evaluate(() => document.documentElement.dataset.copiedBrief)).toContain('SIMULATED INCIDENT')
@@ -76,14 +77,14 @@ test('clipboard denial has an honest recovery message', async ({ page }) => {
       writeText: async () => { throw new Error('Permission denied') },
     } })
   })
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Copy brief', exact: true }).click()
   await expect(page.locator('.copy-feedback')).toContainText('Clipboard access is unavailable')
   await expect(page.getByRole('button', { name: 'Brief copied', exact: true })).toHaveCount(0)
 })
 
 test('simulation is opt-in and can be paused', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const start = page.getByRole('button', { name: 'Start simulation', exact: true })
   await expect(start).toHaveAttribute('aria-pressed', 'false')
   await start.click()
@@ -94,7 +95,7 @@ test('simulation is opt-in and can be paused', async ({ page }) => {
 })
 
 test('public source links use stable records and new-tab descriptions', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   const cisa = page.getByRole('link', { name: /Open CISA record/ })
   await expect(cisa).toHaveAttribute('href', intelligence.kev[0].url)
   await expect(cisa).toHaveAttribute('target', '_blank')
@@ -104,7 +105,7 @@ test('public source links use stable records and new-tab descriptions', async ({
 })
 
 test('failed refresh retains the last good records with a stale label', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await page.route('**/api/live-intel', (route) => route.fulfill({ status: 503, json: { error: 'Unavailable' } }))
   await page.getByRole('button', { name: 'Refresh sources' }).click()
@@ -115,7 +116,7 @@ test('failed refresh retains the last good records with a stale label', async ({
 
 test('malformed initial response is rejected without rendering unsafe links', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: { ...intelligence, kev: [{ ...intelligence.kev[0], url: 'javascript:alert(1)' }] } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Source error')
   await expect(page.locator('.feed-notice')).toContainText('invalid data')
   await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0)
@@ -125,7 +126,7 @@ test('partial provider failures are not reported as current', async ({ page }) =
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
     ...intelligence, news: [], sources: [intelligence.sources[0], { ...intelligence.sources[1], status: 'error', count: 0, message: 'News source unavailable.' }, intelligence.sources[2]],
   } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Partial sync')
   await expect(page.locator('.feed-notice')).toContainText('Some sources could not refresh')
   await openSourceDetails(page)
@@ -136,7 +137,7 @@ test('long public-source titles wrap inside cards', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
     ...intelligence, news: [{ ...intelligence.news[0], title: 'UnbrokenExternalTitle'.repeat(35) }],
   } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await selectFeed(page, 'news')
   await expect(page.locator('#news-records')).toContainText('UnbrokenExternalTitle'.repeat(35))
@@ -151,7 +152,7 @@ test('available fresh news remains partial when no aggregate source is fully hea
       { ...intelligence.sources[2], status: 'error', count: 0 },
     ],
   } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Partial sync')
   await selectFeed(page, 'news')
   await expect(page.getByRole('link', { name: /Open discussion record/ })).toBeVisible()
@@ -165,7 +166,7 @@ test('a healthy empty feed is not labelled unavailable when the other source fai
       { ...intelligence.sources[2], status: 'error', count: 0 },
     ],
   } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Partial sync')
   await selectFeed(page, 'news')
   await expect(page.getByText('No cyber news records are available.', { exact: true })).toBeVisible()
@@ -175,11 +176,11 @@ test('a healthy empty feed is not labelled unavailable when the other source fai
 
 test('primary navigation has only brand and section links; feed health stays in intelligence', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   const header = page.locator('.nav-frame')
   await expect(header.locator('.nav-status')).toHaveCount(0)
   await expect(header).not.toContainText('Public feeds connected')
-  await expect(header.locator('.nav-links a')).toHaveCount(5)
+  await expect(header.locator('.nav-links a')).toHaveCount(6)
   await expect(header.locator('a[href="#skills"]')).toHaveCount(0)
   await expect(page.locator('#skills, .skills-grid')).toHaveCount(0)
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')

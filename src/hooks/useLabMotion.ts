@@ -13,7 +13,7 @@ function readPreference() {
 }
 
 /** Decorative motion is independent from the opt-in incident simulation. */
-export function useLabMotion() {
+export function useLabMotion(viewKey?: string | null) {
   const [preferred, setPreferred] = useState(readPreference)
   const [reduced, setReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [hidden, setHidden] = useState(() => document.hidden)
@@ -84,7 +84,7 @@ export function useLabMotion() {
       observer.disconnect()
       document.removeEventListener('focusin', onFocus)
     }
-  }, [enabled])
+  }, [enabled, viewKey])
 
   function toggle() {
     if (reduced) return

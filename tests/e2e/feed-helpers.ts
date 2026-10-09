@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { inspectPublicFeeds } from './workspace-helpers.ts'
 
 export const feedSources = [
   { key: 'kev', name: 'CISA', title: 'Exploited vulnerabilities', records: 'kev-records' },
@@ -32,14 +33,16 @@ export async function openSourceDetails(page: Page) {
 
 /** Keep the original three-source preservation checks meaningful with tabbed rendering. */
 export async function readAllFeedRecords(page: Page) {
-  const selectedId = await page.getByRole('tablist', { name: 'Intelligence sources' })
-    .locator('[aria-selected="true"]').getAttribute('id')
-  const snapshots: Record<string, string[]> = {}
-  for (const source of feedSources) {
-    await selectFeed(page, source.key)
-    snapshots[source.key] = await page.locator(`#${source.records} a`).allTextContents()
-  }
-  const initial = feedSources.find((source) => selectedId === `${source.key}-feed-tab`)!
-  await selectFeed(page, initial.key)
-  return snapshots
+  return inspectPublicFeeds(page, async () => {
+    const selectedId = await page.getByRole('tablist', { name: 'Intelligence sources' })
+      .locator('[aria-selected="true"]').getAttribute('id')
+    const snapshots: Record<string, string[]> = {}
+    for (const source of feedSources) {
+      await selectFeed(page, source.key)
+      snapshots[source.key] = await page.locator(`#${source.records} a`).allTextContents()
+    }
+    const initial = feedSources.find((source) => selectedId === `${source.key}-feed-tab`)!
+    await selectFeed(page, initial.key)
+    return snapshots
+  })
 }

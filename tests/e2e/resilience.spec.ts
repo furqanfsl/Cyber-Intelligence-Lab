@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('a delayed refresh announces busy state without hiding existing records', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   let held: Route | undefined
   await page.route('**/api/live-intel', (route) => { held = route })
@@ -22,7 +22,7 @@ test('a delayed refresh announces busy state without hiding existing records', a
 })
 
 test('manual refresh is disabled until the current request finishes', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   let held: Route | undefined
   let count = 0
@@ -38,7 +38,7 @@ test('manual refresh is disabled until the current request finishes', async ({ p
 
 test('initial network failure can recover through manual refresh', async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.abort('connectionfailed'))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Source error')
   await expect(page.locator('.feed-notice')).toContainText('Could not reach')
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
@@ -52,7 +52,7 @@ test('an initial total upstream outage does not invent records', async ({ page }
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
     ...intelligence, kev: [], news: [], advisories: [], sources: intelligence.sources.map((source) => ({ ...source, status: 'error', count: 0 })),
   } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Source error')
   for (const source of feedSources) {
     await selectFeed(page, source.key)
@@ -68,7 +68,7 @@ test('healthy empty sources remain current without an outage notice', async ({ p
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
     ...intelligence, kev: [], news: [], advisories: [], sources: intelligence.sources.map((source) => ({ ...source, count: 0 })),
   } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await expect(page.locator('.feed-notice')).toHaveCount(0)
   await expect(page.getByText('No CISA records are available.', { exact: true })).toBeVisible()
@@ -79,7 +79,7 @@ test('healthy empty sources remain current without an outage notice', async ({ p
 })
 
 test('an empty failed server snapshot cannot erase cached browser records', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
     ...intelligence, kev: [], news: [], advisories: [], sources: intelligence.sources.map((source) => ({ ...source, status: 'error', count: 0 })),
@@ -98,7 +98,7 @@ test('an empty failed server snapshot cannot erase cached browser records', asyn
 test('a stalled request times out and releases the refresh control', async ({ page }) => {
   await page.clock.install()
   await page.route('**/api/live-intel', () => {})
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-refresh')).toBeDisabled()
   await page.clock.fastForward(20_100)
   await expect(page.locator('.live-status-badge')).toHaveText('Source error')
@@ -110,7 +110,7 @@ test('a stalled request times out and releases the refresh control', async ({ pa
 test('automatic retry recovers a timeout without another click', async ({ page }) => {
   await page.clock.install()
   await page.route('**/api/live-intel', () => {})
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-refresh')).toBeDisabled()
   await page.clock.fastForward(20_100)
   await expect(page.locator('.live-status-badge')).toHaveText('Source error')

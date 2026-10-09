@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
-import type { LiveIntelState } from './lib/live-intel'
 import { useLiveIntel } from './hooks/useLiveIntel'
 import { useLabMotion } from './hooks/useLabMotion'
 import { nextTab } from './lib/keyboard-tabs'
@@ -15,8 +14,11 @@ import { SimulationConsole } from './components/SimulationConsole'
 import { IncidentWorkspace } from './components/IncidentWorkspace'
 import { LogInvestigation } from './components/LogInvestigation'
 import { EndpointMonitor } from './components/EndpointMonitor'
+import { resolveWorkspaceHash, workspaceHash, workspaces } from './lib/workspace-navigation'
+import type { WorkspaceId } from './lib/workspace-navigation'
 import './App.css'
 import './lab-motion.css'
+import './workspace.css'
 
 // Random seeds are for varied teaching fixtures, not secrets or authentication.
 function freshDemoSeed(previous?: number) {
@@ -70,7 +72,12 @@ function severityLabel(severity: Severity) {
 }
 
 function App() {
-  const motion = useLabMotion()
+  const [navigation, setNavigation] = useState(() => {
+    const route = resolveWorkspaceHash(window.location.hash)
+    return { route, visited: new Set<WorkspaceId>(route.workspace ? [route.workspace] : []), sequence: 0 }
+  })
+  const motion = useLabMotion(navigation.route.workspace)
+  const currentRoute = useRef(navigation.route)
 
   const [selectedSeverity, setSelectedSeverity] = useState<'all' | Severity>('all')
   const [session, setSession] = useState(() => createDemoSession(freshDemoSeed()))
@@ -84,11 +91,54 @@ function App() {
   const intel = useLiveIntel()
 
   useEffect(() => {
-    if (!simulationRunning) return
+    const onHashChange = () => {
+      const route = resolveWorkspaceHash(window.location.hash, currentRoute.current.workspace)
+      if (currentRoute.current.workspace === 'training' && route.workspace !== 'training') {
+        // Close the native modal before its opener becomes inert. A view change
+        // pauses replay, but never stops real endpoint monitoring.
+        document.querySelector<HTMLDialogElement>('.incident-workspace[open]')?.close()
+        setWorkspaceOpen(false)
+        setSimulationRunning(false)
+      }
+      setNavigation((previous) => ({
+        route,
+        visited: route.workspace ? new Set([...previous.visited, route.workspace]) : previous.visited,
+        sequence: previous.sequence + 1,
+      }))
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  useEffect(() => {
+    currentRoute.current = navigation.route
+    const { workspace, anchor, skipLink } = navigation.route
+    const title = workspaces.find((item) => item.id === workspace)?.title ?? 'Workspace not found'
+    document.title = `${title} | Cyber Intelligence Lab`
+    const frame = window.requestAnimationFrame(() => {
+      if (skipLink) {
+        document.getElementById('main-content')?.focus()
+        return
+      }
+      const isSubsection = anchor === 'response' || anchor === 'selected-demo-alert' || anchor === 'source-diagnostics'
+      const target = isSubsection ? document.getElementById(anchor) : document.getElementById(`workspace-heading-${workspace ?? 'missing'}`)
+      if (isSubsection) target?.scrollIntoView({ block: 'start', behavior: 'instant' })
+      else window.scrollTo({ top: 0, behavior: 'instant' })
+      // Initial loading must not steal focus from a restored input or deep link.
+      if (navigation.sequence > 0) {
+        if (target && isSubsection) target.tabIndex = -1
+        target?.focus({ preventScroll: true })
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [navigation])
+
+  useEffect(() => {
+    if (!simulationRunning || navigation.route.workspace !== 'training') return
     return createVisibleInterval(() => {
       setSnapshot((current) => advanceSimulationSnapshot(current, session.seed))
     }, SIMULATION_INTERVAL_MS, document)
-  }, [simulationRunning, session.seed])
+  }, [simulationRunning, session.seed, navigation.route.workspace])
 
   function toggleSimulation() {
     if (!simulationStarted) {
@@ -172,14 +222,20 @@ function App() {
 
   return (
     <div className={`site-shell${simulationRunning ? '' : ' simulation-paused'}`} data-motion={motion.enabled ? 'on' : 'off'} data-motion-paused={motion.hidden}>
-      <a className="skip-link" href="#main-content">Skip to content</a>
-      <Navigation />
+      <a className="skip-link" href="#main-content" onClick={(event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+        event.preventDefault()
+        document.getElementById('main-content')?.focus()
+      }}>Skip to content</a>
+      <Navigation active={navigation.route.workspace} />
       <main id="main-content" tabIndex={-1}>
-        <Hero snapshot={snapshot} state={intel} motion={motion} />
-        <EndpointMonitor />
-        <LogInvestigation />
-        <LiveIntelSection liveIntel={intel.data} state={intel} onRefresh={intel.refresh} />
-        <ThreatOperations
+        {navigation.visited.has('overview') && <div className="workspace-view" data-workspace="overview" hidden={navigation.route.workspace !== 'overview'} inert={navigation.route.workspace !== 'overview'}><Overview /></div>}
+        {navigation.visited.has('endpoint') && <div className="workspace-view" data-workspace="endpoint" hidden={navigation.route.workspace !== 'endpoint'} inert={navigation.route.workspace !== 'endpoint'}><WorkspaceHeader workspace="endpoint" /><EndpointMonitor /></div>}
+        {navigation.visited.has('investigation') && <div className="workspace-view" data-workspace="investigation" hidden={navigation.route.workspace !== 'investigation'} inert={navigation.route.workspace !== 'investigation'}><WorkspaceHeader workspace="investigation" /><LogInvestigation /></div>}
+        {navigation.visited.has('live-intel') && <div className="workspace-view" data-workspace="live-intel" hidden={navigation.route.workspace !== 'live-intel'} inert={navigation.route.workspace !== 'live-intel'}><WorkspaceHeader workspace="live-intel" /><LiveIntelSection liveIntel={intel.data} state={intel} onRefresh={intel.refresh} /></div>}
+        {navigation.visited.has('training') && <div className="workspace-view" data-workspace="training" hidden={navigation.route.workspace !== 'training'} inert={navigation.route.workspace !== 'training'}>
+          <WorkspaceHeader workspace="training" motion={motion} />
+          <ThreatOperations
           snapshot={snapshot}
           sessionId={session.id}
           selectedSeverity={selectedSeverity}
@@ -199,79 +255,66 @@ function App() {
           motionEnabled={motion.enabled}
           onToggleSimulation={toggleSimulation}
           onResetSimulation={resetSimulation}
-        />
-        <IncidentResponse selectedAlert={selectedAlert} />
-        <CaseStudies />
+          />
+          <IncidentResponse selectedAlert={selectedAlert} />
+        </div>}
+        {navigation.visited.has('cases') && <div className="workspace-view" data-workspace="cases" hidden={navigation.route.workspace !== 'cases'} inert={navigation.route.workspace !== 'cases'}><WorkspaceHeader workspace="cases" /><CaseStudies /></div>}
+        {navigation.route.workspace === null && <div className="workspace-view" data-workspace="missing"><header className="workspace-page-header"><div className="workspace-page-heading"><h1 id="workspace-heading-missing" tabIndex={-1}>Workspace not found</h1><p className="workspace-description">This link does not match a workspace. Choose a section from the navigation or return to the overview.</p></div></header><a className="button button-primary" href="#overview">Open overview</a></div>}
       </main>
-      <Footer />
-      <IncidentWorkspace incident={workspaceOpen ? selectedAlert : null} onClose={() => setWorkspaceOpen(false)} motionEnabled={motion.enabled} />
+      <Footer workspace={navigation.route.workspace} />
+      <IncidentWorkspace incident={workspaceOpen && navigation.route.workspace === 'training' ? selectedAlert : null} onClose={() => setWorkspaceOpen(false)} motionEnabled={motion.enabled} />
     </div>
   )
 }
 
-function Navigation() {
-  const [active, setActive] = useState('top')
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) if (entry.isIntersecting) setActive(entry.target.id)
-    }, { rootMargin: '-125px 0px -55% 0px', threshold: 0 })
-    document.querySelectorAll('main > section[id]').forEach((section) => observer.observe(section))
-    return () => observer.disconnect()
-  }, [])
+function Navigation({ active }: { active: WorkspaceId | null }) {
   return (
     <header className="nav-frame" aria-label="Primary navigation">
-      <a className="brand" href="#top" aria-label="Cyber Intelligence Lab home"><span className="brand-mark">CIL<span className="brand-period">.</span></span><span>Cyber Intelligence Lab</span></a>
+      <a className="brand" href="#overview" aria-label="Cyber Intelligence Lab home"><span className="brand-mark">CIL<span className="brand-period">.</span></span><span>Cyber Intelligence Lab</span></a>
       <nav className="nav-links" aria-label="Primary navigation">
-        {[['endpoint', 'PC'], ['live-intel', 'Live intel'], ['operations', 'Operations'], ['response', 'Response'], ['cases', 'Cases']].map(([id, label]) => <a key={id} href={`#${id}`} aria-current={active === id ? 'location' : undefined}>{label}</a>)}
+        {workspaces.map(({ id, hash, label }) => <a key={id} href={hash} aria-current={active === id ? 'page' : undefined} onClick={(event) => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+          if (window.location.hash !== hash) return
+          event.preventDefault()
+          window.scrollTo({ top: 0, behavior: 'instant' })
+          document.getElementById(`workspace-heading-${id}`)?.focus({ preventScroll: true })
+        }}>{label}</a>)}
       </nav>
     </header>
   )
 }
 
-function Hero({ snapshot, state, motion }: { snapshot: SimulationSnapshot; state: LiveIntelState; motion: ReturnType<typeof useLabMotion> }) {
-  const available = state.isOnline && (state.status === 'live' || state.status === 'partial')
-    ? state.data?.sources.filter((source) => source.status === 'ok').length ?? 0 : null
-  const count = state.data ? state.data.kev.length + state.data.news.length + (state.data.advisories?.length ?? 0) : null
-  return (
-    <section className="hero-section section-grid" id="top">
-      <div className="hero-copy reveal">
-        <p className="kicker">Independent security engineering</p>
-        <h1><span>Cyber</span>{' '}<span>Intelligence</span>{' '}<span>Lab</span></h1>
-        <p className="hero-subtitle">Real signals.{' '}<br /><strong>Clear next steps.</strong></p>
-        <p className="hero-description">Connect this Windows PC to read actual Defender detections and available security logs. Review the evidence, understand what needs attention and follow safe next steps. No paid AI required.</p>
-        <div className="hero-actions" role="group" aria-label="Primary actions">
-          <a className="button button-primary" href="#endpoint"><span>Monitor this PC</span><span className="button-glyph" aria-hidden="true">↗</span></a>
-          <a className="button button-secondary" href="#investigation"><span>Investigate local logs</span><span className="button-glyph" aria-hidden="true">↗</span></a>
-        </div>
-        <dl className="signal-strip" aria-label="Workspace overview">
-          <div><dt>{available ?? '—'}<span>/3</span></dt><dd>Connected public feeds</dd></div>
-          <div><dt>{count ?? '—'}</dt><dd>{state.status === 'live' && state.isOnline ? 'Retrieved records' : 'Saved records'}</dd></div>
-          <div><dt>05</dt><dd>Scenario families</dd></div>
-        </dl>
-        <p className="hero-disclosure">PC monitoring starts only when you choose Start monitoring. It uses real local telemetry, not the training illustration. No automatic file deletion or security-setting changes.</p>
-      </div>
-      <div className="hero-console reveal delay-1" role="group" aria-label="Illustrative topology and public-source preview">
-        <div className="console-topline">
-          <span><i aria-hidden="true" /> TRAINING ILLUSTRATION / PUBLIC CONTEXT</span>
-          <button className="motion-toggle" type="button" aria-pressed={motion.enabled} disabled={motion.reduced} onClick={motion.toggle} title={motion.reduced ? 'Motion is off to respect your system reduced-motion setting.' : 'Turn decorative motion on or off. Simulation controls are separate.'}>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d={motion.enabled ? 'M5.5 3v10M10.5 3v10' : 'M5 3l7 5-7 5z'} /></svg>
-            Motion {motion.enabled ? 'on' : 'off'}
-          </button>
-        </div>
-        <ThreatMap compact={false} snapshot={snapshot} />
-        <div className="hero-brief">
-          <div className="brief-heading"><span>From the current snapshot</span><a href="#live-intel">Explore feeds <span aria-hidden="true">↗</span></a></div>
-          <div className="brief-items">
-            <article><span>CISA / {state.data?.kev[0]?.id ?? 'Awaiting source'}</span><p>{state.data?.kev[0]?.title ?? 'Public vulnerability records appear after the first successful check.'}</p></article>
-            <article><span>Microsoft / official security updates</span><p>{state.data?.advisories?.[0]?.title ?? 'Publisher security updates appear when the Microsoft source is available.'}</p></article>
-          </div>
-          {state.status !== 'live' && <p className="brief-caveat">{!state.isOnline ? 'Offline. Saved records may be out of date.' : state.data ? 'Some records may be out of date. Check source health below.' : 'Connecting to the public feeds.'}</p>}
-        </div>
-      </div>
-    </section>
-  )
+function WorkspaceHeader({ workspace, motion }: { workspace: WorkspaceId; motion?: ReturnType<typeof useLabMotion> }) {
+  const definition = workspaces.find((item) => item.id === workspace)!
+  return <header className="workspace-page-header">
+    <div className="workspace-page-heading"><h1 id={`workspace-heading-${workspace}`} tabIndex={-1}>{definition.title}</h1><p className="workspace-description">{definition.description}</p></div>
+    {motion && <div className="workspace-header-action"><button className="motion-toggle" type="button" aria-pressed={motion.enabled} disabled={motion.reduced} onClick={motion.toggle} title={motion.reduced ? 'Motion is off to respect your system reduced-motion setting.' : 'Turn decorative motion on or off. Simulation controls are separate.'}>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d={motion.enabled ? 'M5.5 3v10M10.5 3v10' : 'M5 3l7 5-7 5z'} /></svg>
+      Motion {motion.enabled ? 'on' : 'off'}
+    </button></div>}
+  </header>
 }
 
+function Overview() {
+  const tasks = [
+    { hash: '#live-intel', title: 'Live intelligence', description: 'Read official vulnerability and security updates, with public community context.' },
+    { hash: '#operations', title: 'Training', description: 'Practice reviewing fictional alerts, their evidence and proposed responses.' },
+    { hash: '#cases', title: 'Practice cases', description: 'Explore example investigations and illustrative outcomes.' },
+  ]
+  return <section className="workspace-overview" id="overview" aria-labelledby="workspace-heading-overview">
+    <div className="workspace-overview-intro">
+      <p className="kicker">Cyber Intelligence Lab</p>
+      <h1 id="workspace-heading-overview" tabIndex={-1}>Your security workspace.</h1>
+      <p className="workspace-overview-description">Monitor this PC, investigate your logs or explore public security updates. One focused workspace at a time.</p>
+      <div className="workspace-primary-actions" role="group" aria-label="Primary actions">
+        <a className="button button-primary" href="#endpoint"><span>Monitor this PC</span><span className="button-glyph" aria-hidden="true">↗</span></a>
+        <a className="button button-secondary" href="#investigation"><span>Investigate local logs</span><span className="button-glyph" aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+    <div className="workspace-task-list">{tasks.map((task) => <article key={task.hash}><a className="workspace-task-link" href={task.hash}><div><h2>{task.title}</h2><p>{task.description}</p></div><span aria-hidden="true">↗</span></a></article>)}</div>
+    <p className="workspace-overview-note">PC monitoring is opt-in and needs this app running locally on Windows. Imported logs stay in this tab. Public feeds and fictional training are not detections on your PC. No paid AI is required.</p>
+  </section>
+}
 function ThreatOperations({
   snapshot,
   sessionId,
@@ -491,7 +534,7 @@ function ThreatMap({ compact, snapshot, activeRegion }: { compact: boolean; snap
   return (
     <div className={compact ? 'threat-map compact' : 'threat-map'}>
       <div className="map-visual">
-        <div className="map-caption"><span>Illustrative topology</span><span>Not live traffic</span></div>
+        <div className="map-caption"><span>Simulated regions</span><span>Not live traffic</span></div>
         <div className="map-grid"></div>
         <svg className="lab-instrument" viewBox="0 0 72 54" aria-hidden="true">
           <path className="instrument-frame" d="M9 13V5h8M55 5h8v8M63 41v8h-8M17 49H9v-8M32 27h8M36 23v8" />
@@ -715,14 +758,21 @@ function CaseStudies() {
   )
 }
 
-function Footer() {
+function Footer({ workspace }: { workspace: WorkspaceId | null }) {
   return (
     <footer className="footer">
       <div>
         <strong>Cyber Intelligence Lab</strong>
           <span>Local PC evidence. Public-source context. Separate training exercises.</span>
       </div>
-      <a className="button button-primary" href="#top">
+      <a className="button button-primary" href={workspaceHash(workspace)} onClick={(event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+        event.preventDefault()
+        const hash = workspaceHash(workspace)
+        if (window.location.hash !== hash) { window.location.hash = hash; return }
+        window.scrollTo({ top: 0, behavior: 'instant' })
+        document.getElementById(`workspace-heading-${workspace ?? 'missing'}`)?.focus({ preventScroll: true })
+      }}>
         <span>Back to top</span>
         <span className="button-glyph" aria-hidden="true">
           ↑

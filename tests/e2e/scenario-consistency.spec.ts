@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 
 for (const templateId of families) {
   test(`${templateId} updates its complete randomized response dossier rather than just the title`, async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/#operations')
     const session = await readDemoSession(page)
     const incident = session.initialIncidents.find((item) => item.templateId === templateId)!
     const other = session.initialIncidents.find((item) => item.templateId !== templateId)!
@@ -23,7 +23,7 @@ for (const templateId of families) {
 }
 
 test('switching from ransomware to cloud policy never leaves ransomware evidence in the active tab', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const session = await readDemoSession(page)
   const ransomware = session.initialIncidents.find((item) => item.templateId === 'A78-4319')!
   const cloud = session.initialIncidents.find((item) => item.templateId === 'E09-7742')!
@@ -43,7 +43,7 @@ test('switching from ransomware to cloud policy never leaves ransomware evidence
 })
 
 test('every randomized queue severity has a visible word as well as a colored marker', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const session = await readDemoSession(page)
   const rows = page.locator('.queue-row')
   await expect(rows).toHaveCount(families.length)

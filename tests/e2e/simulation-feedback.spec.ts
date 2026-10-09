@@ -16,8 +16,7 @@ async function setHidden(page: Page, hidden: boolean) {
 }
 
 test('Start immediately confirms a running demo, adds events and preserves real intelligence', async ({ page }) => {
-  await page.goto('/')
-  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await page.goto('/#operations')
   const console = page.locator('.simulation-console')
   const status = page.locator('.simulation-status')
   await expect(console).toHaveAttribute('data-state', 'ready')
@@ -44,7 +43,7 @@ test('Start immediately confirms a running demo, adds events and preserves real 
 })
 
 test('visible events advance by one batch with bounded history and no per-tick announcement', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   const status = await page.locator('.simulation-status').textContent()
   for (let batch = 2; batch <= 8; batch++) {
@@ -63,7 +62,7 @@ test('visible events advance by one batch with bounded history and no per-tick a
 })
 
 test('Pause freezes session and event history; Resume continues without a new immediate batch', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await page.clock.fastForward(2600)
   await page.getByRole('button', { name: 'Pause simulation', exact: true }).click()
@@ -84,7 +83,7 @@ test('Pause freezes session and event history; Resume continues without a new im
 })
 
 test('Reset stops an active run, clears its history and allows a fresh immediate start', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await page.clock.fastForward(2600)
   await page.getByRole('button', { name: 'Reset demo', exact: true }).click()
@@ -102,7 +101,7 @@ test('Reset stops an active run, clears its history and allows a fresh immediate
 })
 
 test('hidden tabs freeze simulation with an explicit background state and resume only one timer', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await setHidden(page, true)
   await expect(page.locator('.simulation-console')).toHaveAttribute('data-state', 'background')
@@ -124,7 +123,7 @@ test('hidden tabs freeze simulation with an explicit background state and resume
 
 test('Motion off keeps clear running feedback and numeric events without decorative animations', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Motion on', exact: true }).click()
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await expect(page.locator('.simulation-status')).toContainText('Simulation running')
@@ -137,7 +136,7 @@ test('Motion off keeps clear running feedback and numeric events without decorat
 
 test('system reduced motion preserves immediate simulation feedback with no animations', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/')
+  await page.goto('/#operations')
   await expect(page.getByRole('button', { name: 'Motion off', exact: true })).toBeDisabled()
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await expect(page.locator('.simulation-status')).toContainText('Simulation running')
@@ -149,7 +148,7 @@ test('system reduced motion preserves immediate simulation feedback with no anim
 
 test('simulation controls work from the keyboard and fit the narrowest supported screen', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 })
-  await page.goto('/')
+  await page.goto('/#operations')
   const start = page.getByRole('button', { name: 'Start simulation', exact: true })
   await start.focus()
   await page.keyboard.press('Enter')

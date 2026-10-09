@@ -17,6 +17,11 @@ importing any authorized private records.
 
 ## Browser versus CLI
 
+Open **Logs** in the navigation or use the `#investigation` fragment. Changing
+workspaces retains this tab's investigation and manual review without browser
+storage or uploads. Its hidden controls are not keyboard-focusable. Reload or
+**Clear local dataset** still discards the in-memory investigation.
+
 - **Browser:** analyzes one supplied dataset in memory. Replacing it replaces
   the current investigation. Reloading or clearing it removes the in-memory
   records. The importer sends no records to the backend, an AI provider or public

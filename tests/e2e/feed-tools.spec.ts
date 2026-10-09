@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
 import { feedSources, openSourceDetails, selectFeed } from './feed-helpers.ts'
+import { navigateWorkspace } from './workspace-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
 })
 
 test('snapshot search filters every source without changing health or the selected feed', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   const search = page.getByRole('searchbox', { name: 'Search this snapshot' })
   await search.fill('  cve-2026-12345  ')
   await expect(page.locator('#kev-records a')).toHaveCount(1)
@@ -39,7 +40,7 @@ test('expanded feed reveals all available records and restores compact mode', as
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: {
     ...intelligence, kev, sources: [{ ...intelligence.sources[0], count: 8 }, intelligence.sources[1], intelligence.sources[2]],
   } }))
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('#kev-records a')).toHaveCount(5)
   const expand = page.getByRole('button', { name: 'Show all records', exact: true })
   await expand.click()
@@ -52,8 +53,10 @@ test('expanded feed reveals all available records and restores compact mode', as
 
 test('simulation counters stay coherent and pause without changing live records', async ({ page }) => {
   await page.clock.install()
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  const records = await page.locator('#kev-records a').allTextContents()
+  await navigateWorkspace(page, 'training')
   const total = page.locator('.map-panel .map-readout data')
   await expect(total).toHaveText('9,503')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
@@ -65,15 +68,16 @@ test('simulation counters stay coherent and pause without changing live records'
   await page.getByRole('button', { name: 'Pause simulation', exact: true }).click()
   await page.clock.fastForward(5200)
   await expect(total).toHaveText('9,517')
-  await expect(page.locator('.signal-strip dt').nth(1)).toHaveText('3')
+  await navigateWorkspace(page, 'live-intel')
+  expect(await page.locator('#kev-records a').allTextContents()).toEqual(records)
 })
 
 test('self-hosted fonts load and active navigation reflects the current section', async ({ page }) => {
   await page.goto('/')
   await page.evaluate(() => document.fonts.ready)
   expect(await page.evaluate(() => document.fonts.check('600 16px Manrope') && document.fonts.check('400 12px "IBM Plex Mono"'))).toBe(true)
-  await page.locator('.nav-links a[href="#response"]').click()
-  await expect(page.locator('.nav-links a[href="#response"]')).toHaveAttribute('aria-current', 'location')
+  await page.locator('.nav-links a[href="#operations"]').click()
+  await expect(page.locator('.nav-links a[href="#operations"]')).toHaveAttribute('aria-current', 'page')
   await expect(page.locator('.nav-links a[aria-current]')).toHaveCount(1)
   expect(await page.locator('body').innerText()).not.toContain('\uFFFD')
 })

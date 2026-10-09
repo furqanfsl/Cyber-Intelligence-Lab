@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('each severity keeps selected alert and triage context aligned', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   for (const [severity, count] of [['critical', 1], ['high', 2], ['medium', 1], ['low', 1]] as const) {
     await page.locator('.severity-filter').getByRole('button', { name: severity, exact: true }).click()
     await expect(page.locator('.queue-row')).toHaveCount(count)
@@ -23,7 +23,7 @@ test('a copied brief follows the current selected incident', async ({ page }) =>
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
     writeText: async (text: string) => { document.documentElement.dataset.copiedBrief = text },
   } }))
-  await page.goto('/')
+  await page.goto('/#operations')
   await selectForPageReview(page, page.locator('.queue-row[data-template-id="A78-4319"]'))
   const previousId = await page.locator('.alert-panel').getAttribute('data-incident-id')
   await page.locator('.severity-filter').getByRole('button', { name: 'low', exact: true }).click()
@@ -43,7 +43,7 @@ test('an old pending clipboard write cannot confirm a newly selected incident', 
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
     writeText: () => new Promise<void>((resolve) => { window.addEventListener('finish-demo-copy', () => resolve(), { once: true }) }),
   } }))
-  await page.goto('/')
+  await page.goto('/#operations')
   await selectForPageReview(page, page.locator('.queue-row[data-template-id="A78-4319"]'))
   await page.getByRole('button', { name: 'Copy brief', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Copying…', exact: true })).toBeDisabled()
@@ -55,7 +55,7 @@ test('an old pending clipboard write cannot confirm a newly selected incident', 
 })
 
 test('all artifact tabs expose distinct panels and one tab stop', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const contents = new Set<string>()
   for (const name of ['File', 'Network', 'Process', 'Registry']) {
     await page.getByRole('tab', { name, exact: true }).click()
@@ -69,8 +69,8 @@ test('all artifact tabs expose distinct panels and one tab stop', async ({ page 
   await expect(page.locator('.forensic-panel').getByRole('checkbox')).toHaveCount(0)
 })
 
-test('response opens the selected investigation and back-to-top still navigates', async ({ page }) => {
-  await page.goto('/')
+test('response opens the selected investigation and back-to-top keeps its focused workspace', async ({ page }) => {
+  await page.goto('/#operations')
   const response = page.getByRole('link', { name: 'View response', exact: true })
   const selectedId = await page.locator('.alert-panel').getAttribute('data-incident-id')
   await response.click()
@@ -79,6 +79,6 @@ test('response opens the selected investigation and back-to-top still navigates'
   await page.keyboard.press('Escape')
   await expect(response).toBeFocused()
   await page.getByRole('link', { name: /Back to top/ }).click()
-  await expect(page).toHaveURL(/#top$/)
+  await expect(page).toHaveURL(/#operations$/)
   await expect(page.getByRole('heading', { level: 1 })).toBeInViewport()
 })

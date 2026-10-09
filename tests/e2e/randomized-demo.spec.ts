@@ -35,7 +35,7 @@ async function expectSelectedIncident(page: Page, id: string) {
 }
 
 test('every latest activity row opens its corresponding evidence and response, not an unrelated queue incident', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const session = await readDemoSession(page)
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   for (let batch = 2; batch <= 3; batch++) await page.clock.fastForward(2600)
@@ -57,7 +57,7 @@ test('every latest activity row opens its corresponding evidence and response, n
 })
 
 test('selecting a running activity pauses review and clears a severity filter without losing its report', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.locator('.severity-filter').getByRole('button', { name: 'low', exact: true }).click()
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   const button = page.locator('.simulation-event-list li button').first()
@@ -74,7 +74,7 @@ test('selecting a running activity pauses review and clears a severity filter wi
 
 test('latest activity is keyboard-selectable and touch-sized at 320px', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 })
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   await page.clock.fastForward(2600)
   const buttons = page.locator('.simulation-event-list li button')
@@ -100,7 +100,7 @@ test('latest activity is keyboard-selectable and touch-sized at 320px', async ({
 })
 
 test('a selected generated incident stays pinned with a stable report as new randomized batches arrive', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
   const button = page.locator('.simulation-event-list li button').first()
   const id = (await button.getAttribute('data-incident-id'))!
@@ -122,7 +122,7 @@ test('a selected generated incident stays pinned with a stable report as new ran
 })
 
 test('reset creates a new scenario set with fresh complete reports and no old selected evidence', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const beforeSession = await sessionId(page)
   const beforeIds = await queueIds(page)
   const beforeAssets = await page.locator('.queue-row').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-asset')))
@@ -145,7 +145,7 @@ test('reset creates a new scenario set with fresh complete reports and no old se
 })
 
 test('reload starts a different randomized session while preserving complete severity coverage', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const beforeSession = await sessionId(page)
   const beforeIds = await queueIds(page)
   await page.reload()
@@ -156,7 +156,7 @@ test('reload starts a different randomized session while preserving complete sev
 })
 
 test('New scenario set refreshes complete reports before a simulation has ever started', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const before = await sessionId(page)
   const previousIds = await queueIds(page)
   const regenerate = page.getByRole('button', { name: /New scenario set/ })
@@ -176,7 +176,7 @@ test('regenerating a session invalidates an old pending clipboard result', async
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
     writeText: () => new Promise<void>((resolve) => { window.addEventListener('finish-demo-copy', () => resolve(), { once: true }) }),
   } }))
-  await page.goto('/')
+  await page.goto('/#operations')
   const oldSession = await sessionId(page)
   await page.getByRole('button', { name: 'Copy brief', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Copying…', exact: true })).toBeDisabled()
@@ -193,8 +193,7 @@ test('selecting generated incidents and regenerating demos never changes or refe
     requests++
     return route.fulfill({ json: intelligence })
   })
-  await page.goto('/')
-  await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+  await page.goto('/#operations')
   const records = await readAllFeedRecords(page)
   const sourceCount = requests
   await page.getByRole('button', { name: 'Start simulation', exact: true }).click()
@@ -205,11 +204,11 @@ test('selecting generated incidents and regenerating demos never changes or refe
   await selectForPageReview(page, page.locator('.simulation-event-list li button').first())
   expect(await readAllFeedRecords(page)).toEqual(records)
   expect(requests).toBe(sourceCount)
-  await expect(page.locator('.signal-strip dt').nth(1)).toHaveText('3')
+  expect(Object.values(records).reduce((count, source) => count + source.length, 0)).toBe(3)
 })
 
 test('workspace instructions are actionable keyboard controls for incident, evidence and response', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#operations')
   const select = page.getByRole('button', { name: /Select (?:an )?incident/i })
   await select.focus()
   await page.keyboard.press('Enter')

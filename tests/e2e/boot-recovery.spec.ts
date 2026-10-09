@@ -48,7 +48,7 @@ test('incidental window errors cannot replace an already healthy application', a
     window.dispatchEvent(new Event('unhandledrejection'))
   })
   await page.clock.runFor(9000)
-  await expect(page.getByRole('heading', { name: 'Cyber Intelligence Lab', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your security workspace.', exact: true })).toBeVisible()
   await expect(page.locator('#lab-boot, .app-recovery')).toHaveCount(0)
 })
 

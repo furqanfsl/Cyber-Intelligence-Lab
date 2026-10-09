@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
+import { navigateWorkspace } from './workspace-helpers.ts'
 
 for (const width of [320, 768, 1280]) {
   test(`content and controls stay within their frames at ${width}px`, async ({ page }) => {
@@ -10,11 +11,16 @@ for (const width of [320, 768, 1280]) {
     await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
     const response = await page.goto('/')
     expect(response?.headers()['content-security-policy']).toContain("script-src 'self'")
-    await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+    await expect(page.locator('.workspace-view[data-workspace="overview"]')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 
+    const overview = page.locator('.workspace-view[data-workspace="overview"]')
+    const overviewBox = await overview.boundingBox()
+    const headingBox = await overview.locator('h1').boundingBox()
+    expect(headingBox!.x).toBeGreaterThanOrEqual(overviewBox!.x - 1)
+    expect(headingBox!.x + headingBox!.width).toBeLessThanOrEqual(overviewBox!.x + overviewBox!.width + 1)
+    await navigateWorkspace(page, 'training')
     for (const [parentSelector, childSelector] of [
-      ['.hero-copy', 'h1'],
       ['.forensic-panel', '[role="tab"]'],
       ['.queue-panel', '.severity-filter button'],
       ['.map-panel', '.map-readout'],
@@ -34,6 +40,9 @@ for (const width of [320, 768, 1280]) {
     expect(visual).not.toBeNull()
     expect(counter).not.toBeNull()
     expect(counter!.y).toBeGreaterThanOrEqual(visual!.y + visual!.height - 1)
+    await navigateWorkspace(page, 'live-intel')
+    await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     expect(errors, 'No runtime or resource-policy errors').toEqual([])
   })
 }

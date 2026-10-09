@@ -247,10 +247,10 @@ test('mobile and doubled text remain readable with contained layout and generous
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320)
   const tiny = await section(page).locator('button').evaluateAll((buttons) => buttons.filter((button) => { const rect = button.getBoundingClientRect(); return rect.width < 44 || rect.height < 44 }).map((button) => button.textContent))
   expect(tiny).toEqual([])
-  const heading = section(page).getByRole('heading', { name: 'Understand what your PC reports.' })
+  const heading = page.locator('#workspace-heading-endpoint')
   const initialSize = await heading.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
   await page.evaluate(() => {
-    const sizes = Array.from(document.querySelectorAll<HTMLElement>('#endpoint, #endpoint *')).map((element) => ({ element, size: Number.parseFloat(getComputedStyle(element).fontSize) }))
+    const sizes = Array.from(document.querySelectorAll<HTMLElement>('.workspace-view[data-workspace="endpoint"], .workspace-view[data-workspace="endpoint"] *')).map((element) => ({ element, size: Number.parseFloat(getComputedStyle(element).fontSize) }))
     for (const { element, size } of sizes) element.style.fontSize = `${size * 2}px`
   })
   expect(await heading.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(initialSize * 1.95)

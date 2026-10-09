@@ -51,7 +51,7 @@ function WorkspaceDialog({ incident, onClose, motionEnabled }: Omit<Props, 'inci
       document.body.style.overflow = previousBodyOverflow
       document.body.style.paddingRight = previousBodyPadding
       document.documentElement.style.overflow = previousRootOverflow
-      if (opener?.isConnected) opener.focus({ preventScroll: true })
+      if (opener?.isConnected && opener.getClientRects().length > 0 && !opener.closest('[hidden], [inert]')) opener.focus({ preventScroll: true })
     }
   }, [])
 

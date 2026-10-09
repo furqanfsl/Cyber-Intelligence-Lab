@@ -1,5 +1,6 @@
 import { test, expect, type Download, type Page } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
+import { navigateWorkspace } from './workspace-helpers.ts'
 
 const privateHost = 'private-workstation.example'
 const privateUser = 'private-log-owner'
@@ -111,7 +112,10 @@ test('built-in suspicious and benign samples remain explicitly synthetic and sep
   await expect(eventRows(page)).toHaveCount(10)
   await expect(alertRows(page)).toHaveCount(3)
   await expect(workspace(page)).toContainText(/synthetic/i)
+  await page.locator('.nav-links a[href="#live-intel"]').click()
   await expect(page.locator('#live-intel')).not.toContainText(privateUser)
+  await page.locator('.nav-links a[href="#investigation"]').click()
+  await expect(eventRows(page)).toHaveCount(10)
   await workspace(page).getByRole('button', { name: 'Load benign sample', exact: true }).click()
   await expect(alertRows(page)).toHaveCount(0)
   expect(await eventRows(page).count()).toBeGreaterThan(0)
@@ -147,12 +151,14 @@ for (const connection of ['public API unavailable', 'browser offline'] as const)
       }))
     }
     await openWorkspace(page)
+    await navigateWorkspace(page, 'live-intel')
     if (connection === 'browser offline') {
       await page.context().setOffline(true)
       await expect(page.locator('.live-status-badge')).toHaveText('Offline')
     } else {
       await expect(page.locator('.live-status-badge')).toHaveText('Source error')
     }
+    await navigateWorkspace(page, 'investigation')
     await workspace(page).getByRole('button', { name: 'Load suspicious sample', exact: true }).click()
     await expect(eventRows(page)).toHaveCount(10)
     await expect(alertRows(page)).toHaveCount(3)
@@ -478,12 +484,12 @@ for (const width of [320, 390, 1440]) {
   })
 }
 
-test('all five navigation labels and touch targets remain visible at the narrowest supported width', async ({ page }) => {
+test('all six navigation labels and touch targets remain visible at the narrowest supported width', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 })
   await openWorkspace(page)
   const navigation = page.getByRole('navigation', { name: 'Primary navigation', exact: true })
   const links = navigation.getByRole('link')
-  await expect(links).toHaveCount(5)
+  await expect(links).toHaveCount(6)
   const navigationBox = await navigation.boundingBox()
   expect(navigationBox).not.toBeNull()
   for (const link of await links.all()) {
@@ -510,10 +516,10 @@ test('two-times text scaling keeps local investigation controls and navigation w
   await page.setViewportSize({ width: 390, height: 1000 })
   await openWorkspace(page)
   await importCandidates(page)
-  const heading = workspace(page).getByRole('heading', { name: 'Investigate your own logs.', exact: true })
+  const heading = page.locator('#workspace-heading-investigation')
   const initialSize = await heading.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
   await page.evaluate(() => {
-    const sizes = Array.from(document.querySelectorAll<HTMLElement>('#investigation, #investigation *, .nav-links a'))
+    const sizes = Array.from(document.querySelectorAll<HTMLElement>('.workspace-view[data-workspace="investigation"], .workspace-view[data-workspace="investigation"] *, .nav-links a'))
       .map((element) => ({ element, size: Number.parseFloat(getComputedStyle(element).fontSize) }))
     for (const { element, size } of sizes) element.style.fontSize = `${size * 2}px`
   })

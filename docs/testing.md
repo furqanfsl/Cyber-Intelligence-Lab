@@ -74,6 +74,19 @@ settings changes. Check its entry page with Vite stopped, then start Vite and
 confirm the browser opens the dashboard. A substitute static server or routed
 browser fixture does not verify the actual extension.
 
+## Workspace navigation
+
+Navigation checks cover one visible workspace, direct and legacy fragments,
+browser Back/Forward, reload, unknown destinations, current-page labels and
+focus. Visited hidden views must be inert, retain tab-memory investigations,
+and never trigger Start/Stop collection. Leaving Training must pause replay
+and close a practice dialog without focusing its hidden opener. UI fixtures
+use synthetic imported records and mocked endpoint responses, not real PC logs.
+
+Visual review compares consistent heading/content/footer gutters, desktop and
+320/390px mobile navigation, error states and doubled text. Hidden component
+CSS must not override the wrapper's `hidden` state or extend page height.
+
 ## Own-PC collector tests
 
 `tests/server/endpoint-provider.test.ts` checks the fixed executable/script,

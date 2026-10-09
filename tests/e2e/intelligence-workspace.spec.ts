@@ -1,13 +1,14 @@
 import { expect, test } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
 import { feedSources, openSourceDetails, selectFeed } from './feed-helpers.ts'
+import { navigateWorkspace } from './workspace-helpers.ts'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
 })
 
 test('intelligence opens with CISA only and each source tab controls its correctly labelled panel', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   const tablist = page.getByRole('tablist', { name: 'Intelligence sources' })
   await expect(tablist.getByRole('tab')).toHaveCount(3)
@@ -33,7 +34,7 @@ test('intelligence opens with CISA only and each source tab controls its correct
 })
 
 test('source tabs automatically activate with arrows, Home and End while keeping one tab stop', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   const tablist = page.getByRole('tablist', { name: 'Intelligence sources' })
   const cisa = tablist.getByRole('tab', { name: 'CISA', exact: true })
   await cisa.focus()
@@ -61,7 +62,7 @@ test('source tabs automatically activate with arrows, Home and End while keeping
 })
 
 test('global search exposes per-source matches without auto-switching the selected feed or losing provenance', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   const search = page.getByRole('searchbox', { name: 'Search this snapshot' })
   await search.fill('example-author')
@@ -88,7 +89,7 @@ test('global search exposes per-source matches without auto-switching the select
 })
 
 test('source diagnostics start folded, open by keyboard, and retain timing, health and validation controls', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   const details = page.locator('#source-diagnostics')
   const summary = details.locator(':scope > summary')
@@ -117,7 +118,7 @@ test('changing source, searching and disclosing diagnostics never issues another
   await page.clock.install({ time: new Date('2026-10-07T12:00:00Z') })
   let requests = 0
   await page.route('**/api/live-intel', (route) => { requests++; return route.fulfill({ json: intelligence }) })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   for (const source of [...feedSources, ...feedSources]) await selectFeed(page, source.key)
   await page.getByRole('searchbox', { name: 'Search this snapshot' }).fill('example')
@@ -125,16 +126,17 @@ test('changing source, searching and disclosing diagnostics never issues another
   await expect(page.locator('.source-row')).toHaveCount(3)
   await page.getByRole('button', { name: 'Clear search', exact: true }).click()
   expect(requests).toBe(1)
+  await navigateWorkspace(page, 'training')
   await expect(page.locator('.simulation-console')).toHaveAttribute('data-state', 'ready')
   await expect(page.locator('.simulation-session-count')).toHaveText('+0')
 })
 
 test('the dashboard ends without the removed skills section or a dead skills navigation target', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('#skills, .skills-grid')).toHaveCount(0)
-  await expect(page.locator('.nav-links a')).toHaveCount(5)
+  await expect(page.locator('.nav-links a')).toHaveCount(6)
   await expect(page.locator('a[href="#skills"]')).toHaveCount(0)
-  await expect(page.getByRole('link', { name: /Back to top/ })).toHaveAttribute('href', '#top')
+  await expect(page.getByRole('link', { name: /Back to top/ })).toHaveAttribute('href', '#live-intel')
   await page.getByRole('link', { name: /Back to top/ }).click()
   await expect(page.getByRole('heading', { level: 1 })).toBeInViewport()
 })

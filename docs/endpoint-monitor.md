@@ -36,6 +36,11 @@ or reloading the browser does **not** stop a started monitor. Choose Stop in the
 workspace, or stop this project's server with **Ctrl+C**. Stopping the server
 ends its collection; no Windows service or scheduled task is installed.
 
+Switching to Logs, Live intel or another workspace is not a Stop action. The
+visited PC view remains in tab memory and can keep refreshing its status and
+issuing enabled generic notifications. Return to **PC** to inspect findings or
+stop the collector. Hidden workspace controls are excluded from keyboard focus.
+
 The monitor checks every **30 seconds** after the previous collection finishes.
 Each check queries a recent **15-minute** window; already-seen normalized
 records are deduplicated. Server-retained history is limited to **60 minutes**, with

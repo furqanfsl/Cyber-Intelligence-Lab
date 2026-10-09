@@ -15,7 +15,7 @@ test('going offline retains records, pauses checks, and disables manual refresh'
     requests += 1
     return route.fulfill({ json: intelligence })
   })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await openSourceDetails(page)
   const lastChecked = await refreshField(page, 'Last checked').textContent()
@@ -44,7 +44,7 @@ test('an initially offline browser waits for connectivity before its first sourc
     requests += 1
     return route.fulfill({ json: intelligence })
   })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Offline')
   await openSourceDetails(page)
   await expect(refreshField(page, 'Last checked')).toHaveText('Waiting for first check')
@@ -71,7 +71,7 @@ test('reconnecting makes one immediate check and keeps saved records visible unt
     if (requests === 1) return route.fulfill({ json: intelligence })
     pending = route
   })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await context.setOffline(true)
   await expect(page.locator('.live-status-badge')).toHaveText('Offline')
@@ -104,7 +104,7 @@ test('a successful check advances its timestamp even when the shared snapshot is
     requests += 1
     return route.fulfill({ json: intelligence })
   })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await openSourceDetails(page)
   const lastChecked = await refreshField(page, 'Last checked').textContent()
@@ -136,7 +136,7 @@ test('the countdown leads to an automatic source update without another click', 
     requests += 1
     return route.fulfill({ json: requests === 1 ? intelligence : updated })
   })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await openSourceDetails(page)
   await selectFeed(page, 'news')

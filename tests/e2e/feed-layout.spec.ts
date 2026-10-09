@@ -28,7 +28,7 @@ test.beforeEach(async ({ page }) => {
 
 test('each source uses one full-width panel without reintroducing side-by-side feeds', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('#kev-records a')).toHaveCount(5)
   const workspace = (await page.locator('.live-intel-grid').boundingBox())!
   for (const source of feedSources) {
@@ -46,7 +46,7 @@ test('each source uses one full-width panel without reintroducing side-by-side f
 })
 
 test('source counts distinguish snapshot matches from the selected feed displayed count', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   await expect(page.locator('.intel-results')).toHaveText('28 records in this snapshot')
   await expect(page.locator('#kev-feed-tab')).toHaveAccessibleDescription('8 records')
@@ -71,7 +71,7 @@ test('source counts distinguish snapshot matches from the selected feed displaye
 })
 
 test('every active source header and record stays inside its frame at desktop widths', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('#kev-records a')).toHaveCount(5)
   for (const width of [1101, 1280, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
@@ -90,7 +90,7 @@ test('every active source header and record stays inside its frame at desktop wi
 
 test('the refresh strip scrolls normally and cannot overlap source health', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await expect(page.locator('.live-status-badge')).toHaveText('Sources current')
   const strip = page.locator('.live-status-panel')
   await expect(strip).toHaveCSS('position', 'relative')
@@ -112,7 +112,7 @@ test('the refresh strip scrolls normally and cannot overlap source health', asyn
 
 test('expansion is independent per source and the selected long snapshot is keyboard browsable', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await page.getByRole('button', { name: 'Show all records', exact: true }).click()
   await expect(page.locator('#kev-records a')).toHaveCount(8)
   await selectFeed(page, 'news')
@@ -140,7 +140,7 @@ test('expansion is independent per source and the selected long snapshot is keyb
 })
 
 test('tablet and mobile source tabs and selected records fit without nested scroll areas', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#live-intel')
   for (const width of [1100, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 844 })
     for (const source of feedSources) {
@@ -164,7 +164,7 @@ test('tablet and mobile source tabs and selected records fit without nested scro
 
 test('empty search results do not leave oversized feed bodies', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto('/')
+  await page.goto('/#live-intel')
   await page.getByRole('button', { name: 'Show all records', exact: true }).click()
   await page.getByRole('searchbox', { name: 'Search this snapshot' }).fill('NoMatchingRecordInThisSnapshot')
   await expect(page.locator('.intel-results')).toHaveText('0 matching records across all sources')
