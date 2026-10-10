@@ -345,7 +345,7 @@ class StorageTests(unittest.TestCase):
 @unittest.skipUnless(shutil.which("node"), "Node is optional; required only for cross-engine parity tests.")
 class ParityTests(unittest.TestCase):
     def test_malformed_timezone_and_utc_range_rejected_by_both(self):
-        code = """import fs from 'node:fs'; import {parseLogs} from './src/lib/log-analysis.ts';
+        code = """import fs from 'node:fs'; import {parseLogs} from './app/lib/log-analysis.ts';
 try {parseLogs(fs.readFileSync(0,'utf8'),'case.json');console.log('accepted')}catch{console.log('rejected')}"""
         for value in ("2026-10-09T09:00:00+00:60", "0001-01-01T00:00:00+01:00", "9999-12-31T23:59:59-01:00", "0000-01-01T00:00:00Z"):
             with self.subTest(value=value):
@@ -357,7 +357,7 @@ try {parseLogs(fs.readFileSync(0,'utf8'),'case.json');console.log('accepted')}ca
                     dataset(rows)
 
     def test_actual_typescript_engine_matches_python(self):
-        code = """import fs from 'node:fs'; import {parseLogs,analyzeLogs} from './src/lib/log-analysis.ts';
+        code = """import fs from 'node:fs'; import {parseLogs,analyzeLogs} from './app/lib/log-analysis.ts';
 const data=parseLogs(fs.readFileSync(0,'utf8'),'canonical.json');
 console.log(JSON.stringify({events:data.events,alerts:analyzeLogs(data.events).map(({id,ruleId,title,severity,evidenceIds,firstSeen,lastSeen})=>({id,ruleId,title,severity,evidenceIds,firstSeen,lastSeen}))}));"""
         cases = [json.loads((FIXTURES / name).read_text()) for name in ("suspicious.synthetic.json", "benign.synthetic.json")]

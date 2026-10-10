@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createEndpointMonitor, ENDPOINT_POLL_MS, ENDPOINT_RETENTION_MS } from '../../server/endpoint-monitor.ts'
-import type { EndpointRead, EndpointProvider } from '../../server/endpoint-provider.ts'
+import { createEndpointMonitor, ENDPOINT_POLL_MS, ENDPOINT_RETENTION_MS } from '../../backend/endpoint-monitor.ts'
+import type { EndpointRead, EndpointProvider } from '../../backend/endpoint-provider.ts'
 
 const BASE = Date.parse('2026-10-09T12:00:00.000Z')
 function read(time = BASE): EndpointRead {

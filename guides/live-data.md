@@ -24,7 +24,7 @@ publish more frequently. See the [official KEV data repository](https://github.c
 and [Hacker News search API](https://hn.algolia.com/api).
 
 Microsoft documents its source in the [official Security Updates API repository](https://github.com/microsoft/MSRC-Microsoft-Security-Updates-API).
-Its [Get-MsrcSecurityUpdate documentation](https://github.com/microsoft/MSRC-Microsoft-Security-Updates-API/blob/main/src/MsrcSecurityUpdates/Public/Get-MsrcSecurityUpdate.ps1)
+Its [Get-MsrcSecurityUpdate documentation](https://github.com/microsoft/MSRC-Microsoft-Security-Updates-API/blob/main/app/MsrcSecurityUpdates/Public/Get-MsrcSecurityUpdate.ps1)
 states that an API key is no longer required. The app fetches the fixed
 `https://api.msrc.microsoft.com/cvrf/v3.0/updates` index and applies its own sort and
 limit; it does not download every CVRF document or follow upstream-supplied URLs.

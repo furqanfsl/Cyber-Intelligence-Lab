@@ -4,7 +4,7 @@ import { mkdir, open, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { previewIdentity } from '../server/preview-identity.ts'
+import { previewIdentity } from '../backend/preview-identity.ts'
 
 export const PREVIEW_URL = 'http://127.0.0.1:5173/'
 export const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')

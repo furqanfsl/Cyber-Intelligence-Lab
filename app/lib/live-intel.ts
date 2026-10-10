@@ -1,5 +1,5 @@
-import type { LiveIntelPayload } from '../../shared/live-intel.ts'
-import { CISA_NAME, MSRC_NAME, NEWS_NAME, isMsrcAdvisoryLink } from '../../shared/live-intel.ts'
+import type { LiveIntelPayload } from '../../shared-types/live-intel.ts'
+import { CISA_NAME, MSRC_NAME, NEWS_NAME, isMsrcAdvisoryLink } from '../../shared-types/live-intel.ts'
 import { isAbsoluteTimestamp, isCalendarDate } from './timestamps.ts'
 
 export const DEFAULT_POLL_MS = 60_000

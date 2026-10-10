@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createDemoIncident, createDemoSession } from '../../src/lib/demo-scenarios.ts'
-import { scenarioDetails } from '../../src/data/scenarios.ts'
+import { createDemoIncident, createDemoSession } from '../../app/lib/demo-scenarios.ts'
+import { scenarioDetails } from '../../app/data/scenarios.ts'
 
 const seeds = [0, 1, 42, 65_535, 0x12345678, 0xffffffff]
 const field = (fields, label) => fields.find(([key]) => key === label)?.[1]

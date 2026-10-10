@@ -11,7 +11,7 @@ import {
   acquireStartupLock, dependencyState, ensureDependencies, inspectPreview,
   launchPreview, openBrowser, parseArguments, PREVIEW_URL, PROJECT_ROOT, runCommand,
 } from '../../scripts/dev.mjs'
-import { previewIdentity } from '../../server/preview-identity.ts'
+import { previewIdentity } from '../../backend/preview-identity.ts'
 
 const exec = promisify(execFile)
 const script = fileURLToPath(new URL('../../scripts/dev.mjs', import.meta.url))

@@ -1,10 +1,10 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin, type ViteDevServer, type PreviewServer } from 'vite'
-import { createLiveIntelService } from './server/live-intel.ts'
-import { createLiveIntelMiddleware } from './server/middleware.ts'
-import { previewIdentity } from './server/preview-identity.ts'
-import { createEndpointMonitor } from './server/endpoint-monitor.ts'
-import { createEndpointMiddleware } from './server/endpoint-middleware.ts'
+import { createLiveIntelService } from './backend/live-intel.ts'
+import { createLiveIntelMiddleware } from './backend/middleware.ts'
+import { previewIdentity } from './backend/preview-identity.ts'
+import { createEndpointMonitor } from './backend/endpoint-monitor.ts'
+import { createEndpointMiddleware } from './backend/endpoint-middleware.ts'
 
 function liveIntelPlugin(): Plugin {
   const service = createLiveIntelService()

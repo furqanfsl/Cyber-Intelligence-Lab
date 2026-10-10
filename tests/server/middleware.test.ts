@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import { createServer, IncomingMessage, request, ServerResponse } from 'node:http'
 import { Socket, type AddressInfo } from 'node:net'
 import test, { type TestContext } from 'node:test'
-import { createLiveIntelMiddleware } from '../../server/middleware.ts'
-import type { LiveIntelPayload } from '../../shared/live-intel.ts'
+import { createLiveIntelMiddleware } from '../../backend/middleware.ts'
+import type { LiveIntelPayload } from '../../shared-types/live-intel.ts'
 
 const payload: LiveIntelPayload = { generatedAt: '2026-09-22T00:00:00.000Z', pollAfterMs: 60_000, cacheTtlMs: 60_000, sources: [], kev: [], news: [], advisories: [] }
 

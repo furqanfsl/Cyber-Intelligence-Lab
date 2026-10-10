@@ -13,11 +13,11 @@ A local-first security analyst workspace built with React, TypeScript, and Vite.
 Opening the page does not start collection. The monitor runs only after Start, while this app's local server runs on the Windows PC being monitored. It invokes one fixed read-only PowerShell helper; it cannot accept arbitrary commands, scan, quarantine, delete files, change settings or inspect visitors to a public website. No AI model or containment service is connected. Rule matches are candidates for review, not proof of compromise. Public advisories are not evidence of an attack on your systems.
 
 For investigation, start with actual local records or an authorized export—not public advisories alone.
-See [endpoint monitoring](docs/endpoint-monitor.md) for collection, permissions,
+See [endpoint monitoring](guides/endpoint-monitor.md) for collection, permissions,
 notifications, privacy and coverage limits.
-See the [local log workflow](docs/log-investigation.md) for supported formats,
+See the [local log workflow](guides/log-investigation.md) for supported formats,
 Windows export instructions, private SQLite storage and read-only SQL queries.
-The [real-incident boundaries](docs/real-incident-workflow.md) explain optional
+The [real-incident boundaries](guides/real-incident-workflow.md) explain optional
 future integrations and attribution limits. A VPN exit address is an observed
 connection address, not proof of a person's identity or original IP.
 
@@ -141,7 +141,7 @@ running while using it; opening a browser address does not start the process.
 ### VS Code: Go Live
 
 This is a React/TypeScript app, not a static HTML page. Live Server alone cannot
-compile `src/main.tsx` or provide the live intelligence API; serving the project
+compile `app/main.tsx` or provide the live intelligence API; serving the project
 folder directly cannot start the app correctly.
 
 1. Open this project folder in VS Code and trust it if you trust its contents.
@@ -203,7 +203,7 @@ npm start
 
 After the server starts, open the local address printed in the terminal (default
 port `3000`). This command does not publish the app.
-It serves `dist/`, provides `/api/live-intel`, and enables guarded `/api/endpoint/*` routes only for a local Windows instance. A deliberate non-loopback bind disables PC collection. See [deployment](docs/deployment.md) for environment settings and hosting requirements. Uploading `dist/` alone to a static host will not provide either backend. `npm run preview` is only a local build preview.
+It serves `dist/`, provides `/api/live-intel`, and enables guarded `/api/endpoint/*` routes only for a local Windows instance. A deliberate non-loopback bind disables PC collection. See [deployment](guides/deployment.md) for environment settings and hosting requirements. Uploading `dist/` alone to a static host will not provide either backend. `npm run preview` is only a local build preview.
 
 ## Verify changes
 
@@ -213,7 +213,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`check` runs lint, strict type checking, unit/integration tests, and a production build. Browser checks use mocked public-source and endpoint responses at desktop and mobile sizes; they neither depend on external services nor collect the test machine's private logs. See the [testing guide](docs/testing.md) for individual commands, collector mocks and local Edge support.
+`check` runs lint, strict type checking, unit/integration tests, and a production build. Browser checks use mocked public-source and endpoint responses at desktop and mobile sizes; they neither depend on external services nor collect the test machine's private logs. See the [testing guide](guides/testing.md) for individual commands, collector mocks and local Edge support.
 
 ### Keep the launch instructions working
 
@@ -238,7 +238,37 @@ server or replace the browser tests. Check Go Live both with Vite stopped
 this README aligned with the code, and update the dated record below with the
 actual results. Do not mark unchecked paths as passing.
 
-**Latest launch verification — 2026-10-09 (Cases removal and footer cleanup):**
+**Latest launch verification — 2026-10-10 (interaction audit and clearer folders):**
+
+- **Passed:** documented `npm run dev` restarted this checkout after the folder
+  moves; `npm run verify:local` passed. Edge rendered all five views at
+  1440/390/320px with no page errors or page-wide overflow. All three public
+  sources were healthy when checked. No real collector was started.
+- **Passed:** `npm run check` with lint, strict types, coverage-gated
+  **362 unit/integration checks** and a production build; **418 production
+  desktop/mobile browser checks**; and **49 Python/SQLite checks** with existing
+  Python 3.12.13. The browser suite was rerun after the folder moves.
+- **Inspected:** before/after desktop/mobile, errors and the Training dialog.
+  Audited launchers, navigation/history, filters, paging, reviews, imports,
+  downloads, replay, keyboard controls, clipboard and mocked PC recovery and
+  notification branches. Fixed two response links that intercepted modified
+  clicks. Ordinary click/Enter still opens the selected investigation.
+- **Links:** 31 current public destinations returned HTTP 200 in browser checks;
+  30 showed the expected content. Microsoft's `2024-May` release page instead
+  showed “Mariner Release Notes”, unlike its updates feed. This publisher-side
+  mismatch remains unresolved; upstream availability and content can change.
+  Browser tests separately check exact URLs and isolated new tabs.
+- **Folders:** moved `src`, `server`, `runtime`, `shared` and `docs` to the clearer
+  names explained below. Updated imports, scripts, coverage paths, documentation
+  links and isolated-deployment fixtures; dependency versions are unchanged.
+- **Not verified:** genuine Windows collection/detection, Sysmon, native OS
+  notification delivery, interactive file chooser/`start.bat`, extension restart
+  or VS Code task approval. Live Server was not running on port 5500, so its
+  actual stopped-server guidance and handoff were not retested. Its settings and
+  startup page were unchanged; routed checks are not an extension test.
+  No public deployment was made. Hosted checks are recorded in GitHub Actions.
+
+**Previous launch verification — 2026-10-09 (Cases removal and footer cleanup):**
 
 - **Passed:** documented `npm run dev` reused this checkout. When its preview
   retained an outdated module, stopping only this project's terminal and running
@@ -394,23 +424,37 @@ The server requests only fixed CISA, Microsoft MSRC and Hacker News URLs over HT
 
 These public endpoints require no account or API key. HTTPS establishes the source connection; record validation checks structure, dates, IDs and canonical links. Neither independently proves every claim. Official publisher records are distinct from community posts, and none implies a detected attack on your systems. The interface's **How sources are validated** disclosure links directly to the source feeds.
 
-The client validates responses, prevents overlapping refreshes, and retries failures. It pauses checks while hidden or offline and checks again on return. Last checked, snapshot generation time and the next-check countdown distinguish browser activity from upstream publication dates. **Refresh sources** checks the server cache; it does not bypass upstream rate protection. Search the current snapshot or expand each feed beyond its latest five records. See [live-data freshness and limitations](docs/live-data.md) and the [API contract](docs/api.md).
+The client validates responses, prevents overlapping refreshes, and retries failures. It pauses checks while hidden or offline and checks again on return. Last checked, snapshot generation time and the next-check countdown distinguish browser activity from upstream publication dates. **Refresh sources** checks the server cache; it does not bypass upstream rate protection. Search the current snapshot or expand each feed beyond its latest five records. See [live-data freshness and limitations](guides/live-data.md) and the [API contract](guides/api.md).
 
 ## Project layout
 
-```text
-src/                  Endpoint workspace, log rules/reports, public feeds and demos
-shared/               Public intelligence and private endpoint contracts
-server/               Source transport, endpoint collector, guarded HTTP middleware
-runtime/              Production static and API server
-scripts/              Launcher, smoke checks, fixed read-only Windows helpers
-tools/loglab/         Optional offline Python/SQLite investigation CLI and tests
-preview/              Dependency-free Go Live startup page
-tests/                Unit, integration, and browser regressions
-docs/                 Deployment, testing, and architecture notes
-```
+- **`app`** (formerly `src`): the website's pages, buttons, styling and browser-side analysis.
+- **`backend`** (formerly `server`): public feeds, the read-only PC collector and API security checks.
+- **`app-server`** (formerly `runtime`): serves the built website and its APIs when you run `npm start`.
+- **`shared-types`** (formerly `shared`): the data formats agreed between the website and backend.
+- **`guides`** (formerly `docs`): instructions for monitoring, investigation, testing and deployment.
+- **`scripts`**: project launchers, verification commands and fixed Windows helpers.
+- **`tools/loglab`**: the optional offline Python/SQLite investigation tool.
+- **`preview`**: the small Go Live connection/startup page, not the full app.
+- **`public`**: files served directly, such as fonts and icons.
+- **`tests`**: automated checks for the website and backend.
 
-The dark analyst workspace uses labelled severity colours, keyboard-operable controls and self-hosted OFL-licensed fonts; source links and acknowledgements are in [public/fonts/SOURCES.md](public/fonts/SOURCES.md). Generated art-direction references live in [docs/design-reference](docs/design-reference), outside the production asset directory.
+The standard filenames stay unchanged so their tools can find them:
+`package.json` lists npm commands and dependencies; `package-lock.json` locks
+dependency versions; `index.html` is the web entry page; `vite.config.ts` configures
+the development/build tool; `tsconfig*.json` configures TypeScript; and
+`playwright.config.ts` configures browser tests. `start.bat` remains the Windows
+launcher. `README.md`, `CONTRIBUTING.md` and `SECURITY.md` are the usual project,
+contribution and security documents.
+
+`node_modules`, `dist`, `playwright-report` and `test-results` are generated by
+installation, builds or tests; they are not where you edit the website.
+`.github` contains GitHub automation and `.vscode` contains editor settings.
+The local, uncommitted `memory.md` is continuity notes, not product data.
+The workspace folder itself remains `First_Project`; changing its location
+would disrupt an open editor or running terminal.
+
+The dark analyst workspace uses labelled severity colours, keyboard-operable controls and self-hosted OFL-licensed fonts; source links and acknowledgements are in [public/fonts/SOURCES.md](public/fonts/SOURCES.md). Generated art-direction references live in [guides/design-reference](guides/design-reference), outside the production asset directory.
 
 The public feeds share one active source panel, with CISA, Microsoft and Community
 tabs. CISA opens by default; community reports stay separately labelled and hidden
@@ -424,7 +468,7 @@ the bottom of the window; longer views use normal page flow. **Back to top** is 
 quiet text link on the tool views, not a primary action on Overview.
 Training's **Motion on/off** control manages the decorative scanner and fades;
 device reduced-motion settings always take priority. See the [interface design
-notes](docs/interface-design.md) for inspiration, interaction details and limits.
+notes](guides/interface-design.md) for inspiration, interaction details and limits.
 
 ## Contributing and security
 

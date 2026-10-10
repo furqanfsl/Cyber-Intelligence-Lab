@@ -45,8 +45,8 @@ passing tests, was **96.01% lines, 94.88% branches, and 92.94% functions**. Trea
 that as a dated measurement, not a promise about future runs. The lower gates
 leave room for useful changes while flagging meaningful losses of coverage.
 
-The report includes loaded TypeScript modules in `server/`, `runtime/`, and
-`src/lib/`. Test bodies are excluded. Native coverage measures code actually
+The report includes loaded TypeScript modules in `backend/`, `app-server/`, and
+`app/lib/`. Test bodies are excluded. Native coverage measures code actually
 loaded by these tests: an unimported module will not automatically appear as
 uncovered. Review new modules and add tests for them explicitly. This is **not a
 whole-application coverage percentage**: React components and hooks, CSS, and
@@ -92,6 +92,49 @@ overlaying it. Long views retain their current-view return link.
 Visual review compares consistent heading/content/footer gutters, desktop and
 320/390px mobile navigation, error states and doubled text. Hidden component
 CSS must not override the wrapper's `hidden` state or extend page height.
+
+## Interaction audit
+
+Use this control-to-check map alongside the browser suites; it describes
+coverage, not the result of a particular run:
+
+- **Overview and navigation** (`control-audit`, `workspace-navigation`): click
+  all four launchers and the home brand; check direct/legacy links, Back/Forward,
+  unknown-route recovery, skip/return-link focus and retained hidden-view state
+  without unintended collector mutations.
+- **Startup recovery** (`boot-recovery`, `go-live`): failed or slow modules,
+  render-error reload, bounded connection retry and local-only handoff. Routed
+  fixtures do not replace the actual Live Server verification described above.
+- **Training** (`simulation-feedback`, `randomized-demo`,
+  `interaction-regressions`, `incident-workspace`, `control-audit`): replay
+  Start/Pause/Resume, reset/new scenarios, severity and incident selection,
+  clipboard success/denial/pending-write races, keyboard artifact tabs, modal
+  dismissal/focus return and mobile pane jumps. Plain response-link activation
+  opens the selected dossier; modified clicks preserve native link defaults.
+  Motion preferences are checked separately in `lab-motion`.
+- **PC** (`endpoint-monitor`): consent and optional Sysmon selection, Start/Stop
+  failure and explicit retry, Reconnect recovery, pending-request locks,
+  filters/search, both paging directions and analyst reviews. Notification
+  fixtures exercise granted, denied, unavailable, request-error and display-error
+  branches without requesting genuine OS permission or reading private logs.
+- **Logs** (`log-investigation`): bounded atomic imports and error retention,
+  sample loading/download/reimport, search and severity filters, candidate/event
+  paging, per-candidate reviews, redacted Markdown/JSON downloads and clear/reload.
+  Replacement, cancelled selection and same-file reimport have explicit state
+  checks; rule and recorded-command disclosures open by keyboard without
+  executing their content.
+- **Live intel** (`intelligence-workspace`, `feed-tools`, `connectivity`,
+  `control-audit`): arrow/Home/End source tabs, bounded search/Clear,
+  expanded-record and diagnostic disclosures, Refresh and offline recovery.
+  Record and publisher links are clicked against mocked destinations to check
+  exact URLs, isolated new tabs and absent opener/referrer exposure.
+
+These deterministic checks do not prove external link availability, correctness
+of every live record, actual Windows source permissions, malware detection or
+native notification delivery. Live checks must be reported separately and real
+collection requires explicit authorization. This is a targeted interaction
+inventory, not a claim to test every possible execution path or an accessibility
+certification.
 
 ## Own-PC collector tests
 

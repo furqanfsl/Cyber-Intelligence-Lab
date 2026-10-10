@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createLiveIntelService } from '../../server/live-intel.ts'
-import { CACHE_TTL_MS, CISA_NAME, CISA_URL, MSRC_NAME, MSRC_URL, NEWS_NAME, NEWS_URLS } from '../../server/sources.ts'
+import { createLiveIntelService } from '../../backend/live-intel.ts'
+import { CACHE_TTL_MS, CISA_NAME, CISA_URL, MSRC_NAME, MSRC_URL, NEWS_NAME, NEWS_URLS } from '../../backend/sources.ts'
 import { advisoryRecord, kevRecord, newsRecord } from './fixtures.ts'
 
 function successfulData(url: string) {

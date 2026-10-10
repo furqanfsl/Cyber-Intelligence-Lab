@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { EndpointClientError, isEndpointLocalHostname, openEndpointSession, readEndpointStatus, startEndpointMonitor, stopEndpointMonitor, validateEndpointSnapshot } from '../../src/lib/endpoint-client.ts'
+import { EndpointClientError, isEndpointLocalHostname, openEndpointSession, readEndpointStatus, startEndpointMonitor, stopEndpointMonitor, validateEndpointSnapshot } from '../../app/lib/endpoint-client.ts'
 
 const token = 'a'.repeat(64) // Explicit local test fixture, never a real session token.
 function snapshot() {

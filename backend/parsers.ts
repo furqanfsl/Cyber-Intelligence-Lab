@@ -1,4 +1,4 @@
-import { isMsrcAdvisoryId, type AdvisoryItem, type KevItem, type NewsItem } from '../shared/live-intel.ts'
+import { isMsrcAdvisoryId, type AdvisoryItem, type KevItem, type NewsItem } from '../shared-types/live-intel.ts'
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

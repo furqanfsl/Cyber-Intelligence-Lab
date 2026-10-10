@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { cisaCatalogSearchUrl, mergeNews, parseAdvisories, parseKev, parseNews } from '../../server/parsers.ts'
+import { cisaCatalogSearchUrl, mergeNews, parseAdvisories, parseKev, parseNews } from '../../backend/parsers.ts'
 import { advisoryRecord, kevRecord, newsRecord } from './fixtures.ts'
 
 test('CISA rejects malformed envelopes rather than reporting a healthy empty source', () => {

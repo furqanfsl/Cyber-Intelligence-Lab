@@ -5,7 +5,7 @@ import { PassThrough } from 'node:stream'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { win32 } from 'node:path'
-import { createEndpointProvider, parseEndpointRead } from '../../server/endpoint-provider.ts'
+import { createEndpointProvider, parseEndpointRead } from '../../backend/endpoint-provider.ts'
 
 const since = '2026-10-09T11:45:00.000Z'
 const until = '2026-10-09T12:00:00.000Z'

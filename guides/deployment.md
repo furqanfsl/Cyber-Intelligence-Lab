@@ -22,15 +22,15 @@ server refuses to start without a built `dist/index.html`; rebuild after changin
 the frontend. `npm run dev` is for development and `npm run preview` is for local
 build checks, not the production entry point.
 
-The deployable tree must contain `dist/`, `runtime/`, `server/`, `shared/`,
-`src/lib/log-analysis.ts`, `scripts/`, and `package.json`. Keep the directory
+The deployable tree must contain `dist/`, `app-server/`, `backend/`, `shared-types/`,
+`app/lib/log-analysis.ts`, `scripts/`, and `package.json`. Keep the directory
 structure intact. The shared local detection engine remains source TypeScript;
 the optional Windows collector resolves its fixed script relative to its module,
 not the current working directory. The runtime and source
 adapters use Node built-ins and do not require Vite or a separate framework to
 serve requests. Dependency installation and TypeScript are still needed in the
 build environment.
-The entry point resolves `dist/` relative to `runtime/server.ts`, not the process
+The entry point resolves `dist/` relative to `app-server/server.ts`, not the process
 working directory. A supervisor can launch the intact deployment tree from a
 different directory without exposing that directory's files.
 

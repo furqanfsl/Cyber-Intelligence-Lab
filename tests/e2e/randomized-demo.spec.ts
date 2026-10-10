@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { intelligence } from './fixtures.ts'
-import { createDemoIncident } from '../../src/lib/demo-scenarios.ts'
+import { createDemoIncident } from '../../app/lib/demo-scenarios.ts'
 import { expectCompleteDossier, readDemoSession, selectForPageReview } from './demo-helpers.ts'
 import { readAllFeedRecords } from './feed-helpers.ts'
 

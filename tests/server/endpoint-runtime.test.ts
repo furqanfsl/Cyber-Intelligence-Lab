@@ -5,8 +5,8 @@ import { request, type IncomingHttpHeaders } from 'node:http'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join, relative, sep } from 'node:path'
 import test, { type TestContext } from 'node:test'
-import { createAppServer } from '../../runtime/server.ts'
-import { createEndpointMiddleware } from '../../server/endpoint-middleware.ts'
+import { createAppServer } from '../../app-server/server.ts'
+import { createEndpointMiddleware } from '../../backend/endpoint-middleware.ts'
 
 const TOKEN = 'b'.repeat(64)
 const CLIENT = { 'x-cyber-lab-endpoint-client': '1' }

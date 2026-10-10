@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import type { EndpointSnapshot } from '../../shared/endpoint.ts'
+import type { EndpointSnapshot } from '../../shared-types/endpoint.ts'
 import { intelligence } from './fixtures.ts'
 
 // Browser fixtures exercise presentation only. They never read the test machine's logs.
@@ -27,19 +27,19 @@ function findings(): EndpointSnapshot {
 type Calls = { path: string; method: string; body: string | null; headers: Record<string, string> }[]
 async function fixture(page: Page, initial: EndpointSnapshot = idle()) {
   let current = initial
-  let failed = false
+  const failures = new Set<string>()
   const calls: Calls = []
   await page.route('**/api/live-intel', (route) => route.fulfill({ json: intelligence }))
   await page.route('**/api/endpoint/*', async (route) => {
     const request = route.request(); const path = new URL(request.url()).pathname.split('/').at(-1)!
     calls.push({ path, method: request.method(), body: request.postData(), headers: request.headers() })
-    if (failed && path === 'status') return route.fulfill({ status: 503, json: { code: 'endpoint_unavailable', message: 'PRIVATE-ERROR-MUST-NOT-LEAK' } })
+    if (failures.has(path)) return route.fulfill({ status: 503, json: { code: 'endpoint_unavailable', message: 'PRIVATE-ERROR-MUST-NOT-LEAK' } })
     if (path === 'session') return route.fulfill({ json: { token, platform: 'windows', available: true } })
     if (path === 'start') { current = findings(); current.includeSysmon = Boolean(request.postDataJSON()?.includeSysmon) }
     if (path === 'stop') current = { ...idle(), status: 'stopped' }
     return route.fulfill({ json: current })
   })
-  return { calls, set: (value: EndpointSnapshot) => { current = value }, fail: () => { failed = true } }
+  return { calls, set: (value: EndpointSnapshot) => { current = value }, fail: (path = 'status') => { failures.add(path) }, recover: () => { failures.clear() } }
 }
 const section = (page: Page) => page.locator('#endpoint')
 async function open(page: Page) { await page.goto('/#endpoint'); await expect(section(page).getByRole('heading', { name: 'Understand what your PC reports.' })).toBeVisible(); await expect(section(page).getByRole('button', { name: 'Reconnect local service' })).toBeEnabled() }
@@ -164,12 +164,129 @@ test('queue filters, searches and pagination retain honest categories', async ({
   const value = findings(); value.findings.push(...Array.from({ length: 12 }, (_, index) => ({ ...value.findings[1], id: `fixture-extra-${index}`, title: `Explicit browser fixture extra ${index}` })))
   await fixture(page, value); await open(page)
   await expect(rows(page)).toHaveCount(10)
+  await expect(section(page).getByRole('button', { name: 'Previous findings' })).toBeDisabled()
   await section(page).getByRole('button', { name: 'Next findings' }).click(); await expect(rows(page)).toHaveCount(4)
+  await expect(section(page).getByRole('button', { name: 'Next findings' })).toBeDisabled()
+  await section(page).getByRole('button', { name: 'Previous findings' }).click(); await expect(rows(page)).toHaveCount(10)
+  await expect(section(page).locator('.endpoint-pagination')).toContainText('Page 1 of 2')
   await section(page).getByRole('button', { name: 'Defender', exact: true }).click(); await expect(rows(page)).toHaveCount(1)
   await section(page).getByRole('button', { name: 'Rule matches', exact: true }).click(); await expect(rows(page)).toHaveCount(10)
   await section(page).getByLabel('Search returned findings').fill('extra 11'); await expect(rows(page)).toHaveCount(1)
   await section(page).getByLabel('Search returned findings').fill('not-existing'); await expect(rows(page)).toHaveCount(0)
   await expect(section(page).getByText('No returned findings match this filter.', { exact: true })).toBeVisible()
+})
+
+test('failed Start releases its controls without claiming success and explicit retry preserves consent and coverage', async ({ page }) => {
+  const state = await fixture(page); await open(page); state.fail('start')
+  await section(page).getByLabel('I own or am authorised', { exact: false }).check()
+  await section(page).locator('.endpoint-options > summary').click()
+  await section(page).getByLabel('Also read existing Sysmon', { exact: false }).check()
+  await section(page).getByRole('button', { name: 'Start monitoring this PC', exact: true }).click()
+  await expect(section(page).getByRole('alert')).toContainText('current status is not verified')
+  await expect(section(page).getByText('Monitoring this PC', { exact: true })).toHaveCount(0)
+  await expect(rows(page)).toHaveCount(0)
+  await expect(section(page).getByLabel('I own or am authorised', { exact: false })).toBeChecked()
+  await expect(section(page).getByLabel('Also read existing Sysmon', { exact: false })).toBeChecked()
+  await expect(section(page).getByRole('button', { name: 'Start monitoring this PC', exact: true })).toBeEnabled()
+  expect(await section(page).innerText()).not.toContain('PRIVATE-ERROR-MUST-NOT-LEAK')
+  state.recover()
+  await section(page).getByRole('button', { name: 'Start monitoring this PC', exact: true }).click()
+  await expect(section(page).getByText('Monitoring this PC', { exact: true })).toBeVisible()
+  expect(state.calls.filter((call) => call.path === 'start').map((call) => JSON.parse(call.body!))).toEqual([{ includeSysmon: true }, { includeSysmon: true }])
+})
+
+test('failed Stop keeps evidence and reviews until an explicitly retried Stop is confirmed', async ({ page }) => {
+  const state = await fixture(page, findings()); await open(page); state.fail('stop')
+  await section(page).getByLabel(/Your analyst review/).selectOption('follow-up')
+  await section(page).getByRole('button', { name: 'Stop and clear monitoring' }).click()
+  await expect(section(page).getByRole('alert')).toContainText('Do not assume monitoring has stopped')
+  await expect(section(page).getByText('Monitoring stopped', { exact: true })).toHaveCount(0)
+  await expect(rows(page)).toHaveCount(2)
+  await expect(section(page).getByLabel(/Your analyst review/)).toHaveValue('follow-up')
+  state.recover()
+  await section(page).getByRole('button', { name: 'Stop and clear monitoring' }).click()
+  await expect(section(page).getByText('Monitoring stopped', { exact: true })).toBeVisible()
+  await expect(rows(page)).toHaveCount(0)
+  expect(state.calls.filter((call) => call.path === 'stop')).toHaveLength(2)
+})
+
+test('successful Reconnect restores a failed connection without starting or stopping the collector', async ({ page }) => {
+  const state = await fixture(page, findings()); await open(page); state.fail()
+  await section(page).getByRole('button', { name: 'Reconnect local service' }).click()
+  await expect(section(page).getByRole('button', { name: 'Reconnect to stop monitoring' })).toBeDisabled()
+  state.recover()
+  await section(page).getByRole('button', { name: 'Reconnect local service' }).click()
+  await expect(section(page).getByRole('alert')).toHaveCount(0)
+  await expect(section(page).getByRole('button', { name: 'Stop and clear monitoring' })).toBeEnabled()
+  await expect(section(page).getByText('Monitoring this PC', { exact: true })).toBeVisible()
+  await expect(rows(page)).toHaveCount(2)
+  expect(state.calls.every((call) => call.method === 'GET')).toBe(true)
+  expect(state.calls.filter((call) => call.path === 'session')).toHaveLength(3)
+})
+
+test('a pending Start disables conflicting mutations and polling until its one synthetic request completes', async ({ page }) => {
+  await page.clock.install()
+  const state = await fixture(page); await open(page)
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => { release = resolve })
+  let starts = 0
+  await page.route('**/api/endpoint/start', async (route) => { starts += 1; await gate; await route.fulfill({ json: findings() }) })
+  await section(page).locator('.endpoint-options > summary').click()
+  await section(page).getByLabel('I own or am authorised', { exact: false }).check()
+  await section(page).getByRole('button', { name: 'Start monitoring this PC', exact: true }).click()
+  await expect(section(page).getByRole('button', { name: 'Starting…', exact: true })).toBeDisabled()
+  await expect(section(page).getByRole('button', { name: 'Reconnect local service' })).toBeDisabled()
+  await expect(section(page).getByLabel('I own or am authorised', { exact: false })).toBeDisabled()
+  await expect(section(page).getByLabel('Also read existing Sysmon', { exact: false })).toBeDisabled()
+  await page.clock.fastForward(5100)
+  expect(starts).toBe(1)
+  expect(state.calls.filter((call) => call.path === 'status')).toHaveLength(1)
+  release()
+  await expect(section(page).getByRole('button', { name: 'Stop and clear monitoring' })).toBeEnabled()
+  await expect(rows(page)).toHaveCount(2)
+})
+
+for (const outcome of ['denied', 'unavailable', 'request-error'] as const) {
+  test(`notification ${outcome} keeps the review queue usable and never claims permission`, async ({ page }) => {
+    await page.addInitScript((mode) => {
+      let asked = 0
+      class FixtureNotification {
+        static permission = 'default'
+        static async requestPermission() { asked += 1; if (mode === 'request-error') throw new Error('Explicit fixture rejection'); return 'denied' }
+      }
+      Object.defineProperty(window, 'Notification', { value: mode === 'unavailable' ? undefined : FixtureNotification, configurable: true })
+      Object.assign(window, { fixtureNotificationRequests: () => asked })
+    }, outcome)
+    const state = await fixture(page, findings()); await open(page)
+    await section(page).getByText('Optional notifications while this tab is open', { exact: true }).click()
+    await section(page).getByRole('button', { name: 'Enable tab notifications' }).click()
+    const message = outcome === 'denied' ? 'Notification permission was not granted' : outcome === 'unavailable' ? 'Notifications are unavailable in this browser' : 'Notification permission could not be requested'
+    await expect(section(page).getByText(message, { exact: false })).toBeVisible()
+    await expect(section(page).getByRole('button', { name: 'Disable tab notifications' })).toHaveCount(0)
+    await expect(rows(page)).toHaveCount(2)
+    expect(state.calls.every((call) => call.method === 'GET')).toBe(true)
+    expect(await page.evaluate(() => (window as unknown as { fixtureNotificationRequests(): number }).fixtureNotificationRequests())).toBe(outcome === 'unavailable' ? 0 : 1)
+  })
+}
+
+test('notification display failure directs review to the queue without hiding new findings', async ({ page }) => {
+  await page.clock.install()
+  await page.addInitScript(() => {
+    class FixtureNotification {
+      static permission = 'granted'
+      static async requestPermission() { return 'granted' }
+      constructor() { throw new Error('Explicit fixture display failure') }
+    }
+    Object.defineProperty(window, 'Notification', { value: FixtureNotification, configurable: true })
+  })
+  const value = findings(); const state = await fixture(page, value); await open(page)
+  await section(page).getByText('Optional notifications while this tab is open', { exact: true }).click()
+  await section(page).getByRole('button', { name: 'Enable tab notifications' }).click()
+  value.findings.push({ ...value.findings[0], id: 'fixture-display-failure', title: 'Explicit new browser fixture finding' }); state.set(value)
+  await page.clock.fastForward(5100)
+  await expect(section(page).getByText('Browser notifications could not be displayed. Check the review queue in this tab.', { exact: true })).toBeVisible()
+  await expect(rows(page)).toHaveCount(3)
+  await expect(rows(page).filter({ hasText: 'Explicit new browser fixture finding' })).toBeVisible()
 })
 
 test('failed refresh keeps earlier evidence but marks current protection unknown', async ({ page }) => {

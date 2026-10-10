@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { formatTimestamp } from '../../src/lib/timestamps.ts'
+import { formatTimestamp } from '../../app/lib/timestamps.ts'
 
 test('local source timestamps include an explicit daylight-saving UTC offset', () => {
   const text = formatTimestamp('2026-09-22T12:00:00Z', { locale: 'en-GB', timeZone: 'Europe/London' })

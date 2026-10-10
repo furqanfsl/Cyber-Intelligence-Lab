@@ -10,7 +10,7 @@ has loopback, session and explicit Start/Stop boundaries.
 
 ## Response
 
-The TypeScript contract is [shared/live-intel.ts](../shared/live-intel.ts).
+The TypeScript contract is [shared-types/live-intel.ts](../shared-types/live-intel.ts).
 
 | Field | Meaning |
 | --- | --- |

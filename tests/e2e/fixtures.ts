@@ -1,4 +1,4 @@
-import type { LiveIntelPayload } from '../../shared/live-intel.ts'
+import type { LiveIntelPayload } from '../../shared-types/live-intel.ts'
 
 export const intelligence: LiveIntelPayload = {
   generatedAt: '2026-09-22T12:00:00.000Z',

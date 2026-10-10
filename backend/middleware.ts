@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { LiveIntelPayload } from '../shared/live-intel.ts'
+import type { LiveIntelPayload } from '../shared-types/live-intel.ts'
 
 export function createLiveIntelMiddleware(getPayload: () => Promise<LiveIntelPayload>) {
   return async (request: IncomingMessage, response: ServerResponse, next: () => void) => {

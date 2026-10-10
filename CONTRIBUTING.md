@@ -8,7 +8,7 @@
 
 ## Checks
 
-Run `npm run check` and `npm run test:e2e` before opening a pull request. Install Chromium once with `npx playwright install chromium`. Add regression coverage for changed behavior; see [testing](docs/testing.md).
+Run `npm run check` and `npm run test:e2e` before opening a pull request. Install Chromium once with `npx playwright install chromium`. Add regression coverage for changed behavior; see [testing](guides/testing.md).
 
 For visible changes, inspect desktop and narrow mobile views, keyboard focus, reduced-motion behavior, contrast, and error states. Keep the current visual direction unless the change specifically calls for a redesign.
 
@@ -38,7 +38,7 @@ For visible changes, inspect desktop and narrow mobile views, keyboard focus, re
   Use synthetic provider and PowerShell mocks in automated tests, never genuine
   private Windows logs. Actual local collection needs authorization and must
   not publish source records or personal screenshots.
-- Changes to `shared/endpoint.ts` require matching collector, monitor, strict
+- Changes to `shared-types/endpoint.ts` require matching collector, monitor, strict
   client validation and tests. Keep Defender findings distinct from candidate
   rules; missing coverage and failed reads must not become a clean-PC result.
 - Run the optional offline CLI tests with Python 3.12+ after changing
@@ -47,6 +47,6 @@ For visible changes, inspect desktop and narrow mobile views, keyboard focus, re
 - Never commit API keys, local `.env` files, private incident details, or session notes.
 - Do not add arbitrary-URL fetching or active scanning to the public-source endpoint.
 - Keep provider calls bounded and preserve source attribution and honest stale/error labels.
-- Changes to `shared/live-intel.ts` need matching server, client validation, and tests.
+- Changes to `shared-types/live-intel.ts` need matching server, client validation, and tests.
 
 Use a concise commit subject such as `fix: retain source records during refresh failures`. Explain non-obvious tradeoffs in the body or associated pull request.

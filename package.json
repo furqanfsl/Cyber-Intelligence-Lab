@@ -9,10 +9,10 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "start": "node runtime/server.ts",
+    "start": "node app-server/server.ts",
     "typecheck": "tsc -b && tsc -p tsconfig.tests.json",
     "test": "node --test tests/server/*.test.ts tests/client/*.test.mjs tests/runtime/*.test.ts tests/runtime/*.test.mjs",
-    "test:coverage": "node --experimental-test-coverage --test-coverage-include=\"server/**/*.ts\" --test-coverage-include=\"runtime/**/*.ts\" --test-coverage-include=\"src/lib/**/*.ts\" --test-coverage-lines=90 --test-coverage-branches=85 --test-coverage-functions=85 --test tests/server/*.test.ts tests/client/*.test.mjs tests/runtime/*.test.ts tests/runtime/*.test.mjs",
+    "test:coverage": "node --experimental-test-coverage --test-coverage-include=\"backend/**/*.ts\" --test-coverage-include=\"app-server/**/*.ts\" --test-coverage-include=\"app/lib/**/*.ts\" --test-coverage-lines=90 --test-coverage-branches=85 --test-coverage-functions=85 --test tests/server/*.test.ts tests/client/*.test.mjs tests/runtime/*.test.ts tests/runtime/*.test.mjs",
     "test:e2e": "playwright test",
     "check": "npm run lint && npm run typecheck && npm run test:coverage && npm run build"
   },

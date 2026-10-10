@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createServer, IncomingMessage, request, ServerResponse, type IncomingHttpHeaders } from 'node:http'
 import { Socket, type AddressInfo } from 'node:net'
 import test, { type TestContext } from 'node:test'
-import { createEndpointMiddleware } from '../../server/endpoint-middleware.ts'
+import { createEndpointMiddleware } from '../../backend/endpoint-middleware.ts'
 
 const TOKEN = 'a'.repeat(64)
 const PRIVATE_SNAPSHOT = { running: true, syntheticPrivateMarker: 'synthetic-device-only' }

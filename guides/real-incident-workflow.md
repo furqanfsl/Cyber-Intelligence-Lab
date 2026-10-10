@@ -32,7 +32,7 @@ Keep the directly observed peer address separate from addresses claimed in
 forwarding headers. Accept a proxy-reported client address only when the
 deployment's trusted proxy chain is explicitly configured and verified. A
 header supplied by an arbitrary client is not proof of origin.
-[NGINX's trusted-address configuration](https://nginx.org/en/docs/http/ngx_http_realip_module.html)
+[NGINX's trusted-address configuration](https://nginx.org/en/guides/http/ngx_http_realip_module.html)
 
 Correlations across timestamps, sessions, devices and accounts produce evidence
 and hypotheses—not guaranteed attribution. Shared addresses, clock differences

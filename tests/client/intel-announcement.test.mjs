@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { intelAnnouncement } from '../../src/lib/intel-announcement.ts'
-import { initialIntelState } from '../../src/lib/live-intel.ts'
+import { intelAnnouncement } from '../../app/lib/intel-announcement.ts'
+import { initialIntelState } from '../../app/lib/live-intel.ts'
 
 test('refreshing and first connection have clear distinct announcements', () => {
   assert.equal(intelAnnouncement(initialIntelState), 'Connecting to public intelligence sources.')

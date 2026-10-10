@@ -333,7 +333,7 @@ function ThreatOperations({
         <nav className="workspace-steps" aria-label="Investigation steps">
           <button type="button" onClick={() => { const row = document.querySelector<HTMLButtonElement>('.queue-row[aria-pressed="true"]') ?? document.querySelector<HTMLButtonElement>('.queue-row'); row?.focus(); }}>1. Select an incident</button>
           <button type="button" onClick={onInspect}>2. Review evidence</button>
-          <a href="#response" onClick={(event) => { event.preventDefault(); onInspect() }}>3. Open its response</a>
+          <a href="#response" onClick={(event) => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); onInspect() }}>3. Open its response</a>
         </nav>
       </div>
       <div className="ops-grid reveal delay-1">
@@ -390,7 +390,7 @@ function ThreatOperations({
             </div>
           </dl>
           <div className="action-row">
-            <a className="button button-primary slim" href="#response" onClick={(event) => { event.preventDefault(); onInspect() }}>
+            <a className="button button-primary slim" href="#response" onClick={(event) => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); onInspect() }}>
               View response
             </a>
             <button className="button button-secondary slim" type="button" onClick={onCopyBrief} disabled={copyStatus === 'copying'}>

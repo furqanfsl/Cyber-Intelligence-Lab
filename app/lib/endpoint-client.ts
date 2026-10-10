@@ -1,4 +1,4 @@
-import type { EndpointSnapshot } from '../../shared/endpoint.ts'
+import type { EndpointSnapshot } from '../../shared-types/endpoint.ts'
 
 type JsonObject = Record<string, unknown>
 export type EndpointSession = { token: string; platform: string; available: boolean }

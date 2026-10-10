@@ -1,6 +1,6 @@
 ﻿import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { nextTab } from '../../src/lib/keyboard-tabs.ts'
+import { nextTab } from '../../app/lib/keyboard-tabs.ts'
 const tabs = ['file', 'network', 'process', 'registry']
 test('arrow keys select neighbours and wrap at both ends', () => {
   assert.equal(nextTab(tabs, 'file', 'ArrowRight'), 'network')

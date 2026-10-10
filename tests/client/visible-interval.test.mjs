@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createVisibleInterval } from '../../src/lib/visible-interval.ts'
+import { createVisibleInterval } from '../../app/lib/visible-interval.ts'
 
 function environment(hidden = false) {
   const target = new EventTarget()

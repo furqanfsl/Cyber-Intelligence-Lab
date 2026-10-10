@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createDemoIncident, type DemoIncident } from '../../src/lib/demo-scenarios.ts'
-import type { ArtifactTab } from '../../src/data/scenarios.ts'
+import { createDemoIncident, type DemoIncident } from '../../app/lib/demo-scenarios.ts'
+import type { ArtifactTab } from '../../app/data/scenarios.ts'
 import { readDemoSession } from './demo-helpers.ts'
 import { intelligence } from './fixtures.ts'
 

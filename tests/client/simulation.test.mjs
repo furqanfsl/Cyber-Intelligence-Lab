@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createDemoIncident } from '../../src/lib/demo-scenarios.ts'
+import { createDemoIncident } from '../../app/lib/demo-scenarios.ts'
 import {
   createSimulationSnapshot, advanceSimulationSnapshot,
   SIMULATION_BASE, SIMULATION_BATCH_SIZE, SIMULATION_INTERVAL_MS, SIMULATION_MAX_BATCHES,
-} from '../../src/lib/simulation.ts'
+} from '../../app/lib/simulation.ts'
 
 function advance(seed, batches) {
   let snapshot = createSimulationSnapshot(seed)

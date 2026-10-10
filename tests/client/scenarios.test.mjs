@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { scenarioDetails } from '../../src/data/scenarios.ts'
+import { scenarioDetails } from '../../app/data/scenarios.ts'
 
 const expected = {
   'A78-4319': ['FIN-APP-01', 'T1486', 'Impact'],

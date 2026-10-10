@@ -11,7 +11,7 @@ export const NEWS_URLS = Object.freeze(NEWS_QUERIES.map((query) => {
   return url.toString()
 }))
 
-export { CISA_NAME, NEWS_NAME, MSRC_NAME } from '../shared/live-intel.ts'
+export { CISA_NAME, NEWS_NAME, MSRC_NAME } from '../shared-types/live-intel.ts'
 export const CACHE_TTL_MS = 60_000
 export const POLL_AFTER_MS = 60_000
 const allowedSourceUrls = new Set([CISA_URL, ...NEWS_URLS, MSRC_URL])

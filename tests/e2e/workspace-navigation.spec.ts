@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import type { EndpointSnapshot } from '../../shared/endpoint.ts'
+import type { EndpointSnapshot } from '../../shared-types/endpoint.ts'
 import { intelligence } from './fixtures.ts'
 import { navigateWorkspace, type Workspace } from './workspace-helpers.ts'
 

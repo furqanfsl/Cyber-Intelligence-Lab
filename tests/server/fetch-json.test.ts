@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createJsonLoader } from '../../server/fetch-json.ts'
-import { CISA_URL, MSRC_URL, NEWS_URLS } from '../../server/sources.ts'
+import { createJsonLoader } from '../../backend/fetch-json.ts'
+import { CISA_URL, MSRC_URL, NEWS_URLS } from '../../backend/sources.ts'
 
 test('transport rejects limits that disable bounds or overflow Node timers', () => {
   for (const timeoutMs of [0, -1, 0.5, NaN, Infinity, 2_147_483_648]) {

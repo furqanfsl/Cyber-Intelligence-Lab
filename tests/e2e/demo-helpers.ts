@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test'
-import { createDemoSession, type DemoIncident } from '../../src/lib/demo-scenarios.ts'
-import type { ArtifactTab } from '../../src/data/scenarios.ts'
+import { createDemoSession, type DemoIncident } from '../../app/lib/demo-scenarios.ts'
+import type { ArtifactTab } from '../../app/data/scenarios.ts'
 
 /** Reconstruct the visible exercise ID; no test-only seed or browser hooks. */
 export async function readDemoSession(page: Page) {

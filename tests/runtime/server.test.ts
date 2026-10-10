@@ -5,7 +5,7 @@ import { request, type IncomingMessage, type ServerResponse } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test, type TestContext } from 'node:test'
-import { createAppServer, installShutdownHandlers, readListenOptions } from '../../runtime/server.ts'
+import { createAppServer, installShutdownHandlers, readListenOptions } from '../../app-server/server.ts'
 
 async function fixture(t: TestContext, handler?: (request: IncomingMessage, response: ServerResponse) => void | Promise<void>) {
   const directory = await mkdtemp(join(tmpdir(), 'cyber-lab-runtime-'))

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { DefenderEvent, EndpointCoverage, EndpointEvent, EndpointFinding, EndpointSnapshot } from '../../shared/endpoint.ts'
+import type { DefenderEvent, EndpointCoverage, EndpointEvent, EndpointFinding, EndpointSnapshot } from '../../shared-types/endpoint.ts'
 import { EndpointClientError, openEndpointSession, readEndpointStatus, startEndpointMonitor, stopEndpointMonitor } from '../lib/endpoint-client.ts'
 import './EndpointMonitor.css'
 

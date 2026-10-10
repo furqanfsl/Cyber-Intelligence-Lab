@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { pathToFileURL } from 'node:url'
-import { isLiveIntelPayload } from '../src/lib/live-intel.ts'
+import { isLiveIntelPayload } from '../app/lib/live-intel.ts'
 import { PROJECT_ROOT } from './dev.mjs'
-import { previewIdentity } from '../server/preview-identity.ts'
+import { previewIdentity } from '../backend/preview-identity.ts'
 
 const preview = 'http://127.0.0.1:5173/'
 const goLive = 'http://127.0.0.1:5500/'
@@ -29,7 +29,7 @@ export async function verifyLocal({ includeGoLive = false, fetcher = fetch, log 
   assert.equal(response.headers.get('x-cyber-lab-preview'), previewIdentity(PROJECT_ROOT), 'Port 5173 belongs to a different checkout or an old preview. Stop its terminal and restart this project.')
   assert.ok(html.includes('<title>Cyber Intelligence Lab</title>') && html.includes('/@vite/client'), 'Port 5173 is not this project’s Vite preview.')
   assert.equal(response.headers.get('access-control-allow-origin'), goLive.slice(0, -1), 'Go Live readiness check needs loopback CORS access.')
-  const entry = await (await get(`${preview}src/main.tsx`, /(?:java|ecma)script/)).text()
+  const entry = await (await get(`${preview}app/main.tsx`, /(?:java|ecma)script/)).text()
   assert.ok(entry.includes('createRoot') && !entry.includes('<App />'), 'The React entry was not transformed.')
   const font = await (await get(`${preview}fonts/Manrope-Variable.woff2`, /font\/woff2/)).arrayBuffer()
   assert.ok(font.byteLength > 100, 'The local font is empty.')

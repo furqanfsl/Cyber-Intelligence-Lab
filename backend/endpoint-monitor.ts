@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
-import type { DefenderEvent, EndpointFinding, EndpointSnapshot } from '../shared/endpoint.ts'
-import { analyzeLogs } from '../src/lib/log-analysis.ts'
+import type { DefenderEvent, EndpointFinding, EndpointSnapshot } from '../shared-types/endpoint.ts'
+import { analyzeLogs } from '../app/lib/log-analysis.ts'
 import { createEndpointProvider, type EndpointProvider } from './endpoint-provider.ts'
 
 export const ENDPOINT_POLL_MS = 30_000

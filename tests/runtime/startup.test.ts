@@ -8,21 +8,21 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test, { type TestContext } from 'node:test'
 
-const ENTRY = fileURLToPath(new URL('../../runtime/server.ts', import.meta.url))
+const ENTRY = fileURLToPath(new URL('../../app-server/server.ts', import.meta.url))
 
 async function deployment(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'cyber-lab-deploy-'))
   t.after(() => rm(root, { recursive: true, force: true }))
-  for (const directory of ['runtime', 'server', 'shared']) {
+  for (const directory of ['app-server', 'backend', 'shared-types']) {
     await cp(fileURLToPath(new URL(`../../${directory}/`, import.meta.url)), join(root, directory), { recursive: true })
   }
-  await mkdir(join(root, 'src', 'lib'), { recursive: true })
-  await cp(fileURLToPath(new URL('../../src/lib/log-analysis.ts', import.meta.url)), join(root, 'src', 'lib', 'log-analysis.ts'))
+  await mkdir(join(root, 'app', 'lib'), { recursive: true })
+  await cp(fileURLToPath(new URL('../../app/lib/log-analysis.ts', import.meta.url)), join(root, 'app', 'lib', 'log-analysis.ts'))
   await cp(fileURLToPath(new URL('../../scripts/', import.meta.url)), join(root, 'scripts'), { recursive: true })
   await writeFile(join(root, 'package.json'), JSON.stringify({ type: 'module' }))
   await mkdir(join(root, 'dist'))
   await writeFile(join(root, 'dist', 'index.html'), '<title>Isolated deployment fixture</title>')
-  return join(root, 'runtime', 'server.ts')
+  return join(root, 'app-server', 'server.ts')
 }
 
 test('CLI rejects invalid deployment environment with a safe nonzero exit', () => {

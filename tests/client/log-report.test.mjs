@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { analyzeLogs, parseLogs } from '../../src/lib/log-analysis.ts'
-import { suspiciousFixture, benignFixture } from '../../src/lib/log-fixtures.ts'
-import { createRedactedReport, redactedMarkdown } from '../../src/lib/log-report.ts'
+import { analyzeLogs, parseLogs } from '../../app/lib/log-analysis.ts'
+import { suspiciousFixture, benignFixture } from '../../app/lib/log-fixtures.ts'
+import { createRedactedReport, redactedMarkdown } from '../../app/lib/log-report.ts'
 
 test('reports retain evidence references and mark synthetic provenance without raw identifiers', () => {
   const dataset = parseLogs(JSON.stringify(suspiciousFixture), 'sample.json')

@@ -4,10 +4,10 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { isIP } from 'node:net'
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { createLiveIntelService } from '../server/live-intel.ts'
-import { createLiveIntelMiddleware } from '../server/middleware.ts'
-import { createEndpointMonitor } from '../server/endpoint-monitor.ts'
-import { createEndpointMiddleware } from '../server/endpoint-middleware.ts'
+import { createLiveIntelService } from '../backend/live-intel.ts'
+import { createLiveIntelMiddleware } from '../backend/middleware.ts'
+import { createEndpointMonitor } from '../backend/endpoint-monitor.ts'
+import { createEndpointMiddleware } from '../backend/endpoint-middleware.ts'
 
 type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => void | Promise<void>
 type ServerOptions = { distDir?: string; liveIntelMiddleware?: Middleware; endpointEnabled?: boolean; endpointMiddleware?: Middleware }

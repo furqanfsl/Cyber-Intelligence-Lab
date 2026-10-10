@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { resolveWorkspaceHash, workspaceHash, workspaces } from '../../src/lib/workspace-navigation.ts'
+import { resolveWorkspaceHash, workspaceHash, workspaces } from '../../app/lib/workspace-navigation.ts'
 
 test('five canonical workspaces resolve to distinct views', () => {
   assert.equal(workspaces.length, 5)

@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { verifyLocal } from '../../scripts/verify-local.mjs'
 import { PROJECT_ROOT } from '../../scripts/dev.mjs'
-import { previewIdentity } from '../../server/preview-identity.ts'
-import { CISA_NAME, NEWS_NAME, MSRC_NAME } from '../../shared/live-intel.ts'
+import { previewIdentity } from '../../backend/preview-identity.ts'
+import { CISA_NAME, NEWS_NAME, MSRC_NAME } from '../../shared-types/live-intel.ts'
 
 const exec = promisify(execFile)
 const script = fileURLToPath(new URL('../../scripts/verify-local.mjs', import.meta.url))
@@ -33,7 +33,7 @@ function previewHeaders() {
 function routes(data = payload()) {
   return new Map([
     [preview, () => response(previewHtml, 'text/html; charset=utf-8', previewHeaders())],
-    [`${preview}src/main.tsx`, () => response('import { createRoot } from "react-dom/client"; createRoot(root).render(jsx(App, {}));', 'text/javascript')],
+    [`${preview}app/main.tsx`, () => response('import { createRoot } from "react-dom/client"; createRoot(root).render(jsx(App, {}));', 'text/javascript')],
     [`${preview}fonts/Manrope-Variable.woff2`, () => response(new Uint8Array(101), 'font/woff2')],
     [`${preview}api/live-intel`, () => response(JSON.stringify(data), 'application/json')],
     [goLive, () => response('<p id="launch-status">Checking preview...</p><script src="/launch.js"></script>', 'text/html')],
@@ -61,7 +61,7 @@ function verification({ data, overrides = [] } = {}) {
 test('local verification checks the preview, transformed React entry, self-hosted font and public API', async () => {
   const context = verification()
   await verifyLocal(context.options)
-  assert.deepEqual(context.calls.map(({ url }) => url), [preview, `${preview}src/main.tsx`, `${preview}fonts/Manrope-Variable.woff2`, `${preview}api/live-intel`])
+  assert.deepEqual(context.calls.map(({ url }) => url), [preview, `${preview}app/main.tsx`, `${preview}fonts/Manrope-Variable.woff2`, `${preview}api/live-intel`])
   for (const { request } of context.calls) {
     assert.equal(request.cache, 'no-store')
     assert.equal(request.redirect, 'error')
@@ -92,7 +92,7 @@ test('provider outages are reported honestly but do not fail a valid local start
 })
 
 test('HTTP failures stop verification immediately at the failing resource', async () => {
-  const urls = [preview, `${preview}src/main.tsx`, `${preview}fonts/Manrope-Variable.woff2`, `${preview}api/live-intel`, goLive, `${goLive}launch.css`, `${goLive}launch.js`]
+  const urls = [preview, `${preview}app/main.tsx`, `${preview}fonts/Manrope-Variable.woff2`, `${preview}api/live-intel`, goLive, `${goLive}launch.css`, `${goLive}launch.js`]
   for (const [index, url] of urls.entries()) {
     const context = verification({ overrides: [[url, () => response('unavailable', 'text/plain', {}, 503)]] })
     await assert.rejects(verifyLocal({ ...context.options, includeGoLive: true }), /HTTP 503/)
@@ -103,7 +103,7 @@ test('HTTP failures stop verification immediately at the failing resource', asyn
 })
 
 test('wrong content types are rejected for every preview and Go Live asset', async () => {
-  const urls = [preview, `${preview}src/main.tsx`, `${preview}fonts/Manrope-Variable.woff2`, `${preview}api/live-intel`, goLive, `${goLive}launch.css`, `${goLive}launch.js`]
+  const urls = [preview, `${preview}app/main.tsx`, `${preview}fonts/Manrope-Variable.woff2`, `${preview}api/live-intel`, goLive, `${goLive}launch.css`, `${goLive}launch.js`]
   for (const url of urls) {
     const context = verification({ overrides: [[url, () => response('wrong asset', 'application/octet-stream')]] })
     await assert.rejects(verifyLocal({ ...context.options, includeGoLive: true }), /wrong content type/)
@@ -140,8 +140,8 @@ test('verification rejects another checkout or old preview even when its title, 
 
 test('untransformed React, undersized fonts and invalid API payloads cannot produce a pass', async () => {
   const failures = [
-    [`${preview}src/main.tsx`, () => response('createRoot(root).render(<App />)', 'text/javascript'), /React entry was not transformed/],
-    [`${preview}src/main.tsx`, () => response('export const unrelated = true', 'text/javascript'), /React entry was not transformed/],
+    [`${preview}app/main.tsx`, () => response('createRoot(root).render(<App />)', 'text/javascript'), /React entry was not transformed/],
+    [`${preview}app/main.tsx`, () => response('export const unrelated = true', 'text/javascript'), /React entry was not transformed/],
     [`${preview}fonts/Manrope-Variable.woff2`, () => response(new Uint8Array(100), 'font/woff2'), /local font is empty/],
     [`${preview}api/live-intel`, () => response('{}', 'application/json'), /invalid payload/],
     [`${preview}api/live-intel`, () => response('not json', 'application/json'), /Unexpected token/],

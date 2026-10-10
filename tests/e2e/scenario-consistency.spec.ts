@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import type { ScenarioId } from '../../src/data/scenarios.ts'
+import type { ScenarioId } from '../../app/data/scenarios.ts'
 import { expectCompleteDossier, readDemoSession, selectForPageReview } from './demo-helpers.ts'
 import { intelligence } from './fixtures.ts'
 

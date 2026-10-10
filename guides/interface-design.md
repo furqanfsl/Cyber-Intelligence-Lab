@@ -5,7 +5,7 @@ not their monitoring capabilities:
 
 - [Cloudflare Radar](https://radar.cloudflare.com/security/application-layer):
   explicitly scoped data, clear source context and concise panel headings.
-- [Elastic Security overview](https://www.elastic.co/docs/solutions/security/dashboards/overview-dashboard):
+- [Elastic Security overview](https://www.elastic.co/guides/solutions/security/dashboards/overview-dashboard):
   aligned investigation panels and source-grouped record counts.
 - [Kaspersky Cybermap](https://cybermap.kaspersky.com/):
   a contained visualization with separate controls and clear data-source context.

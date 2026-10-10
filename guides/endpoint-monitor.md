@@ -128,11 +128,11 @@ settings and the browser can delay or suppress delivery. This is not an
 always-on Windows notification service or a guaranteed emergency-alert channel.
 Notification messages should not expose account names, file paths, commands or
 observed addresses on a shared or locked screen.
-[Browser notification behavior](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API)
+[Browser notification behavior](https://developer.mozilla.org/en-US/guides/Web/API/Notifications_API/Using_the_Notifications_API)
 
 ## Private data and the local API
 
-The typed snapshot contract is [`shared/endpoint.ts`](../shared/endpoint.ts).
+The typed snapshot contract is [`shared-types/endpoint.ts`](../shared-types/endpoint.ts).
 
 | Route | Method | Fixed input |
 | --- | --- | --- |

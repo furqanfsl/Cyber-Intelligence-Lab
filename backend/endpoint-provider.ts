@@ -2,8 +2,8 @@ import { spawn as nodeSpawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { DefenderEvent, EndpointCoverage, EndpointDefenderStatus, EndpointEvent } from '../shared/endpoint.ts'
-import { parseLogs } from '../src/lib/log-analysis.ts'
+import type { DefenderEvent, EndpointCoverage, EndpointDefenderStatus, EndpointEvent } from '../shared-types/endpoint.ts'
+import { parseLogs } from '../app/lib/log-analysis.ts'
 
 export type EndpointRead = {
   collectedAt: string

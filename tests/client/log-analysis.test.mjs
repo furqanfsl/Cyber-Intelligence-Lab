@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { analyzeLogs, parseLogs, DETECTION_RULES, MAX_LOG_BYTES, MAX_LOG_RECORDS } from '../../src/lib/log-analysis.ts'
-import { suspiciousFixture, benignFixture } from '../../src/lib/log-fixtures.ts'
+import { analyzeLogs, parseLogs, DETECTION_RULES, MAX_LOG_BYTES, MAX_LOG_RECORDS } from '../../app/lib/log-analysis.ts'
+import { suspiciousFixture, benignFixture } from '../../app/lib/log-fixtures.ts'
 
 const BASE = Date.parse('2026-10-09T09:00:00.000Z')
 const iso = (milliseconds) => new Date(BASE + milliseconds).toISOString()

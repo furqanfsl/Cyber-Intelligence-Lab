@@ -1,6 +1,6 @@
 ﻿import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { boundedPollDelay, createIntelPoller, emptyFeedMessage, intelStatus, isLiveIntelPayload, DEFAULT_POLL_MS, REQUEST_TIMEOUT_MS, RETRY_POLL_MS } from '../../src/lib/live-intel.ts'
+import { boundedPollDelay, createIntelPoller, emptyFeedMessage, intelStatus, isLiveIntelPayload, DEFAULT_POLL_MS, REQUEST_TIMEOUT_MS, RETRY_POLL_MS } from '../../app/lib/live-intel.ts'
 
 function fixture() {
   return {

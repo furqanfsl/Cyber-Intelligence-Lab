@@ -1,4 +1,4 @@
-import type { AdvisoryItem, KevItem, LiveIntelPayload, NewsItem, SourceHealth } from '../shared/live-intel.ts'
+import type { AdvisoryItem, KevItem, LiveIntelPayload, NewsItem, SourceHealth } from '../shared-types/live-intel.ts'
 import { createJsonLoader, type JsonLoader } from './fetch-json.ts'
 import { mergeNews, parseAdvisories, parseKev, parseNews } from './parsers.ts'
 import { CACHE_TTL_MS, CISA_NAME, CISA_URL, MSRC_NAME, MSRC_URL, NEWS_NAME, NEWS_URLS, POLL_AFTER_MS } from './sources.ts'

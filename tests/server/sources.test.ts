@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { CISA_NAME, CISA_URL, MSRC_NAME, MSRC_URL, NEWS_NAME, NEWS_QUERIES, NEWS_URLS, isAllowedSourceUrl } from '../../server/sources.ts'
-import * as contract from '../../shared/live-intel.ts'
+import { CISA_NAME, CISA_URL, MSRC_NAME, MSRC_URL, NEWS_NAME, NEWS_QUERIES, NEWS_URLS, isAllowedSourceUrl } from '../../backend/sources.ts'
+import * as contract from '../../shared-types/live-intel.ts'
 
 test('the fixed source registry cannot be extended or redirected by a consumer', () => {
   assert.equal(Object.isFrozen(NEWS_QUERIES), true)
